@@ -152,15 +152,52 @@ cd ~/v1tamins && git pull
 
 ## Contributing
 
-1. Make changes in your local `~/v1tamins` repo
-2. Test the changes in a project
-3. Commit and push to share with the team
+We welcome contributions! Here's how to get started:
+
+### Fork and Clone
+
+1. Fork the repository on GitHub
+2. Clone your fork locally:
+   ```bash
+   git clone git@github.com:YOUR_USERNAME/v1tamins.git ~/v1tamins
+   cd ~/v1tamins
+   ```
+3. Add the upstream remote:
+   ```bash
+   git remote add upstream git@github.com:v1-io/v1tamins.git
+   ```
+
+### Make Changes
+
+1. Create a new branch for your changes:
+   ```bash
+   git checkout -b feature/my-new-skill
+   ```
+2. Make your changes and test them in a project
+3. Commit your changes with a descriptive message:
+   ```bash
+   git add .
+   git commit -m "Add new skill: my-cool-skill"
+   ```
+
+### Open a Pull Request
+
+1. Push your branch to your fork:
+   ```bash
+   git push origin feature/my-new-skill
+   ```
+2. Go to the [v1tamins repository](https://github.com/v1-io/v1tamins) on GitHub
+3. Click "Compare & pull request"
+4. Fill in a clear title and description of your changes
+5. Submit the pull request for review
+
+### Keeping Your Fork Updated
 
 ```bash
-cd ~/v1tamins
-git add .
-git commit -m "Add new skill: my-cool-skill"
-git push
+git fetch upstream
+git checkout main
+git merge upstream/main
+git push origin main
 ```
 
 ## Requirements
