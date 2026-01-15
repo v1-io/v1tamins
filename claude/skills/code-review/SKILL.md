@@ -19,8 +19,8 @@ Perform a **staff-level PR review** using full repo context, then **post the rev
 
 **Examples:**
 ```bash
-/code-review https://github.com/v1-io/abi/pull/588
-/code-review 588
+/code-review https://github.com/your-org/your-repo/pull/123
+/code-review 123
 ```
 
 ## What It Does
@@ -46,7 +46,7 @@ gh pr diff <PR> --name-only # File list
 For each meaningful changed file:
 - Reads surrounding code (imports, callers, contracts)
 - Searches repo-wide for usage patterns: `rg "<Symbol>" -n`
-- Aligns with ABI architectural rules
+- Aligns with project architectural patterns
 
 ### 4. Review Systematically
 
@@ -94,7 +94,7 @@ One comment per file with actionable suggestions:
 ### Review: `path/to/file` (Importance: Medium)
 
 - **Issue**: <short title>
-- **Why it matters**: <tie to ABI patterns>
+- **Why it matters**: <tie to project patterns>
 - **Suggested change**: <what to do>
 - **Test**: <test to add if applicable>
 ```

@@ -21,7 +21,7 @@ Refactor selected files (or current diff) to align with KISS, DRY, SOLID, and YA
 **Examples:**
 ```bash
 /refactor                              # Refactor current diff
-/refactor services/analyst/core/*.py   # Refactor specific files
+/refactor src/core/*.py                # Refactor specific files
 ```
 
 ## Principles Applied (In Order)

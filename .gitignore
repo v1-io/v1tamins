@@ -13,3 +13,5 @@ Thumbs.db
 # Local overrides
 *.local.json
 *.local
+
+.venv/

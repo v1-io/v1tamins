@@ -27,13 +27,13 @@ Use this after pasting an error message, log output, or describing a failure.
 - Captures expected vs actual behavior and environment/context
 - Pinpoints failing module/function and triggering inputs
 - Notes execution context: service/container, working directory, env vars
-- Confirms `.venv` active and Tilt status
+- Confirms environment is properly configured
 
 ### 2. Trace Root Cause
 - Walks call stack upward until finding first invalid state/data
 - Inspects inputs at each layer (params, config, environment, `cwd`)
 - Adds temporary instrumentation if unclear (prints context to stderr)
-- For test failures: narrows with `commander test <service> --collect-only`, `-k`, etc.
+- For test failures: narrows with `pytest --collect-only`, `-k`, etc.
 - Classifies issue (data, state, logic, integration, configuration)
 - Checks surrounding code and recent changes for regressions
 - Records original trigger and fixes at the source (not symptom)

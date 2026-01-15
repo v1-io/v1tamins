@@ -20,8 +20,8 @@ Write a **concise, implementation-ready PRD** from a Linear ticket or project.
 
 **Examples:**
 ```bash
-/prd HUM-123
-/prd https://linear.app/humm/issue/HUM-123
+/prd ABC-123
+/prd https://linear.app/your-team/issue/ABC-123
 ```
 
 ## What It Does
