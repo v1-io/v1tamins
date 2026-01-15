@@ -9,7 +9,7 @@
   ╚═══╝    ╚═╝    ╚═╝   ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚══════╝
 ```
 
-Daily supplements for healthy code. A shared collection of AI development tools for the Version1 team.
+Daily supplements for healthy code. A shared collection of AI development tools from the Version1 team.
 
 ## What's Inside
 
