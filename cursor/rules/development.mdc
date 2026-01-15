@@ -1,6 +1,6 @@
 ---
-description: Core development principles and environment guidelines
-globs: **/*.py,**/*.ts,**/*.tsx
+description: Core development principles and code quality guidelines
+globs: **/*.py,**/*.ts,**/*.tsx,**/*.js,**/*.jsx
 alwaysApply: true
 ---
 
@@ -22,25 +22,17 @@ Add searchable comments for AI and developers using:
 
 Example:
 ```python
-# AIDEV-NOTE: perf-hot-path; avoid extra allocations (see ADR-24)
+# AIDEV-NOTE: perf-hot-path; avoid extra allocations
 async def render_feed(...):
 ```
 
-## Development Environment
-- Services run in Docker containers managed by Tilt
-- Local backend services defined in `docker-compose.yml`
-- Frontend runs on port 3000 (Next.js)
-- Services auto-reload on code changes
-- Use commander CLI (`tools/commander/commander/cli.py`) for backend operations
-
 ## Logging Standards
-Application uses monitoring with alerting - follow these conventions:
+Follow these conventions for production-ready logging:
 1. **Warning level**: Expected errors (bad inputs, validation failures) - logged but won't raise alerts
 2. **Error level**: Unexpected errors with full stack traces - raises monitoring alerts
 3. **Info level**: Minimal production logging for high-level operations only
 
 ## Testing
-- Use `commander test` instead of pytest directly
-- Frontend: Use `npm run test` or `npm run lint` instead of full builds
 - Mock external calls in unit tests
-- Share mocking functions in `testUtils.ts`
+- Share mocking functions in test utilities
+- Write tests that are independent, isolated, and deterministic

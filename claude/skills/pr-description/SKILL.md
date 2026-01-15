@@ -19,7 +19,7 @@ Create a comprehensive pull request description based on the changes in this bra
 
 **Examples:**
 ```bash
-/pr-description https://github.com/v1-io/abi/pull/123
+/pr-description https://github.com/your-org/your-repo/pull/123
 /pr-description 123
 ```
 

@@ -20,8 +20,8 @@ Fetch code review comments on a PR (from Copilot, bots, or humans), critically e
 
 **Examples:**
 ```bash
-/address-review https://github.com/v1-io/abi/pull/588
-/address-review 588
+/address-review https://github.com/your-org/your-repo/pull/123
+/address-review 123
 ```
 
 ## What It Does

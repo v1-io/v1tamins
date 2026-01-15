@@ -24,9 +24,9 @@ Use this after you've pasted test failure output into the conversation.
 
 1. **Understands ALL Failures**
    - Reads entire test log (pytest / Jest / parallel tests)
-   - Checks "Test Results" summary for ALL failing services (looks for `✗` markers)
-   - Checks "Failed Test Details" for MULTIPLE failing services
-   - Notes ALL services that failed (common, analyst, config, rag_queen, frontend-lint, frontend-tests)
+   - Checks "Test Results" summary for ALL failing tests (looks for `✗` or `FAILED` markers)
+   - Checks "Failed Test Details" for MULTIPLE failing test groups
+   - Notes ALL test groups that failed (backend, frontend, linting, etc.)
    - Creates list of all failures before starting fixes
 
 2. **Fixes EACH Failure**
@@ -37,38 +37,33 @@ Use this after you've pasted test failure output into the conversation.
    - Fixes ALL failures before proceeding
 
 3. **Re-runs Tests for EACH Fix**
-   - Backend: `commander test <service>` (or with `-k` for specific tests)
-   - Frontend: `cd web && npm run lint` or `npm run test`
+   - Backend: `pytest` (or with `-k` for specific tests)
+   - Frontend: `npm run lint` or `npm run test`
    - Verifies each group passes before moving to next
    - Repeats if tests still fail
 
 4. **Re-runs Full Test Suite**
-   - **CRITICAL**: Always re-runs original command (e.g., `scripts/run_parallel_tests.sh`)
+   - **CRITICAL**: Always re-runs original command used to run tests
    - Catches hidden failures or new failures from fixes
    - Only stops when full suite passes with zero failures
 
 ## Important Notes
 
 - Don't stop after fixing one failure - check for multiple failing groups
-- Always re-run full parallel suite after fixes
+- Always re-run full test suite after fixes
 - Parse entire error output - summary AND detailed sections
 
 ## Testing Commands
 
-**Backend (in .venv):**
+**Backend (pytest):**
 ```bash
-commander test <service>              # All unit tests
-commander test <service> -k "pattern" # Specific tests
-commander test <service> --integration # Integration tests
+pytest                              # All unit tests
+pytest -k "pattern"                 # Specific tests
+pytest tests/integration/           # Integration tests
 ```
 
 **Frontend:**
 ```bash
-cd web && npm run lint
-cd web && npm run test -- --all --ci=false --watchAll=false
-```
-
-**Full Suite:**
-```bash
-scripts/run_parallel_tests.sh
+npm run lint
+npm run test
 ```

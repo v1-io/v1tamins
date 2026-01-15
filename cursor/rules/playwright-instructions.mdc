@@ -1,9 +1,0 @@
----
-description: Whenever using the Playwright MCP or Browser
-alwaysApply: false
----
-You can access the application locally with the Playwright MCP server:
-
-1) confirm that tilt is up and the web service is running on port 3000
-2) Using the Playwright MCP server, you can access the application at http://localhost:3000.  For authentication, you can use the TEST_USER (test@version1.io) and TEST_PASSWORD (3BqbFL3aB688!ZH) environment variables.
-3) Storybook runs on http://localhost:6006 for component previews.

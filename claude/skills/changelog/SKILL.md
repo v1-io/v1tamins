@@ -21,7 +21,7 @@ Generate a changelog for recent changes by reviewing merged PRs since the last c
 ## What It Does
 
 1. **Finds Latest Changelog**
-   - Checks `docs/internal/changelog/` folder
+   - Checks your changelog directory (e.g., `docs/internal/changelog/` or `$CHANGELOG_DIR`)
    - Identifies most recent changelog by date in filename
 
 2. **Fetches Recent PRs**
@@ -78,5 +78,5 @@ Optimized query execution engine reduces average query time by 60% for large dat
 ## Notes
 
 - Requires GitHub CLI (`gh`) to be installed and authenticated
-- Changelog saved to `docs/internal/changelog/YYYY-MM-DD.md`
+- Changelog saved to your changelog directory (e.g., `docs/internal/changelog/YYYY-MM-DD.md`)
 - Focuses on user impact, not technical implementation details
