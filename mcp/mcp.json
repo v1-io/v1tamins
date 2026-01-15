@@ -1,0 +1,55 @@
+{
+  "mcpServers": {
+    "Linear": {
+      "type": "sse",
+      "url": "https://mcp.linear.app/sse"
+    },
+    "LangSmith": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "langsmith-mcp-server"
+      ],
+      "env": {
+        "LANGSMITH_API_KEY": "${LANGSMITH_API_KEY}"
+      }
+    },
+    "Postman": {
+      "type": "http",
+      "url": "https://mcp.postman.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${POSTMAN_API_KEY}"
+      }
+    },
+    "Notion": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@notionhq/notion-mcp-server"
+      ]
+    },
+    "Playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest"
+      ]
+    },
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "brave-search": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-brave-search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+      }
+    }
+  }
+}

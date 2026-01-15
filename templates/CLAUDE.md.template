@@ -1,0 +1,65 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+**Client**: [Client Name](https://client-website.com) — Brief client description
+**Consultant**: [Version1](https://www.version1.io) — AI/ML engineering consultancy
+**Engagement**: Brief engagement description
+
+<!-- Describe what we're building and why -->
+
+### Project Phases
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| **Phase 0** | Discovery & Technical Design | Current |
+| **Phase 1** | MVP Implementation | Upcoming |
+| **Phase 2** | Deployment & Hardening | Upcoming |
+| **Phase 3** | Stabilization & Handoff | Upcoming |
+
+**Project Management**: [Linear](https://linear.app/v1io/project/PROJECT_ID)
+
+## Development Commands
+
+```bash
+# Environment setup
+pip install -r requirements.txt  # or npm install
+
+# Run tests
+pytest  # or npm test
+
+# Run locally
+python main.py  # or npm run dev
+```
+
+## Architecture
+
+<!-- Describe the system architecture, data flow, key components -->
+
+### Directory Structure
+```
+project-name/
+├── src/                # Source code
+├── tests/              # Test files
+├── docs/               # Documentation
+├── scripts/            # Utility scripts
+└── CLAUDE.md
+```
+
+### External Integrations
+<!-- List APIs, services, databases -->
+- **Service**: Description
+
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/main.py` | Application entry point |
+| `docs/proposal.docx` | Engagement proposal |
+
+## Notes
+
+- Environment variables in `.env`
+- All code transfers to client-owned repository upon completion

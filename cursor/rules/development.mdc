@@ -1,0 +1,46 @@
+---
+description: Core development principles and environment guidelines
+globs: **/*.py,**/*.ts,**/*.tsx
+alwaysApply: true
+---
+
+# Development Guidelines
+
+## Code Style & Quality
+- Keep changes concise and focused on the specific task
+- Use comments only to explain complex logic, not obvious code
+- Don't modify unrelated code
+- Keep cognitive complexity of functions under 15
+
+## AI Development Comments
+Add searchable comments for AI and developers using:
+- `AIDEV-NOTE:` for important implementation notes (≤120 chars)
+- `AIDEV-TODO:` for future tasks
+- `AIDEV-QUESTION:` for clarifications needed
+
+**Important:** Always check for existing `AIDEV-*` comments before making changes and update them when modifying related code. Never remove `AIDEV-NOTE`s without explicit instruction.
+
+Example:
+```python
+# AIDEV-NOTE: perf-hot-path; avoid extra allocations (see ADR-24)
+async def render_feed(...):
+```
+
+## Development Environment
+- Services run in Docker containers managed by Tilt
+- Local backend services defined in `docker-compose.yml`
+- Frontend runs on port 3000 (Next.js)
+- Services auto-reload on code changes
+- Use commander CLI (`tools/commander/commander/cli.py`) for backend operations
+
+## Logging Standards
+Application uses monitoring with alerting - follow these conventions:
+1. **Warning level**: Expected errors (bad inputs, validation failures) - logged but won't raise alerts
+2. **Error level**: Unexpected errors with full stack traces - raises monitoring alerts
+3. **Info level**: Minimal production logging for high-level operations only
+
+## Testing
+- Use `commander test` instead of pytest directly
+- Frontend: Use `npm run test` or `npm run lint` instead of full builds
+- Mock external calls in unit tests
+- Share mocking functions in `testUtils.ts`

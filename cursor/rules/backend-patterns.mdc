@@ -1,0 +1,62 @@
+---
+description: Backend service architecture patterns and configuration management
+globs: services/*/routers/**/*.py,services/*/core/**/*.py,services/config/api/**/*.py,**/main.py,**/*dependencies.py
+alwaysApply: false
+---
+
+# Backend Service Patterns
+
+## API Endpoint Structure
+When adding new API endpoints:
+1. **Routes**: Add FastAPI routers in `services/{service}/routers/`
+2. **Models**: Use shared Pydantic models in `services/common/lib/models/`
+3. **Core Logic**: Implement business logic in `services/{service}/core/`
+4. **Dependencies**: Use FastAPI dependency injection for clients and database sessions
+
+## Hierarchical API Design
+Use consistent hierarchical patterns with singular naming:
+```
+/api/data-source/{dataSourceId}/
+/api/data-source/{dataSourceId}/database/{databaseId}/
+/api/data-source/{dataSourceId}/database/{databaseId}/schema/{schemaId}/table/{tableId}/
+```
+
+**Requirements:**
+- Always use singular naming: `/data-source` not `/data-sources`
+- Validate complete parent hierarchy in endpoints
+- Use centralized validation functions from `services/config/api/lib/validation.py`
+- Avoid double authentication - use app-level dependencies only
+
+## Configuration Management
+**Preferred approach:**
+1. **Centralized Config Service**: Fetch config from `services/config/api`
+2. **Environment Variables**: For startup essentials (config service URL, env context)
+3. **Loading Point**: Configure dependencies in `main.py` or dedicated dependency files
+
+**Avoid:** Hardcoded secrets or disparate config files per service
+
+## Config Service Models
+When working with `services/config`:
+1. **Structure**: Models in `api/models/`, routes in `api/routes/`
+2. **Nested URLs**: `/data-sources/{id}/configs` not flat structures
+3. **Timestamps**: Always update `updated_at` on PUT/PATCH
+4. **Imports**: Add new models to both:
+   - `migrations/env.py` (model list)
+   - `tests/conftest.py` (imports section)
+5. **Testing**: Use `commander test` not pytest directly
+6. **Relationships**: Import related models at runtime to avoid resolution errors
+
+## Authentication Pattern
+```python
+# ✅ CORRECT - Single app-level auth
+async def endpoint(
+    db: AsyncSession = Depends(get_session),
+):
+
+# ❌ WRONG - Duplicate auth dependencies
+async def endpoint(
+    db: AsyncSession = Depends(get_session),
+    user_id: UUID = Depends(get_current_user_id),
+    _: bool = Depends(permission_checker)
+):
+```
