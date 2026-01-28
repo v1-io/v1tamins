@@ -182,17 +182,74 @@ def preprocess_markdown(md_text):
     """Fix common GFM constructs that Python markdown doesn't handle.
 
     - Ensure blank line before tables (Python markdown requires it, GFM doesn't)
+    - Ensure blank line before lists (both * and - markers)
+    - Convert any list indentation to 4-space (Python markdown requires 4)
     """
     lines = md_text.split("\n")
     result = []
+
+    # Pattern to match list items and capture their indentation
+    list_pattern = re.compile(r"^(\s*)([-*]|\d+\.)\s+(.*)$")
+
+    def is_list_item(line):
+        return list_pattern.match(line) is not None
+
+    def is_table_row(line):
+        return re.match(r"^\|.+\|$", line.strip()) is not None
+
+    # First pass: detect the indent unit used in the document
+    indent_unit = 4  # default
+    indents = []
+    for line in lines:
+        match = list_pattern.match(line)
+        if match and match.group(1):
+            indents.append(len(match.group(1)))
+    if indents:
+        # Find the smallest non-zero indent (the base unit)
+        min_indent = min(indents)
+        if min_indent > 0:
+            indent_unit = min_indent
+
+    def normalize_list_indent(line):
+        """Convert indentation to 4-space based on detected indent unit."""
+        match = list_pattern.match(line)
+        if not match:
+            return line
+        indent = match.group(1)
+        marker = match.group(2)
+        content = match.group(3)
+        if indent:
+            spaces = len(indent)
+            # Calculate nesting level based on detected indent unit
+            level = spaces // indent_unit
+            new_indent = "    " * level
+            return f"{new_indent}{marker} {content}"
+        return line
+
     for i, line in enumerate(lines):
-        # If this line looks like a table row and the previous line isn't blank
-        # or another table row, insert a blank line
-        if (re.match(r"^\|.+\|$", line.strip())
+        prev_line = lines[i - 1] if i > 0 else ""
+        prev_stripped = prev_line.strip()
+
+        # Insert blank line before tables if needed
+        if (is_table_row(line)
                 and i > 0
-                and lines[i - 1].strip() != ""
-                and not re.match(r"^\|.+\|$", lines[i - 1].strip())):
+                and prev_stripped != ""
+                and not is_table_row(prev_line)):
             result.append("")
+
+        # Insert blank line before lists if needed
+        # Only if previous line is not blank, not a list item, and not a heading
+        if (is_list_item(line)
+                and i > 0
+                and prev_stripped != ""
+                and not is_list_item(prev_line)
+                and not prev_stripped.startswith("#")):
+            result.append("")
+
+        # Normalize list indentation
+        if is_list_item(line):
+            line = normalize_list_indent(line)
+
         result.append(line)
     return "\n".join(result)
 
@@ -253,10 +310,7 @@ def postprocess_html(html):
     # Data tables: compact styling with borders.
     # Convert <thead>/<th> to regular <tr>/<td> with bold styling so Google Docs
     # doesn't treat the header as a repeating row across page breaks.
-    html = re.sub(r"<thead>", "", html)
-    html = re.sub(r"</thead>", "", html)
-    html = re.sub(r"<tbody>", "", html)
-    html = re.sub(r"</tbody>", "", html)
+    html = re.sub(r"</?t(head|body)>", "", html)
     html = re.sub(
         r"<th>",
         '<td style="border:1px solid #dfe2e5;padding:3pt 8pt;background-color:#f6f8fa;font-weight:bold">',
@@ -280,6 +334,21 @@ def postprocess_html(html):
     html = re.sub(
         r"(</table>)\s*(?!<p><br>)",
         r"\1<p><br></p>",
+        html,
+    )
+
+    # Add vertical spacing to list items for better readability
+    # Use line-height and padding since Google Docs may ignore margin on <li>
+    html = re.sub(
+        r"<li>",
+        '<li style="line-height:1.5;padding-bottom:2pt">',
+        html,
+    )
+
+    # Add space before lists (between paragraph text and first bullet)
+    html = re.sub(
+        r"<(ul|ol)>",
+        r'<\1 style="margin-top:8pt">',
         html,
     )
 
