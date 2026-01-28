@@ -15,3 +15,9 @@ Thumbs.db
 *.local
 
 .venv/
+__pycache__/
+*.pyc
+
+# Google OAuth credentials
+client_secret*.json
+token.json
