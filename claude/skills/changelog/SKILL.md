@@ -1,6 +1,6 @@
 ---
 name: changelog
-description: Generate changelog for recent merged PRs
+description: Use when generating a changelog from recent merged PRs or documenting releases. Triggers on "write changelog", "release notes", "what shipped".
 allowed-tools:
   - Bash
   - Read

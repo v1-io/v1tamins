@@ -1,6 +1,6 @@
 ---
 name: pr-description
-description: Generate and update PR description on GitHub based on changes
+description: Use when writing or updating a PR description on GitHub. Triggers on "write PR description", "update PR body", "describe this PR".
 allowed-tools:
   - Bash
   - Read

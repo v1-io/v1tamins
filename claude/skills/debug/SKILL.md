@@ -1,6 +1,6 @@
 ---
 name: debug
-description: Systematically diagnose errors and produce durable fixes
+description: Use when debugging errors, diagnosing failures, or tracing root causes from error output. Triggers on "debug this", "why is this failing", "trace the error".
 allowed-tools:
   - Bash
   - Read

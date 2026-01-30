@@ -1,6 +1,6 @@
 ---
 name: refactor
-description: Refactor code applying KISS, DRY, SOLID, and YAGNI principles
+description: Use when refactoring code for simplicity, removing duplication, or applying KISS/DRY/SOLID/YAGNI. Triggers on "refactor", "clean up code", "apply DRY".
 allowed-tools:
   - Bash
   - Read

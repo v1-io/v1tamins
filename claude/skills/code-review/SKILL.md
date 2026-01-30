@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Perform elite PR review with confidence scores and post to GitHub
+description: Use when reviewing a PR or posting code review feedback to GitHub. Triggers on "review this PR", "code review", "check this pull request".
 allowed-tools:
   - Bash
   - Read

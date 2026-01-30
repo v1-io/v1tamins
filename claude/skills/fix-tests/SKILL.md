@@ -1,6 +1,6 @@
 ---
 name: fix-tests
-description: Systematically fix all failing tests until everything passes
+description: Use when tests are failing and need systematic fixing until all pass. Triggers on "fix tests", "tests failing", "make tests pass".
 allowed-tools:
   - Bash
   - Read

@@ -1,6 +1,6 @@
 ---
 name: address-review
-description: Address PR review comments from Copilot, bots, or humans
+description: Use when addressing PR review comments from Copilot, bots, or humans. Triggers on "fix review comments", "address Copilot feedback", "respond to PR comments".
 allowed-tools:
   - Bash
   - Read

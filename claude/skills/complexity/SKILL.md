@@ -1,6 +1,6 @@
 ---
 name: complexity
-description: Reduce cognitive complexity of functions while preserving behavior
+description: Use when reducing cognitive complexity, flattening nested code, or simplifying functions. Triggers on "reduce complexity", "simplify", "too nested".
 allowed-tools:
   - Bash
   - Read

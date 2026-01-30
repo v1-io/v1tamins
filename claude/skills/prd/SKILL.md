@@ -1,6 +1,6 @@
 ---
 name: prd
-description: Write a PRD from a Linear ticket and upload it
+description: Use when writing a PRD from a Linear ticket or feature request. Triggers on "write PRD", "create requirements doc", "PRD from ticket".
 allowed-tools:
   - Bash
   - Read

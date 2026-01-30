@@ -1,6 +1,6 @@
 ---
 name: deslop
-description: Remove AI-generated code slop from the current branch
+description: Use when removing AI-generated slop, cleaning up verbose code, or removing unnecessary defensive checks. Triggers on "remove slop", "clean up AI code", "deslop".
 allowed-tools:
   - Bash
   - Read
