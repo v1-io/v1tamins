@@ -21,3 +21,6 @@ __pycache__/
 # Google OAuth credentials
 client_secret*.json
 token.json
+
+# Private skills
+claude/skills/_*/
