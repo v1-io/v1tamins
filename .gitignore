@@ -24,3 +24,6 @@ token.json
 
 # Private skills
 claude/skills/_*/
+
+# Planning docs
+docs/
