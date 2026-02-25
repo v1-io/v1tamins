@@ -1,6 +1,6 @@
 ---
 name: skilling-it
-description: Use when creating, writing, editing, or improving Claude Code skills. Covers SKILL.md structure, frontmatter, description optimization, progressive disclosure, bundled resources, and validation. Triggers on "create a skill", "write a skill", "improve skill", "skill description", "SKILL.md".
+description: Use when creating, writing, editing, or improving Claude Code skills. Triggers on "create a skill", "write a skill", "improve skill", "skill description", "SKILL.md".
 ---
 
 # Skilling It
@@ -75,6 +75,21 @@ Skills load in three levels:
 - API documentation → `references/api.md`
 - Extended examples → `references/examples.md`
 
+**Keep references one level deep.** All reference files must link directly from SKILL.md. Claude may only partially read files discovered through nested references (A → B → C). Bad:
+
+```
+SKILL.md → advanced.md → details.md → actual info
+```
+
+Good:
+
+```
+SKILL.md → advanced.md (complete info)
+SKILL.md → details.md (complete info)
+```
+
+**Add a TOC to long reference files.** For files over 100 lines, include a table of contents at the top so Claude can see the full scope even when previewing.
+
 ## Frontmatter
 
 ```yaml
@@ -94,7 +109,7 @@ Use **gerund form** (verb + -ing):
 
 **Avoid:** `helper`, `utils`, `tools`, `anthropic-*`, `claude-*`
 
-### Description Writing (CSO)
+### Description Writing
 
 **Critical:** Description = triggering conditions ONLY. Do NOT summarize the workflow.
 
@@ -132,6 +147,34 @@ You should validate the input.
 You can use the grep tool.
 ```
 
+### Degrees of Freedom
+
+Match instruction specificity to how fragile the task is.
+
+**High freedom** -- multiple valid approaches, context-dependent:
+```markdown
+## Code Review
+1. Analyze structure and organization
+2. Check for potential bugs or edge cases
+3. Suggest improvements for readability
+```
+
+**Medium freedom** -- preferred pattern exists, some variation acceptable:
+```markdown
+## Generate Report
+Use this template and customize as needed:
+def generate_report(data, format="markdown", include_charts=True): ...
+```
+
+**Low freedom** -- fragile operations, specific sequence required:
+```markdown
+## Database Migration
+Run exactly: `python scripts/migrate.py --verify --backup`
+Do not modify the command or add flags.
+```
+
+Rule of thumb: narrow bridge with cliffs = low freedom, open field = high freedom.
+
 ### Recommended Sections
 
 ```markdown
@@ -153,6 +196,127 @@ You can use the grep tool.
 [Links to bundled resources]
 ```
 
+## Common Patterns
+
+### Template Pattern
+
+For **strict requirements** (API responses, data formats), enforce exact structure:
+
+````markdown
+ALWAYS use this exact template:
+
+```markdown
+# [Title]
+## Executive summary
+[One-paragraph overview]
+## Key findings
+- Finding with supporting data
+```
+````
+
+For **flexible guidance** (where adaptation is useful), signal it:
+
+```markdown
+Sensible default format -- adjust sections as needed for the analysis type.
+```
+
+### Input/Output Examples
+
+Show desired style through concrete pairs rather than descriptions:
+
+````markdown
+**Example 1:**
+Input: Added user authentication with JWT tokens
+Output:
+```
+feat(auth): implement JWT-based authentication
+Add login endpoint and token validation middleware
+```
+
+**Example 2:**
+Input: Fixed bug where dates displayed incorrectly
+Output:
+```
+fix(reports): correct date formatting in timezone conversion
+Use UTC timestamps consistently across report generation
+```
+````
+
+### Conditional Workflow
+
+Guide through decision points when a skill handles multiple task types:
+
+```markdown
+1. Determine modification type:
+   **Creating new content?** → Follow "Creation workflow" below
+   **Editing existing?** → Follow "Editing workflow" below
+```
+
+If conditional branches are large, push each into a separate reference file and tell Claude to read the appropriate one.
+
+### Progress Checklist
+
+For complex multi-step workflows, provide a copy-paste checklist Claude can track:
+
+````markdown
+Copy this checklist and check off items as you complete them:
+
+```
+- [ ] Step 1: Analyze the input
+- [ ] Step 2: Create mapping
+- [ ] Step 3: Validate mapping
+- [ ] Step 4: Apply changes
+- [ ] Step 5: Verify output
+```
+````
+
+### Feedback Loop
+
+For quality-critical operations, build in a validate-fix-repeat cycle:
+
+```markdown
+1. Make edits
+2. Run validator: `python scripts/validate.py`
+3. If validation fails:
+   - Review error message
+   - Fix the issue
+   - Run validation again
+4. Only proceed when validation passes
+```
+
+## Content Guidelines
+
+### Use Consistent Terminology
+
+Pick one term and use it everywhere. Do not alternate between synonyms.
+
+- Always "API endpoint" -- not sometimes "URL", "route", "path"
+- Always "field" -- not sometimes "box", "element", "control"
+- Always "extract" -- not sometimes "pull", "get", "retrieve"
+
+### Avoid Time-Sensitive Information
+
+Do not include dates or deadlines that will become stale:
+
+```markdown
+# BAD
+If before August 2025, use the old API. After August 2025, use the new API.
+
+# GOOD
+## Current method
+Use the v2 API endpoint.
+
+## Legacy (deprecated)
+The v1 API is no longer supported.
+```
+
+### Assume Claude Is Smart
+
+Only add context Claude doesn't already have. Challenge each piece of information:
+- "Does Claude really need this explanation?"
+- "Can I assume Claude knows this?"
+- "Does this paragraph justify its token cost?"
+
 ## Bundled Resources
 
 ### References (`references/`)
@@ -171,6 +335,8 @@ Executable code for deterministic or repetitive tasks.
 - **Benefits:** Token-efficient, can execute without loading into context
 - **Note:** May need to be read for patching or environment adjustments
 
+For detailed guidance on writing scripts for skills, see [references/executable-code.md](references/executable-code.md).
+
 ### Assets (`assets/`)
 
 Files used in output (not loaded into context).
@@ -185,6 +351,8 @@ Files used in output (not loaded into context).
 - [ ] Name is lowercase, hyphens only, max 64 chars
 - [ ] Directory name matches frontmatter name
 - [ ] SKILL.md under 500 lines (detailed content in references/)
+- [ ] References are one level deep from SKILL.md
+- [ ] Long reference files (>100 lines) have a TOC
 
 **Description:**
 - [ ] Uses third person ("Use when...")
@@ -194,7 +362,10 @@ Files used in output (not loaded into context).
 
 **Content:**
 - [ ] Instructions use imperative form (not "you should")
+- [ ] Consistent terminology throughout (no synonym alternation)
+- [ ] Degrees of freedom match task fragility
 - [ ] Examples are concrete with real input/output
+- [ ] No time-sensitive information
 - [ ] References supporting files if they exist
 - [ ] No sensitive information (credentials, internal URLs)
 
@@ -202,6 +373,7 @@ Files used in output (not loaded into context).
 - [ ] Skill triggers on expected user queries
 - [ ] Instructions are clear and actionable
 - [ ] Referenced files exist
+- [ ] Tested with real usage scenarios (see [references/iterative-development.md](references/iterative-development.md))
 
 ## Anti-Patterns
 
@@ -259,6 +431,20 @@ Start by reading the file.
 - **references/api.md** - API documentation
 ```
 
+### 6. Too Many Options
+
+````markdown
+# BAD: Paralysis of choice
+"Use pypdf, or pdfplumber, or PyMuPDF, or pdf2image, or..."
+
+# GOOD: Default with escape hatch
+"Use pdfplumber for text extraction:
+```python
+import pdfplumber
+```
+For scanned PDFs requiring OCR, use pdf2image with pytesseract instead."
+````
+
 ## Skill Locations
 
 | Location | Purpose |
@@ -286,5 +472,7 @@ Start by reading the file.
 
 ## Reference Files
 
-For advanced patterns and detailed examples, see:
-- **[references/advanced.md](references/advanced.md)** - Testing skills, TDD for documentation, discipline-enforcing patterns
+For detailed patterns and extended guidance, see:
+- **[references/iterative-development.md](references/iterative-development.md)** - Claude A/B testing, evaluation-driven development, observing navigation
+- **[references/discipline-enforcement.md](references/discipline-enforcement.md)** - TDD for documentation, rationalization-proofing, gate functions
+- **[references/executable-code.md](references/executable-code.md)** - Script best practices, error handling, MCP tools, dependency management

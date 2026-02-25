@@ -1,6 +1,6 @@
 ---
 name: interview-me
-description: Collaboratively refine ideas through structured questioning - helping both Claude understand and the user crystallize their thinking. Use when the user provides an idea, feature request, Linear ticket, or concept that needs fleshing out. Triggers on requests like "interview me about X", "help me spec out Y", "I have an idea for Z", or when explicitly invoked. Output format adapts to context (update existing artifacts, create new specs, or just synthesize insights).
+description: Use when the user provides an idea, feature request, Linear ticket, or concept that needs fleshing out. Triggers on "interview me about X", "help me spec out Y", "I have an idea for Z", "flesh out this idea".
 ---
 
 # Interview Me
@@ -26,7 +26,20 @@ Before interviewing, use available tools to understand what already exists:
 
 This prevents asking questions already answered elsewhere and shows the user you've done homework.
 
-### 3. Conduct the Interview
+### 3. Open with the Right First Question
+
+The first question shapes the entire interview. Choose based on what the user provided:
+
+| Starting Input | First Question Strategy |
+|---------------|----------------------|
+| Vague idea ("I want to build X") | "What's the problem you're solving, and who has it worst right now?" |
+| Feature request with some detail | "What workaround are people using today, and what breaks about it?" |
+| Linear ticket / spec | "What's the most uncertain part of this spec?" |
+| Technical concept | "What's the simplest version of this that would be useful?" |
+
+Avoid generic openers like "tell me more" or "what's the goal." The first question should demonstrate you understood the input and are already thinking ahead.
+
+### 4. Conduct the Interview
 
 Use AskUserQuestion repeatedly. Interview until sufficient understanding is reached.
 
@@ -37,11 +50,23 @@ Use AskUserQuestion repeatedly. Interview until sufficient understanding is reac
 - When an answer reveals complexity, drill deeper before moving on
 - Use `multiSelect: true` when choices aren't mutually exclusive
 
-**Handling Partial Knowledge:**
-- "TBD", "not sure", "need to explore" are valuable answers, not failures
-- Capture these explicitly as Open Questions in output
-- Don't keep pushing when user signals uncertainty - document it and move on
-- Distinguish between "haven't decided" (decision needed) vs. "don't know yet" (research needed)
+**Handling Uncertainty:**
+
+| Response Type | Meaning | Action |
+|--------------|---------|--------|
+| "I don't know" | Needs research | Record as **Open Question (research needed)**, move on |
+| "I haven't decided" | Decision pending | Record as **Open Question (decision needed)**, note tradeoffs discussed |
+| "It depends" | Conditional answer | Drill into conditions -- "What does it depend on?" |
+| "I don't care" / "Either way" | Low priority for user | Make a reasonable default recommendation and note it |
+| "We should ask [person]" | Blocked on stakeholder | Record as **Open Question (blocked: [person])**, move on |
+
+Don't keep pushing when user signals uncertainty. Document it with the right label and move on.
+
+**Adapt to Communication Style:**
+- **Terse answers**: User is busy or decisive. Ask fewer, more targeted questions. Don't re-ask in different words.
+- **Long, exploratory answers**: User is thinking out loud. Let them finish, then synthesize back before next question.
+- **"I don't know" frequently**: Shift from probing to proposing. Offer options instead of open questions.
+- **Technical depth**: Match their level. Don't oversimplify for an engineer or get technical with a PM.
 
 **Question Categories (cycle through as needed):**
 
@@ -58,15 +83,29 @@ Use AskUserQuestion repeatedly. Interview until sufficient understanding is reac
 | **Evolution** | How it changes over time | "What's the migration path when requirements change?" / "What decision here will be hardest to reverse?" |
 | **Integration** | How it connects | "What existing workflows does this interrupt or complicate?" / "Who needs to know when this happens?" |
 
-### 4. Avoid These Question Patterns
+**Category Coverage Tracker:**
+- [ ] Current State
+- [ ] Constraints
+- [ ] Users & Actors
+- [ ] State & Data
+- [ ] Boundaries
+- [ ] Failure Modes
+- [ ] Risk & Priority
+- [ ] Validation
+- [ ] Evolution
+- [ ] Integration
+
+Not all categories need checking -- depth calibration (step 6) determines which matter. But the checklist prevents accidentally skipping important areas.
+
+### 5. Avoid These Question Patterns
 
 - Don't ask what's already stated in the input
 - Don't ask "what's the goal" if the goal is clear
 - Don't ask binary yes/no when the interesting answer is "it depends"
 - Don't ask about implementation details before understanding constraints
-- Don't confirm assumptions—challenge them
+- Don't confirm assumptions--challenge them
 
-### 5. Calibrate Depth
+### 6. Calibrate Depth
 
 Not everything needs full specification. Ask early:
 - "For this scope, are you looking for full design or initial analysis?"
@@ -76,7 +115,7 @@ Then adjust approach:
 - **Analysis/exploration**: Stop when problem is well-characterized, solutions can be TBD
 - **Mixed**: Go deep on core areas, lighter on peripheral ones
 
-### 6. Recognize Completion
+### 7. Recognize Completion
 
 Stop interviewing when:
 - Core user journeys are mapped
@@ -91,7 +130,7 @@ Stop interviewing when:
 - Conversation is circling without new insights
 - Enough captured for user's stated purpose (even if spec isn't "complete")
 
-### 7. Synthesize Before Committing
+### 8. Synthesize Before Committing
 
 Before writing final output:
 1. Summarize key findings back to user in conversational form
@@ -101,22 +140,18 @@ Before writing final output:
 
 This catches misunderstandings before they're written into permanent artifacts.
 
-### 8. Determine Output Format
+### 9. Determine Output Format
 
-Assess what's appropriate for the situation:
+Select based on context:
 
-- **Update existing artifact** (Linear project, doc, ticket) - Integrate findings into existing structure
-- **Standalone specification** - Create new document using spec template below
-- **Summary for discussion** - Synthesize key insights without formal structure
-- **No output needed** - Sometimes the interview itself achieved the goal
+| Condition | Format | Action |
+|-----------|--------|--------|
+| User provided a Linear ticket or existing doc | **Update existing artifact** | Integrate findings, mark new sections with "NEW:" prefix, preserve existing structure |
+| User needs implementation-ready spec | **Standalone specification** | Use spec template in step 10 |
+| Idea is early-stage or exploratory | **Summary for discussion** | Synthesize key insights, list open questions, skip formal structure |
+| User says "this is helpful" / "that's enough" | **No output needed** | The interview itself achieved the goal |
 
-**When updating existing artifacts:**
-1. Show synthesis to user before committing
-2. Clearly mark new sections (e.g., "NEW:" prefix)
-3. Preserve existing structure, add rather than replace
-4. Update related sections for consistency
-
-### 9. Produce the Specification (when appropriate)
+### 10. Produce the Specification (when appropriate)
 
 For standalone specs, use this structure:
 
@@ -152,29 +187,14 @@ For standalone specs, use this structure:
 [How we know this works]
 ```
 
-## Example Interview Progression
+### 11. Chain to Next Steps
 
-**Round 1 - Current State & Foundational:**
-- "What workaround are people using today?"
-- "Who is the primary user, and what's their mental model coming into this?"
-- "What's the cost of getting this wrong vs. shipping slowly?"
+After producing output, suggest relevant next actions:
+- **Implementation ready?** -> "Want me to start building this?" (chains to relevant implementation skills)
+- **Needs broader input?** -> "Should I write this up for team review?" (chains to `stickify` for persuasive framing)
+- **Linear ticket?** -> "Want me to create/update the Linear ticket?" (chains to Linear MCP tools)
+- **PRD needed?** -> "Should I expand this into a full PRD?" (chains to `prd` skill)
 
-**Round 2 - Constraints & Depth Calibration:**
-- "What technical constraints from the existing system affect this?"
-- "For this project scope, are you looking for full design or initial analysis?"
-- "What's the minimum viable version vs. the full vision?"
+## Reference Files
 
-**Round 3 - Integration & Risk:**
-- "How does this interact with [specific related feature]?"
-- "If this work isn't done, what breaks first? Rank by impact."
-- "Who needs to be notified and when?"
-
-**Round 4 - Edge Cases & Validation:**
-- "What happens with concurrent operations?"
-- "What's the smallest experiment to validate this approach?"
-- "How do we handle the 'undo' scenario?"
-
-**Round 5 - Evolution & Wrap-up:**
-- "What's the migration story for existing data/users?"
-- "What are we intentionally deferring?"
-- "Is there anything we haven't covered that should be captured?"
+- [examples.md](references/examples.md) -- Sample interview progression across 5 rounds

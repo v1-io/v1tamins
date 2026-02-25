@@ -1,4 +1,14 @@
-# Advanced Skill Patterns
+# Discipline Enforcement Patterns
+
+## Contents
+- [TDD for documentation](#tdd-for-documentation)
+- [Testing different skill types](#testing-different-skill-types)
+- [Bulletproofing against rationalization](#bulletproofing-skills-against-rationalization)
+- [Gate functions](#gate-functions)
+- [Token efficiency](#token-efficiency)
+- [Keyword coverage for discovery](#keyword-coverage-for-discovery)
+- [Common rationalizations for skipping testing](#common-rationalizations-for-skipping-testing)
+- [Skill creation checklist (TDD adapted)](#skill-creation-checklist-tdd-adapted)
 
 ## TDD for Documentation
 
