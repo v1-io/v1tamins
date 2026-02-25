@@ -13,6 +13,20 @@ allowed-tools:
 
 Generate an animated GIF showing the result of work done during a session and embed it in a GitHub PR.
 
+## Quick Start
+
+```
+/prove-work http://localhost:3000/settings --pr 42
+```
+
+This records a browser interaction with `localhost:3000/settings`, converts the recording to a GIF, uploads it to GitHub, and embeds it in PR #42's `## Demo` section.
+
+Without arguments, the skill infers the URL from the git diff and auto-detects the PR:
+
+```
+/prove-work
+```
+
 ## Usage
 
 ```
@@ -79,51 +93,7 @@ If the server is not running (connection refused), tell the user:
 
 Write a Python Playwright script to `/tmp/prove-work/interact.py` that demonstrates the feature.
 
-Read [references/recording-patterns.md](references/recording-patterns.md) for guidance on:
-- What to record for each change type
-- Interaction patterns (scrolling, hovering, filling forms)
-- Timing guidelines (pauses between actions, hold times)
-
-**Script structure:**
-
-```python
-"""Prove-work interaction script -- auto-generated"""
-from playwright.sync_api import sync_playwright
-import time
-
-with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True)
-    context = browser.new_context(
-        record_video_dir="/tmp/prove-work/",
-        record_video_size={"width": 1280, "height": 720},
-        viewport={"width": 1280, "height": 720},
-    )
-    page = context.new_page()
-
-    # Navigate and wait for page to load
-    page.goto("TARGET_URL")
-    page.wait_for_load_state("networkidle")
-    time.sleep(1)
-
-    # Demonstrate the feature
-    # [Fill this section based on context analysis]
-
-    # Hold on final state
-    time.sleep(1.5)
-
-    # Finalize recording
-    context.close()
-    browser.close()
-```
-
-**Guidelines for the interaction section:**
-- Keep total recording under 15 seconds
-- Add `time.sleep(0.3-0.5)` between actions for natural pacing
-- Hover before clicking to show intent
-- Wait for feedback after submitting forms
-- Hold on the final state for 1.5-2 seconds
-- Use role-based selectors when possible: `page.get_by_role()`, `page.get_by_label()`
-- Fall back to text selectors: `page.get_by_text()`, `page.locator("text=...")`
+Read [references/recording-patterns.md](references/recording-patterns.md) for the script template, interaction patterns, and timing guidelines. Use the template from that file as the starting point -- fill in the interaction section based on context analysis.
 
 ### Step 4: Execute Recording
 
@@ -201,6 +171,49 @@ Proof of work recorded!
   PR:  #42 -- ## Demo section updated
 
 Recorded: [brief description of what was demonstrated]
+```
+
+## Examples
+
+**Example 1: New settings page**
+
+```
+Input:  /prove-work
+Diff:   app/pages/settings.tsx, app/api/settings.ts
+Output:
+  Proof of work recorded!
+    GIF: /tmp/prove-work/demo.gif (1.8 MB)
+    URL: https://github.com/acme/app/releases/download/media-assets/demo-pr12-20260224-091500.gif
+    PR:  #12 -- ## Demo section updated
+    Recorded: Navigated to /settings, filled display name, clicked Save, showed success toast
+```
+
+**Example 2: Explicit URL with PR number**
+
+```
+Input:  /prove-work http://localhost:5173/dashboard --pr 27
+Output:
+  Proof of work recorded!
+    GIF: /tmp/prove-work/demo.gif (2.4 MB)
+    URL: https://github.com/acme/app/releases/download/media-assets/demo-pr27-20260224-143000.gif
+    PR:  #27 -- ## Demo section updated
+    Recorded: Navigated to /dashboard, scrolled through widgets, toggled dark mode
+```
+
+**Example 3: Backend-only change**
+
+```
+Input:  /prove-work
+Diff:   app/services/billing.py, tests/test_billing.py
+Output: This change has no visual component. Skipping proof-of-work.
+```
+
+**Example 4: Local only**
+
+```
+Input:  /prove-work --no-upload
+Output:
+  GIF saved to: /tmp/prove-work/demo.gif (1.1 MB)
 ```
 
 ## Error Handling
