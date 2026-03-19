@@ -1,11 +1,29 @@
 ---
 name: interview-me
 description: Use when the user provides an idea, feature request, Linear ticket, or concept that needs fleshing out. Triggers on "interview me about X", "help me spec out Y", "I have an idea for Z", "flesh out this idea".
+allowed-tools:
+  - Bash
+  - Read
+  - Grep
+  - Glob
+  - AskUserQuestion
+  - Skill
+  - mcp__claude_ai_Linear__*
 ---
 
 # Interview Me
 
 Collaboratively refine ideas through structured questioning - helping both Claude understand and the user crystallize their thinking. The interview process itself is valuable, not just the final deliverable.
+
+## Usage
+
+```
+/interview-me
+/interview-me <LINEAR_TICKET_ID>
+/interview-me <paste idea or feature description>
+```
+
+Can also be triggered conversationally: "I have an idea for X", "help me spec out Y", "flesh out this concept".
 
 ## Interview Workflow
 
@@ -18,15 +36,31 @@ Read any provided context (Linear ticket, feature description, rough idea). Iden
 
 ### 2. Gather Existing Context
 
-Before interviewing, use available tools to understand what already exists:
+Before interviewing, explore what already exists using available tools:
 
 - **Linear/Jira**: Fetch project descriptions, related issues, initiative context
 - **Codebase**: Search for related code, existing implementations, architectural patterns
 - **Documents**: Read related specs, PRDs, or design docs
 
-This prevents asking questions already answered elsewhere and shows the user you've done homework.
+**Hard rule: if a question can be answered by exploring the codebase, Linear, or documents -- explore instead of asking.** Only interview for things that require the user's judgment, intent, or domain knowledge. Don't waste interview rounds on things you can look up.
 
-### 3. Open with the Right First Question
+### 3. Map the Decision Tree
+
+After gathering context, identify the major decisions and branches in the design. List them explicitly:
+
+> "I see these key decisions that need resolving: A, B, C..."
+
+Walk dependencies in order -- resolve upstream decisions before probing downstream ones. A decision is "resolved" when it reaches one of these states:
+
+| State | Example |
+|-------|---------|
+| **Decided** | "We'll use webhooks, not polling" |
+| **Intentionally deferred** | "We'll decide the retry strategy after load testing" |
+| **Blocked on external input** | "Need pricing info from the vendor before choosing" |
+
+**Branch closure rule**: don't move on from a decision until it reaches one of these states. This prevents the interview from producing a spec full of implicit assumptions.
+
+### 4. Open with the Right First Question
 
 The first question shapes the entire interview. Choose based on what the user provided:
 
@@ -39,7 +73,15 @@ The first question shapes the entire interview. Choose based on what the user pr
 
 Avoid generic openers like "tell me more" or "what's the goal." The first question should demonstrate you understood the input and are already thinking ahead.
 
-### 4. Conduct the Interview
+**In the same opening round, calibrate depth:**
+- "Are you looking for a full spec, or more of an initial analysis to decide if this is worth pursuing?"
+
+Then adjust the rest of the interview:
+- **Full design**: Probe until implementation-ready. Cover all relevant question categories.
+- **Analysis/exploration**: Stop when problem is well-characterized, solutions can be TBD. Focus on Current State, Constraints, Risk & Priority.
+- **Mixed**: Go deep on core areas, lighter on peripheral ones.
+
+### 5. Conduct the Interview
 
 Use AskUserQuestion repeatedly. Interview until sufficient understanding is reached.
 
@@ -50,13 +92,24 @@ Use AskUserQuestion repeatedly. Interview until sufficient understanding is reac
 - When an answer reveals complexity, drill deeper before moving on
 - Use `multiSelect: true` when choices aren't mutually exclusive
 
+**Progressive Synthesis:**
+
+After every 2-3 rounds, share a brief summary of your current understanding:
+
+> "Here's what I'm hearing so far: [2-4 sentence synthesis]. Before I go deeper on X, does this track?"
+
+- Frame as a checkpoint, not a conclusion
+- If the user corrects the summary, acknowledge and adjust before continuing
+- Keep these lightweight -- conversational, not a slide deck
+- This catches drift early instead of discovering misalignment at the end
+
 **Handling Uncertainty:**
 
 | Response Type | Meaning | Action |
 |--------------|---------|--------|
 | "I don't know" | Needs research | Record as **Open Question (research needed)**, move on |
 | "I haven't decided" | Decision pending | Record as **Open Question (decision needed)**, note tradeoffs discussed |
-| "It depends" | Conditional answer | Drill into conditions -- "What does it depend on?" |
+| "It depends" | Conditional answer | Drill into conditions -- "What does it depend on?" Get the conditions enumerated. |
 | "I don't care" / "Either way" | Low priority for user | Make a reasonable default recommendation and note it |
 | "We should ask [person]" | Blocked on stakeholder | Record as **Open Question (blocked: [person])**, move on |
 
@@ -67,6 +120,23 @@ Don't keep pushing when user signals uncertainty. Document it with the right lab
 - **Long, exploratory answers**: User is thinking out loud. Let them finish, then synthesize back before next question.
 - **"I don't know" frequently**: Shift from probing to proposing. Offer options instead of open questions.
 - **Technical depth**: Match their level. Don't oversimplify for an engineer or get technical with a PM.
+
+**Constructive Challenge:**
+
+Actively probe for weak spots in the plan:
+- Expose weak defaults, conflicting assumptions, and irreversible choices
+- Surface flawed assumptions as questions: "I notice X assumes Y, but earlier you said Z -- how do those fit together?"
+- Name obvious gaps once, clearly: "One thing worth addressing: [gap]. Intentional or something to work through?"
+- Push on "it depends" -- get the conditions enumerated rather than leaving them vague
+- Don't repeatedly challenge the same point. State once, record the user's response, move on.
+
+**Recognizing Pivots:**
+
+If answers consistently point away from the original idea (the real problem is different, the assumed user is wrong, a simpler solution exists), pause and name it:
+
+> "Based on what you've described, it sounds like the core problem might actually be X rather than Y. Should we shift the interview in that direction?"
+
+Don't silently drift. Explicitly acknowledge the pivot so the user can agree or disagree. If they agree, restart progressive synthesis from the new framing. If they disagree, note the alternative framing as an open question.
 
 **Question Categories (cycle through as needed):**
 
@@ -95,25 +165,15 @@ Don't keep pushing when user signals uncertainty. Document it with the right lab
 - [ ] Evolution
 - [ ] Integration
 
-Not all categories need checking -- depth calibration (step 6) determines which matter. But the checklist prevents accidentally skipping important areas.
+Not all categories apply -- depth calibration from step 4 determines which matter. For analysis scope, focus on Current State, Constraints, Risk & Priority. For full design, cover all relevant categories.
 
-### 5. Avoid These Question Patterns
+### 6. Avoid These Question Patterns
 
 - Don't ask what's already stated in the input
 - Don't ask "what's the goal" if the goal is clear
 - Don't ask binary yes/no when the interesting answer is "it depends"
 - Don't ask about implementation details before understanding constraints
 - Don't confirm assumptions--challenge them
-
-### 6. Calibrate Depth
-
-Not everything needs full specification. Ask early:
-- "For this scope, are you looking for full design or initial analysis?"
-
-Then adjust approach:
-- **Full design**: Probe until implementation-ready
-- **Analysis/exploration**: Stop when problem is well-characterized, solutions can be TBD
-- **Mixed**: Go deep on core areas, lighter on peripheral ones
 
 ### 7. Recognize Completion
 
@@ -123,6 +183,7 @@ Stop interviewing when:
 - Integration points and dependencies are identified
 - Success criteria and metrics are defined
 - Scope boundaries are explicit
+- All decisions in the decision tree are resolved (decided, deferred, or blocked)
 
 **Alternative Completion Signals:**
 - User says "I think that's enough" or "this is helpful"
@@ -133,7 +194,7 @@ Stop interviewing when:
 ### 8. Synthesize Before Committing
 
 Before writing final output:
-1. Summarize key findings back to user in conversational form
+1. Summarize the full picture, incorporating any corrections from earlier progressive check-ins
 2. Highlight the most important insights and open questions
 3. Confirm this matches their understanding
 4. Ask if anything was missed before committing to artifact
@@ -197,4 +258,4 @@ After producing output, suggest relevant next actions:
 
 ## Reference Files
 
-- [examples.md](references/examples.md) -- Sample interview progression across 5 rounds
+- [examples.md](references/examples.md) -- Sample interview transcript and quick reference
