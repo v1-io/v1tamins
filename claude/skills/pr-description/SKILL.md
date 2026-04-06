@@ -1,15 +1,12 @@
 ---
 name: pr-description
-description: Use when writing or updating a PR description on GitHub. Triggers on "write PR description", "update PR body", "describe this PR".
-allowed-tools:
-  - Bash
-  - Read
-  - Grep
+description: "Use when generating a pull request description, updating an existing PR body on GitHub, or summarizing branch changes for a PR. Triggers on 'write PR description', 'update PR body', 'describe this PR', 'generate PR summary', 'PR description'."
+allowed-tools: "Bash, Read, Grep"
 ---
 
 # Generate PR Description
 
-Create a comprehensive pull request description based on the changes in this branch relative to `main`, then update the PR on GitHub.
+Analyzes the diff between the current branch and `main`, then generates and posts a comprehensive PR description to GitHub via `gh pr edit`.
 
 ## Usage
 
@@ -17,32 +14,38 @@ Create a comprehensive pull request description based on the changes in this bra
 /pr-description <PR_URL_or_NUMBER>
 ```
 
-**Examples:**
+## Workflow
+
+### 1. Analyze Changes
+
+Gathers the full picture of what changed and why:
+
 ```bash
-/pr-description https://github.com/your-org/your-repo/pull/123
-/pr-description 123
+git diff main HEAD              # What changed
+git log main..HEAD --oneline    # Commit history
 ```
 
-## What It Does
+### 2. Generate Description
 
-1. **Analyzes Changes**
-   - Runs `git diff main HEAD` to understand modifications
-   - Reviews commit messages with `git log main..HEAD --oneline`
+Produces a structured PR description:
+- **Title**: Concise, max 72 characters
+- **Summary**: What the PR accomplishes and why
+- **Changes Made**: Key modifications, highlights breaking changes
+- **Testing**: How changes were tested, new test cases added
+- **Related Issues**: Links to relevant issues or tickets
 
-2. **Generates Content**
-   - **Title**: Concise descriptive title (max 72 chars)
-   - **Summary**: Clear summary of what the PR accomplishes
-   - **Changes Made**: Key changes, highlights breaking changes
-   - **Testing**: How changes were tested, new test cases
-   - **Related Issues**: Links to related issues or tickets
+### 3. Update GitHub
 
-3. **Updates GitHub**
-   - Uses `gh pr edit` to update the PR title and body
-   - Falls back to manual copy/paste if `gh` CLI unavailable
+Posts the description directly to the PR:
+
+```bash
+gh pr edit <PR_NUMBER> --title "<TITLE>" --body "<BODY>"
+```
+
+Falls back to displaying the description for manual copy/paste if `gh` CLI is unavailable.
 
 ## Notes
 
-- Requires `gh` CLI to be installed and authenticated
-- Automatically detects PR number from URL
-- Highlights breaking changes prominently
-- Formats output as proper markdown
+- Requires `gh` CLI installed and authenticated
+- Automatically extracts PR number from URLs
+- Breaking changes are highlighted prominently
