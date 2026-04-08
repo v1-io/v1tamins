@@ -39,7 +39,7 @@ def request(
     timeout: int = DEFAULT_TIMEOUT,
     retries: int = MAX_RETRIES,
     raw: bool = False,
-) -> Dict[str, Any]:
+) -> Dict[str, Any] | str:
     """Make an HTTP request and return JSON response.
 
     Args:
@@ -51,7 +51,7 @@ def request(
         retries: Number of retries on failure
 
     Returns:
-        Parsed JSON response (or raw text if raw=True)
+        Parsed JSON response, or raw text when raw=True
 
     Raises:
         HTTPError: On request failure

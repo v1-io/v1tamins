@@ -283,15 +283,24 @@ def search_tiktok(
             "caption_snippet": "",  # populated by fetch_captions
         })
 
-    # Hard date filter
-    in_range = [i for i in items if i["date"] and from_date <= i["date"] <= to_date]
-    out_of_range = len(items) - len(in_range)
+    # Hard date filter: drop dated items outside the window, but preserve undated
+    # items because downstream normalization intentionally keeps unknown dates.
+    dated_items = [i for i in items if i["date"]]
+    undated_items = [i for i in items if not i["date"]]
+    in_range = [i for i in dated_items if from_date <= i["date"] <= to_date]
+    out_of_range = len(dated_items) - len(in_range)
     if in_range:
         items = in_range
         if out_of_range:
             _log(f"Filtered {out_of_range} videos outside date range")
+    elif undated_items:
+        items = undated_items
+        if out_of_range:
+            _log(f"Filtered {out_of_range} videos outside date range")
+        _log(f"No dated videos within date range; keeping {len(undated_items)} undated videos")
     else:
-        _log(f"No videos within date range, keeping all {len(items)}")
+        items = []
+        _log("No videos within date range")
 
     # Sort by views descending
     items.sort(key=lambda x: x["engagement"]["views"], reverse=True)

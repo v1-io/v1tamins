@@ -7,9 +7,8 @@ with extended excerpts ranked by relevance.
 API docs: https://docs.parallel.ai/search-api/search-quickstart
 """
 
-import json
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from urllib.parse import urlparse
 
 from . import http
@@ -21,6 +20,15 @@ EXCLUDED_DOMAINS = {
     "reddit.com", "www.reddit.com", "old.reddit.com",
     "twitter.com", "www.twitter.com", "x.com", "www.x.com",
 }
+
+
+def _log(msg: str):
+    """Log interactive web-search progress without polluting non-TTY runs."""
+    if sys.stderr.isatty():
+        sys.stderr.write(f"[Web] {msg}\n")
+        sys.stderr.flush()
+    else:
+        http.log(f"[Web] {msg}")
 
 
 def search_web(
@@ -57,8 +65,7 @@ def search_web(
         "max_chars_per_result": 500,
     }
 
-    sys.stderr.write(f"[Web] Searching Parallel AI for: {topic}\n")
-    sys.stderr.flush()
+    _log(f"Searching Parallel AI for: {topic}")
 
     response = http.post(
         ENDPOINT,
@@ -133,7 +140,6 @@ def _normalize_results(response: Dict[str, Any]) -> List[Dict[str, Any]]:
             "why_relevant": str(result.get("summary", "")).strip()[:200],
         })
 
-    sys.stderr.write(f"[Web] Parallel AI: {len(items)} results\n")
-    sys.stderr.flush()
+    _log(f"Parallel AI: {len(items)} results")
 
     return items

@@ -80,8 +80,11 @@ def search_truthsocial(
 
     Args:
         topic: Search topic
-        from_date: Start date (YYYY-MM-DD)
-        to_date: End date (YYYY-MM-DD)
+        from_date: Start date (YYYY-MM-DD). Accepted to keep a consistent
+            backend interface; Truth Social's search API does not support
+            server-side date filtering.
+        to_date: End date (YYYY-MM-DD). Date range enforcement happens later
+            during normalization and hard filtering.
         depth: 'quick', 'default', or 'deep'
         config: Config dict with TRUTHSOCIAL_TOKEN
 

@@ -4,7 +4,7 @@ from typing import Any, Dict, List, TypeVar, Union
 
 from . import dates, schema
 
-T = TypeVar("T", schema.RedditItem, schema.XItem, schema.WebSearchItem, schema.YouTubeItem, schema.TikTokItem, schema.InstagramItem, schema.HackerNewsItem, schema.BlueskyItem, schema.PolymarketItem)
+T = TypeVar("T", schema.RedditItem, schema.XItem, schema.WebSearchItem, schema.YouTubeItem, schema.TikTokItem, schema.InstagramItem, schema.HackerNewsItem, schema.BlueskyItem, schema.PolymarketItem, schema.TruthSocialItem)
 
 
 def filter_by_date_range(

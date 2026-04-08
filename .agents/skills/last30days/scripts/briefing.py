@@ -76,7 +76,7 @@ def generate_daily(since: str = None) -> dict:
             "last_run": last_run,
             "last_status": last_status,
             "stale": stale,
-            "hours_ago": round(hours_ago, 1) if hours_ago else None,
+            "hours_ago": round(hours_ago, 1) if hours_ago is not None else None,
         }
 
         # Extract top finding by engagement

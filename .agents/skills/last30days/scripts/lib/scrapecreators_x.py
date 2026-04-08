@@ -209,15 +209,24 @@ def search_x(
             "why_relevant": f"X: @{author_handle}: {text[:60]}" if text else f"X: {core_topic}",
         })
 
-    # Date filter
-    in_range = [i for i in items if i["date"] and from_date <= i["date"] <= to_date]
-    out_of_range = len(items) - len(in_range)
+    # Date filter: drop dated items outside the window, but preserve undated
+    # items because downstream normalization intentionally keeps unknown dates.
+    dated_items = [i for i in items if i["date"]]
+    undated_items = [i for i in items if not i["date"]]
+    in_range = [i for i in dated_items if from_date <= i["date"] <= to_date]
+    out_of_range = len(dated_items) - len(in_range)
     if in_range:
         items = in_range
         if out_of_range:
             _log(f"Filtered {out_of_range} tweets outside date range")
+    elif undated_items:
+        items = undated_items
+        if out_of_range:
+            _log(f"Filtered {out_of_range} tweets outside date range")
+        _log(f"No dated tweets within date range; keeping {len(undated_items)} undated tweets")
     else:
-        _log(f"No tweets within date range, keeping all {len(items)}")
+        items = []
+        _log("No tweets within date range")
 
     # Sort by engagement (likes + retweets)
     items.sort(key=lambda x: (x["engagement"]["likes"] + x["engagement"]["reposts"]), reverse=True)

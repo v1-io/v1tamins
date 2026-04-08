@@ -26,7 +26,7 @@ def extract_reddit_path(url: str) -> Optional[str]:
         if "reddit.com" not in parsed.netloc:
             return None
         return parsed.path
-    except:
+    except Exception:
         return None
 
 
