@@ -1,0 +1,7 @@
+interface:
+  display_name: "Prove Work"
+  short_description: "Record a demo GIF and attach it to a PR"
+  default_prompt: "Use $prove-work to record a demo of this change and package it for the PR."
+
+policy:
+  allow_implicit_invocation: true

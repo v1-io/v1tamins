@@ -1,0 +1,8 @@
+interface:
+  display_name: "Last 30 Days"
+  short_description: "Research topics from the last 30 days"
+  default_prompt: "Use $last30days to research this topic across recent web and social sources."
+  brand_color: "#FF6B35"
+
+policy:
+  allow_implicit_invocation: true

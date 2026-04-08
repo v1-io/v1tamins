@@ -23,7 +23,8 @@ client_secret*.json
 token.json
 
 # Private skills
-claude/skills/_*/
+.agents/skills/_*
+claude/skills/_*
 
 # Planning docs
 docs/

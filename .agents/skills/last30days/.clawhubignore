@@ -1,0 +1,18 @@
+# Exclude binary assets and dev/test artifacts from ClawHub bundle
+assets/
+docs/
+fixtures/
+tests/
+plans/
+agents/
+variants/
+release-notes.md
+SPEC.md
+TASKS.md
+SKILL-original.md
+*.jsonl
+*.mp3
+*.jpeg
+*.jpg
+*.png
+*.gif

@@ -15,8 +15,12 @@ Daily supplements for healthy code. A shared collection of AI development tools 
 
 ```
 v1tamins/
+├── .agents/
+│   └── skills/          # Canonical shared skills for Codex and other agent runtimes
+│       ├── md2docs/
+│       └── ...
 ├── claude/
-│   ├── skills/          # 20 Claude Code skills
+│   ├── skills/          # Claude-compatible entries, symlinked or mirrored from .agents/skills
 │   │   ├── code-review/
 │   │   ├── pr-description/
 │   │   ├── write-tests/
@@ -52,9 +56,22 @@ git clone git@github.com:v1-io/v1tamins.git ~/v1tamins
 
 ## Manual Setup
 
+### Codex / Shared Agent Skills
+
+The canonical repo path for portable skills is `.agents/skills/`.
+
+For repo-managed installs, link that directory into `~/.agents/skills/`:
+
+```bash
+# Symlink shared skills directory
+ln -sf ~/v1tamins/.agents/skills ~/.agents/skills
+```
+
+For standalone user-global Codex installs outside this repo, Codex's default skill location is `~/.codex/skills/`.
+
 ### Claude Code Skills & Hooks
 
-Claude Code looks for skills in `~/.claude/skills/` and hooks in `~/.claude/hooks/`.
+Claude Code looks for skills in `~/.claude/skills/` and hooks in `~/.claude/hooks/`. In this repo, `claude/skills/` is the Claude compatibility surface and may symlink back to `.agents/skills/`.
 
 ```bash
 # Symlink skills directory
@@ -99,6 +116,14 @@ cp ~/v1tamins/mcp/mcp.json ~/.cursor/mcp.json
 | brave-search | stdio | Web search (requires `BRAVE_API_KEY`) |
 
 ## Skills Reference
+
+Portable shared skills should live in `.agents/skills/<skill-name>/` with:
+
+- `SKILL.md` as the shared source of truth
+- `agents/openai.yaml` for Codex UI metadata when needed
+- optional `scripts/`, `references/`, and `assets/`
+
+Claude-facing entries in `claude/skills/` should be thin mirrors or symlinks rather than hand-maintained forks.
 
 | Skill | Description |
 |-------|-------------|

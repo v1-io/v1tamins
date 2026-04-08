@@ -1,0 +1,7 @@
+interface:
+  display_name: "PR Description"
+  short_description: "Write or update a grounded PR description"
+  default_prompt: "Use $pr-description to write or update this pull request description."
+
+policy:
+  allow_implicit_invocation: true
