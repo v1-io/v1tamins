@@ -158,6 +158,11 @@ while IFS= read -r -d '' skill_md; do
   if [[ ! -L "$claude_link" || "$(readlink "$claude_link" 2>/dev/null)" != "$claude_target" ]]; then
     if (( WRITE )); then
       mkdir -p "$CLAUDE_DIR"
+      if [[ -e "$claude_link" && ! -L "$claude_link" ]]; then
+        printf 'Refusing to replace non-symlink Claude entry: %s\n' "${claude_link#$ROOT_DIR/}" >&2
+        failures=1
+        continue
+      fi
       rm -rf "$claude_link"
       ln -s "$claude_target" "$claude_link"
       printf 'Wrote Claude symlink: %s\n' "${claude_link#$ROOT_DIR/}"
