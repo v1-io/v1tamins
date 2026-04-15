@@ -1,109 +1,245 @@
 ---
 name: code-review
-description: Use when reviewing a PR or posting code review feedback to GitHub. Triggers on "review this PR", "code review", "check this pull request".
+description: Use when reviewing a PR, reviewing the current branch, or posting code review feedback to GitHub. Triggers on "review this PR", "code review", "check this pull request", "review my branch", "review and fix".
 allowed-tools:
   - Bash
   - Read
   - Grep
+  - Glob
+  - Edit
+  - Skill
 ---
 
-# Code Review (PR-Based, Elite/Rigorous)
+# Code Review
 
-Perform a **staff-level PR review** using full repo context, then **post the review to GitHub**.
+Perform a staff-level code review using repo context, stated intent, and the actual diff. Prioritize bugs, regressions, missing requirements, security risks, data issues, and test gaps.
+
+Default mode is review-only. Apply fixes only when the user explicitly asks for "review and fix", "fix review findings", or a shipping workflow clearly requested code changes.
 
 ## Usage
 
 Typical invocations:
 - Claude Code: `/code-review <PR_URL_or_NUMBER>`
+- Claude Code: `/code-review` to review the current branch
 - Codex: invoke `code-review` from the skills menu or use `$code-review <PR_URL_or_NUMBER>`
 
 Examples:
 ```bash
 /code-review https://github.com/your-org/your-repo/pull/123
 /code-review 123
+/code-review
+/code-review --post
+/code-review --fix
 ```
 
 In Codex, the slash examples below map directly to `$code-review ...`.
 
-## What It Does
+## Operating Rules
 
-### 1. Gather PR Context
+- Lead with findings, ordered by severity. Keep summaries secondary.
+- Cite exact `file_path:line_number` for every finding.
+- Review the full diff before commenting. Do not flag issues already fixed elsewhere in the same diff.
+- Only report real, actionable problems. Skip style preferences unless they hide a bug or maintainability risk.
+- Verify claims by reading code. Do not say "probably", "likely handled", or "should be fine" without evidence.
+- Do not post to GitHub unless the user used `--post`, explicitly asked to post, or the existing workflow clearly expects posting. Otherwise return review text in chat.
+- Do not modify code in default review mode.
+
+## Workflow
+
+### 1. Resolve Target
+
+Determine whether the target is a PR or the current branch.
+
+For a PR argument:
 ```bash
 gh pr view <PR> --json title,body,author,baseRefName,headRefName,commits,files,labels,additions,deletions
 gh pr view <PR> --comments
+gh pr diff <PR> --name-only
+gh pr diff <PR>
 ```
 
-Extracts:
-- **What** the PR claims to do (title/body/commits)
-- **Where** it touches (services, shared libs, frontend)
-- **Risk flags**: auth, migrations, background jobs, concurrency, data integrity
-
-### 2. Get the Diff
+For the current branch:
 ```bash
-gh pr diff <PR>           # Full diff
-gh pr diff <PR> --name-only # File list
+git status --short
+git branch --show-current
+BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+BASE_BRANCH=${BASE_BRANCH:-main}
+git diff --name-only origin/$BASE_BRANCH...HEAD
+git diff origin/$BASE_BRANCH...HEAD
+git log --oneline origin/$BASE_BRANCH..HEAD
 ```
 
-### 3. Build Repo-Aware Understanding
-For each meaningful changed file:
-- Reads surrounding code (imports, callers, contracts)
-- Searches repo-wide for usage patterns: `rg "<Symbol>" -n`
-- Aligns with project architectural patterns
+If the default branch is not available locally, fetch it before reviewing. Never use destructive git commands.
 
-### 4. Review Systematically
+### 2. Establish Stated Intent
 
-**Correctness & Logic:**
-- Boundary cases, idempotency, error paths
+Extract what the work claims to do from:
+- PR title/body
+- Commit messages
+- Branch name
+- `TODOS.md`, if present
+- Recent relevant files in `docs/plans/` or `docs/brainstorms/`, if present
+- Linear/Jira ticket references in the branch, commits, or PR body, if accessible
 
-**Concurrency & Async:**
-- No blocking calls in async contexts
-- LangChain/LangGraph: prefer `.ainvoke()` over `.invoke()`
+Produce a one-line intent summary before reviewing:
 
-**Security & Privacy:**
-- No hardcoded secrets, input validation, no PII in logs
-
-**Performance & Cost:**
-- No N+1 queries, no unbounded queries
-
-**Observability:**
-- Logging conventions followed
-
-**Database/Migrations:**
-- Models registered, `updated_at` updated, safe migrations
-
-**Tests:**
-- Cover the "why", no flaky patterns
-
-### 5. Produce Outputs
-
-**Output A: Main Summary Comment**
-- PR Summary (3-6 bullets)
-- Key Findings (severity-ranked: Critical/Medium/Low/Nit)
-- **Confidence Score** (X/5 with reasoning)
-- **File-level confidence table**
-- **Mermaid sequence diagram** (if non-trivial)
-
-Posted via:
-```bash
-gh pr review <PR> --comment -b "<BODY>"
-# Or for must-fix issues:
-gh pr review <PR> --request-changes -b "<BODY>"
-```
-
-**Output B: Per-File Comments**
-One comment per file with actionable suggestions:
 ```markdown
-### Review: `path/to/file` (Importance: Medium)
-
-- **Issue**: <short title>
-- **Why it matters**: <tie to project patterns>
-- **Suggested change**: <what to do>
-- **Test**: <test to add if applicable>
+Intent: <what this branch appears to be trying to accomplish>
+Changed surface: <main files/modules touched>
+Risk flags: <auth/data/API/async/UI/migrations/external services/tests/docs>
 ```
 
-Posted via:
+### 3. Scope Drift And Completion Audit
+
+Before code quality review, compare stated intent against the diff.
+
+Check for:
+- Scope creep: unrelated refactors, new behavior not mentioned, files outside the expected surface
+- Missing requirements: stated work not present in the diff
+- Partial implementation: code started but not wired, tests added without production code, UI without backend, backend without user path
+- Test gaps for stated requirements
+
+If a plan file is found, extract actionable items and classify each as:
+
+```markdown
+[DONE]      Clear evidence in diff
+[PARTIAL]   Some evidence, incomplete
+[NOT DONE]  No evidence
+[CHANGED]   Different implementation, same goal achieved
+```
+
+Keep this audit concise. It is informational unless a missing item causes a real bug or user-facing gap.
+
+### 4. Build Repo-Aware Understanding
+
+For each meaningful changed file:
+- Read surrounding code, imports, callers, and contracts.
+- Search repo-wide for usage patterns: `rg "<Symbol>" -n`.
+- Read nearby tests and fixtures.
+- Check project instructions in `AGENTS.md`, `CLAUDE.md`, README, and local docs.
+- Align findings with the project's existing patterns before proposing new abstractions.
+
+### 5. Specialist Passes
+
+Run these passes in the main review. Use them as lenses, not as separate reports.
+
+**Always run:**
+- **Correctness:** logic errors, boundary cases, state transitions, idempotency, error propagation
+- **Testing:** missing negative-path tests, edge cases, isolation, flakiness, weak assertions
+- **Maintainability:** dead code, stale comments, unnecessary abstractions, duplicated logic, unclear naming
+
+**Run when applicable:**
+- **Security:** auth/authz, input validation, secrets, injection, SSRF, unsafe rendering
+- **Data/migrations:** rollback safety, data loss, locking, backfills, indexes, mixed-version deploys
+- **Performance:** N+1 queries, unbounded loops/queries, algorithmic complexity, bundle size, blocking I/O
+- **API contracts:** response shape changes, status codes, versioning, pagination, webhook payloads
+- **Frontend/UI:** async races, loading/error/empty states, accessibility, responsive behavior, console errors
+- **External services/LLM:** trust boundaries, schema validation, retries, timeouts, rate limits, cost controls
+
+After specialist passes, do one adversarial pass:
+
+> Think like an attacker, a chaos engineer, and a hostile QA tester. What fails under load, bad input, retries, concurrency, stale state, partial failure, or confused users?
+
+### 6. Finding Gates
+
+Use this severity model:
+
+- **Critical:** likely production bug, security issue, data loss/corruption, broken core flow, unsafe migration
+- **High:** serious edge case, regression, missing required behavior, unreliable deploy/runtime behavior
+- **Medium:** meaningful maintainability, test, or UX gap that can cause future bugs
+- **Low/Nit:** minor issue. Include only when clearly actionable and low-noise.
+
+Use confidence gates:
+- 4-5/5: include in main findings
+- 3/5: include only with explicit uncertainty and verification needed
+- 1-2/5: do not include
+
+For each finding, include:
+
+```markdown
+[Severity] file_path:line_number - Short title
+Problem: What is wrong and when it fails.
+Impact: Why it matters.
+Fix: Concrete change to make.
+Test: Specific test or verification to add/run.
+Confidence: N/5.
+```
+
+If no issues are found, say that clearly and mention residual risk or unverified areas.
+
+### 7. Fix-First Mode
+
+Only enter this mode when the user explicitly asks to fix findings.
+
+Classify findings:
+- **AUTO-FIX:** mechanical, local, low-risk, clearly correct, no product judgment needed
+- **ASK:** behavior change, architecture choice, data migration, public API change, security-sensitive change, broad refactor, or uncertain fix
+
+Apply AUTO-FIX items directly with `Edit`, then report:
+
+```markdown
+[AUTO-FIXED] file_path:line_number - Problem -> fix applied
+```
+
+Batch ASK items in one concise question with recommended choices. Do not commit, push, or create PRs from this skill.
+
+If tests are already failing, invoke or recommend `fix-tests` instead of trying to fold a full test repair loop into the review. If the issue is missing coverage, invoke or recommend `write-tests` after the user approves adding tests.
+
+### 8. Output
+
+Return this structure:
+
+```markdown
+## Findings
+
+<severity-ordered findings, or "No findings.">
+
+## Open Questions
+
+<only questions that affect review confidence or implementation safety>
+
+## Scope Check
+
+Intent: ...
+Delivered: ...
+Drift/missing work: ...
+
+## Verification
+
+Tests/checks reviewed or run:
+- ...
+
+Residual risk:
+- ...
+```
+
+Keep the final summary short. Findings are the product.
+
+### 9. Posting To GitHub
+
+When posting is requested:
+
+1. If any Critical or High findings remain, request changes.
+2. Otherwise post a comment review.
+3. Post only high-confidence findings. Do not post speculative notes.
+4. Prefer one consolidated review body over many noisy comments unless line-level comments are specifically useful.
+
+```markdown
+## Code Review
+
+### Findings
+...
+
+### Scope Check
+...
+
+### Verification
+...
+```
+
 ```bash
-gh issue comment <PR_URL> --body "<BODY>"
+gh pr review <PR> --request-changes -b "$(cat /tmp/review.md)"
+gh pr review <PR> --comment -b "$(cat /tmp/review.md)"
 ```
 
 ## Confidence Scoring Guide
@@ -115,3 +251,12 @@ gh issue comment <PR_URL> --body "<BODY>"
 - **1/5**: Likely bugs, security issues, or major problems
 
 Reduce score for: migrations, auth/permissions, concurrency, broad refactors, missing tests.
+
+## Anti-Patterns
+
+- Do not rubber-stamp because CI passes.
+- Do not list every possible improvement. Review for merge risk.
+- Do not ask for large refactors unless the current change creates real risk.
+- Do not request tests without naming the behavior that must be protected.
+- Do not leave vague comments like "consider handling errors" without a concrete failure mode.
+- Do not post secrets, private logs, or sensitive data in GitHub comments.

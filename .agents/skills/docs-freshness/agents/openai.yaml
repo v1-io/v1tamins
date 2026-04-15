@@ -1,0 +1,7 @@
+interface:
+  display_name: "Docs Freshness"
+  short_description: "Sync documentation with recent code changes"
+  default_prompt: "Use $docs-freshness to bring project documentation back in sync with recent changes."
+
+policy:
+  allow_implicit_invocation: true

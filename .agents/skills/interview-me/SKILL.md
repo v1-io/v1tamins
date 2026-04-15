@@ -1,6 +1,6 @@
 ---
 name: interview-me
-description: Use when the user provides an idea, feature request, Linear ticket, or concept that needs fleshing out. Triggers on "interview me about X", "help me spec out Y", "I have an idea for Z", "flesh out this idea".
+description: Use when the user provides an idea, feature request, Linear ticket, or concept that needs fleshing out, product validation, or office-hours-style questioning. Triggers on "interview me about X", "help me spec out Y", "I have an idea for Z", "flesh out this idea", "office hours", "is this worth building".
 allowed-tools:
   - Bash
   - Read
@@ -49,6 +49,37 @@ Before interviewing, explore what already exists using available tools:
 - **Documents**: Read related specs, PRDs, or design docs
 
 **Hard rule: if a question can be answered by exploring the codebase, Linear, or documents -- explore instead of asking.** Only interview for things that require the user's judgment, intent, or domain knowledge. Don't waste interview rounds on things you can look up.
+
+### 2.5 Choose the Interview Posture
+
+Classify the session before asking the first question:
+
+| Posture | Use When | Interview Bias |
+|---------|----------|----------------|
+| **Startup diagnostic** | Customer, revenue, fundraising, market, internal sponsor, adoption, or "worth building" language appears | Demand evidence, status quo, narrow wedge, observation, future fit |
+| **Builder exploration** | Side project, learning, hackathon, open source, creative tool, or "cool thing" language appears | Delight, fastest demo, who to show, surprising combinations, next build step |
+| **Implementation spec** | User already knows this should be built | Decisions, constraints, edge cases, integration, validation |
+
+Default to **Startup diagnostic** when the user asks whether something is worth building. Default to **Builder exploration** when the user wants to riff before committing. Switch postures mid-interview if the user's answers reveal a different job.
+
+**Startup diagnostic forcing questions:**
+- What's the strongest evidence someone actually wants this, not just finds it interesting?
+- What are people doing right now instead, and what does that workaround cost?
+- Who needs this most? Name the role, trigger, and consequence.
+- What's the smallest version someone would pay for or adopt this week?
+- Have you watched someone try to solve this without guiding them? What surprised you?
+- If the world changes over the next 3 years, does this become more necessary or less?
+
+Ask these one at a time only when the answer is not already clear. Push vague answers once with a concrete follow-up, then record the gap and move on.
+
+**Builder exploration prompts:**
+- What's the version you would be excited to show someone this week?
+- What would make the first demo feel surprisingly good?
+- What's the fastest path to something usable?
+- What existing thing is closest, and what should be different?
+- What would the 10x version include if time were free?
+
+End every posture with one concrete assignment: the next thing the user or agent should do.
 
 ### 3. Map the Decision Tree
 
@@ -149,6 +180,7 @@ Don't silently drift. Explicitly acknowledge the pivot so the user can agree or 
 | Category | Focus | Example Non-Obvious Questions |
 |----------|-------|------------------------------|
 | **Current State** | What exists today | "What workaround exists now?" / "How is this problem currently handled?" |
+| **Demand & Wedge** | Whether the idea has real pull and a narrow entry point | "Who would be upset if this disappeared?" / "What's the smallest version worth adopting this week?" |
 | **Constraints** | What limits the solution space | "What's the recovery story if this fails mid-operation?" / "What existing system invariants must we preserve?" |
 | **Users & Actors** | Who interacts and how | "Who has to clean up when this goes wrong?" / "What's the worst thing a confused user could do here?" |
 | **State & Data** | What changes and persists | "What happens to in-flight data if this is deployed mid-operation?" / "What's the source of truth when systems disagree?" |
@@ -161,6 +193,7 @@ Don't silently drift. Explicitly acknowledge the pivot so the user can agree or 
 
 **Category Coverage Tracker:**
 - [ ] Current State
+- [ ] Demand & Wedge
 - [ ] Constraints
 - [ ] Users & Actors
 - [ ] State & Data
@@ -216,6 +249,7 @@ Select based on context:
 | User provided a Linear ticket or existing doc | **Update existing artifact** | Integrate findings, mark new sections with "NEW:" prefix, preserve existing structure |
 | User needs implementation-ready spec | **Standalone specification** | Use spec template in step 10 |
 | Idea is early-stage or exploratory | **Summary for discussion** | Synthesize key insights, list open questions, skip formal structure |
+| User asked "is this worth building" | **Diagnostic memo** | Lead with demand evidence, status quo, narrow wedge, risks, and assignment |
 | User says "this is helpful" / "that's enough" | **No output needed** | The interview itself achieved the goal |
 
 ### 10. Produce the Specification (when appropriate)
@@ -237,6 +271,9 @@ For standalone specs, use this structure:
 
 ## User Stories / Use Cases
 [Primary flows with actor, action, outcome]
+
+## Demand Evidence
+[Specific behaviors, status quo, and narrowest wedge]
 
 ## Technical Design
 [Architecture, data flow, key decisions]

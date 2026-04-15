@@ -1,0 +1,7 @@
+interface:
+  display_name: "Strategy Review"
+  short_description: "Review plans for strategy, scope, and user value"
+  default_prompt: "Use $strategy-review to pressure-test this plan for user value, scope, and ambition."
+
+policy:
+  allow_implicit_invocation: true
