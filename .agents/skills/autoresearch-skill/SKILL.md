@@ -22,13 +22,13 @@ Implements Karpathy's AutoResearch pattern for any measurable optimization targe
 ## Usage
 
 Typical invocations:
-- Claude Code: `/autoresearch [metric_command]`
+- Claude Code: `/autoresearch-skill [metric_command]`
 - Codex: invoke `autoresearch-skill` from the skills menu or use `$autoresearch-skill [metric_command]`
 
 Examples:
 ```text
-/autoresearch
-/autoresearch <metric_command>
+/autoresearch-skill
+/autoresearch-skill <metric_command>
 ```
 
 In Codex, the slash examples below map directly to `$autoresearch-skill ...`.
