@@ -1,0 +1,7 @@
+interface:
+  display_name: "PRD"
+  short_description: "Turn a ticket into an implementation-ready PRD"
+  default_prompt: "Use $prd to turn this ticket or feature request into a concise PRD."
+
+policy:
+  allow_implicit_invocation: true

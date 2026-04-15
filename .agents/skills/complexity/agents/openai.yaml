@@ -1,0 +1,7 @@
+interface:
+  display_name: "Complexity"
+  short_description: "Reduce cognitive complexity in code"
+  default_prompt: "Use $complexity to simplify this code without changing behavior."
+
+policy:
+  allow_implicit_invocation: true

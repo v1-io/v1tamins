@@ -24,6 +24,7 @@ echo ""
 
 # Create directories if they don't exist
 echo -e "${YELLOW}Creating directories...${NC}"
+mkdir -p ~/.agents
 mkdir -p ~/.claude
 mkdir -p ~/.cursor
 
@@ -37,6 +38,12 @@ backup_if_exists() {
         rm "$1"
     fi
 }
+
+# Shared agent / Codex skills setup
+echo -e "\n${CYAN}Setting up shared agent skills...${NC}"
+backup_if_exists ~/.agents/skills
+ln -sf "$SCRIPT_DIR/.agents/skills" ~/.agents/skills
+echo -e "${GREEN}✓ Shared agent skills linked${NC}"
 
 # Claude Code setup
 echo -e "\n${CYAN}Setting up Claude Code...${NC}"
@@ -69,12 +76,13 @@ fi
 echo -e "\n${GREEN}Installation complete!${NC}"
 echo ""
 echo "What's installed:"
+echo "  ~/.agents/skills  → $(ls ~/.agents/skills | wc -l | tr -d ' ') skills"
 echo "  ~/.claude/skills  → $(ls ~/.claude/skills | wc -l | tr -d ' ') skills"
 echo "  ~/.claude/hooks   → $(ls ~/.claude/hooks | wc -l | tr -d ' ') hooks"
 echo "  ~/.cursor/commands → $(ls ~/.cursor/commands | wc -l | tr -d ' ') commands"
 echo "  ~/.cursor/rules   → $(ls ~/.cursor/rules | wc -l | tr -d ' ') rules"
 echo ""
-echo -e "${YELLOW}Note: Restart Claude Code and Cursor to load the new configs.${NC}"
+echo -e "${YELLOW}Note: Restart Codex, Claude Code, and Cursor to load the new configs.${NC}"
 echo ""
 echo "Required environment variables for MCP servers:"
 echo "  LANGSMITH_API_KEY  - for LangSmith integration"

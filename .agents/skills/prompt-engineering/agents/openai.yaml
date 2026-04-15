@@ -1,0 +1,7 @@
+interface:
+  display_name: "Prompt Engineering"
+  short_description: "Improve prompts, skills, and agent instructions"
+  default_prompt: "Use $prompt-engineering to improve this prompt, skill, or agent instruction set."
+
+policy:
+  allow_implicit_invocation: true

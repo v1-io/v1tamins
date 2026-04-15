@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**v1tamins** is a shared collection of AI development tools for the Version1 team. It provides skills, hooks, commands, rules, and MCP server configurations that are symlinked into developers' personal tool configurations (`~/.claude/` and `~/.cursor/`).
+**v1tamins** is a shared collection of AI development tools for the Version1 team. It provides skills, hooks, commands, rules, and MCP server configurations that are symlinked into developers' personal tool configurations (`~/.agents/`, `~/.claude/`, and `~/.cursor/`).
 
 This is a **configuration distribution repository**, not an application. It contains no build system or tests - quality is maintained through git review and usage feedback.
 
@@ -12,8 +12,10 @@ This is a **configuration distribution repository**, not an application. It cont
 
 ```
 v1tamins/
+├── .agents/
+│   └── skills/          # Canonical shared skills for Codex and other agent runtimes
 ├── claude/
-│   ├── skills/          # 14 Claude Code skills (SKILL.md files with YAML frontmatter)
+│   ├── skills/          # Claude-compatible entries, symlinked or mirrored from .agents/skills
 │   └── hooks/           # Post-execution hooks (format.sh auto-formats Python/TS/JS)
 ├── cursor/
 │   ├── commands/        # 21 Cursor slash commands (markdown files)
@@ -28,7 +30,7 @@ v1tamins/
 ## Installation
 
 ```bash
-# Clone and install (creates symlinks to ~/.claude/ and ~/.cursor/)
+# Clone and install (creates symlinks to ~/.agents/, ~/.claude/, and ~/.cursor/)
 git clone git@github.com:v1-io/v1tamins.git ~/v1tamins
 ~/v1tamins/install.sh
 
@@ -40,12 +42,14 @@ The install script symlinks directories rather than copying files, so all develo
 
 ## Key Concepts
 
-### Skills (claude/skills/)
-Each skill is a directory containing a `SKILL.md` file with:
+### Skills (.agents/skills/)
+Portable shared skills live in `.agents/skills/`. Each skill is a directory containing a `SKILL.md` file with:
 - YAML frontmatter: `name`, `description`, `allowed-tools`
 - Markdown body: usage syntax, workflow steps, examples
 
-Skills are invoked via `/skill-name` in Claude Code.
+Codex-specific UI metadata lives in `agents/openai.yaml` when needed. Claude Code compatibility entries live in `claude/skills/` and should symlink or mirror the shared skill rather than diverging from it.
+
+Skills are invoked via `/skill-name` in Claude Code and via Codex skill discovery in agent runtimes.
 
 ### Hooks (claude/hooks/)
 `format.sh` runs as a PostToolUse hook, auto-formatting:
@@ -68,11 +72,13 @@ Configured integrations requiring environment variables:
 
 ## Contributing Skills
 
-1. Create `claude/skills/<skill-name>/SKILL.md`
-2. Add YAML frontmatter with `name`, `description`, `allowed-tools`
-3. Document usage, workflow steps, and examples
-4. Test in a project before committing
-5. Push to share with team
+1. Create `.agents/skills/<skill-name>/SKILL.md`
+2. Add `agents/openai.yaml` when the skill should appear cleanly in Codex skill lists
+3. Add YAML frontmatter with `name`, `description`, `allowed-tools`
+4. Document usage, workflow steps, and examples
+5. If Claude compatibility is needed, mirror or symlink it into `claude/skills/<skill-name>/`
+6. Test in a project before committing
+7. Push to share with team
 
 ## Architecture Notes
 
