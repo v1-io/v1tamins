@@ -125,6 +125,8 @@ Portable shared skills should live in `.agents/skills/<skill-name>/` with:
 
 Claude-facing entries in `claude/skills/` should be thin mirrors or symlinks rather than hand-maintained forks.
 
+The table lists runtime skill names from `SKILL.md` frontmatter. A few legacy directories are underscore-prefixed on disk, for example `.agents/skills/_file-organizer/`, but the skill name remains `file-organizer`.
+
 | Skill | Description |
 |-------|-------------|
 | `address-review` | Address PR review comments |

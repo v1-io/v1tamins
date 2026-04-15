@@ -126,7 +126,7 @@ YAML
 
 failures=0
 
-while IFS= read -r -d '' skill_md; do
+while IFS= read -r skill_md; do
   skill_dir="$(dirname "$skill_md")"
   skill_dir_name="$(basename "$skill_dir")"
   frontmatter_name="$(extract_scalar name "$skill_md")"
@@ -143,7 +143,7 @@ while IFS= read -r -d '' skill_md; do
     failures=1
   fi
 
-  if [[ ! "$frontmatter_name" =~ ^[a-z0-9][a-z0-9_-]{0,63}$ ]]; then
+  if [[ ! "$frontmatter_name" =~ ^[a-z0-9][a-z0-9-]{0,63}$ ]]; then
     printf 'Invalid skill name: %s\n' "$frontmatter_name" >&2
     failures=1
   fi
@@ -185,7 +185,7 @@ while IFS= read -r -d '' skill_md; do
     expected_openai_yaml "$frontmatter_name" "$description" > "$openai_yaml"
     printf 'Wrote OpenAI metadata: %s\n' "${openai_yaml#$ROOT_DIR/}"
   fi
-done < <(find "$SKILLS_DIR" -mindepth 2 -maxdepth 2 -name SKILL.md -print0 | sort -z)
+done < <(find "$SKILLS_DIR" -mindepth 2 -maxdepth 2 -name SKILL.md -print | sort)
 
 if (( failures )); then
   exit 1
