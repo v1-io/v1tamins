@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **v1tamins** is a shared collection of AI development tools for the Version1 team. It provides skills, hooks, commands, rules, and MCP server configurations that are symlinked into developers' personal tool configurations (`~/.agents/`, `~/.claude/`, and `~/.cursor/`).
 
-This is a **configuration distribution repository**, not an application. It contains no build system or tests - quality is maintained through git review and usage feedback.
+This is a **configuration distribution repository**, not an application. It contains no build system or tests - quality is maintained through git review, lightweight validation scripts, and usage feedback.
 
 ## Repository Structure
 
@@ -22,6 +22,8 @@ v1tamins/
 │   └── rules/           # Generic development rules (.mdc files)
 ├── mcp/
 │   └── mcp.json         # MCP server configurations (Linear, LangSmith, Playwright, etc.)
+├── scripts/
+│   └── sync-skill-hosts.sh  # Validates skill frontmatter, symlinks, and host metadata
 ├── templates/
 │   └── CLAUDE.md.template  # Template for project-specific CLAUDE.md files
 └── install.sh           # One-command setup script
@@ -77,8 +79,10 @@ Configured integrations requiring environment variables:
 3. Add YAML frontmatter with `name`, `description`, `allowed-tools`
 4. Document usage, workflow steps, and examples
 5. If Claude compatibility is needed, mirror or symlink it into `claude/skills/<skill-name>/`
-6. Test in a project before committing
-7. Push to share with team
+6. Run `scripts/sync-skill-hosts.sh --write` after creating or renaming skills
+7. Run `scripts/sync-skill-hosts.sh` before committing
+8. Test in a project before committing
+9. Push to share with team
 
 ## Architecture Notes
 

@@ -30,17 +30,17 @@ v1tamins/
 │   └── hooks/           # Pre/post execution hooks
 │       └── format.sh
 ├── cursor/
-│   ├── commands/        # 22 Cursor slash commands
+│   ├── commands/        # 21 Cursor slash commands
 │   │   ├── code-review.md
 │   │   ├── security-audit.md
 │   │   ├── write-unit-tests.md
 │   │   └── ...
-│   └── rules/           # 6 Cursor rules
-│       ├── backend-patterns.mdc
-│       ├── frontend-patterns.mdc
-│       └── ...
+│   └── rules/           # Cursor rules
+│       └── development.mdc
 ├── mcp/
 │   └── mcp.json         # MCP server configurations
+├── scripts/
+│   └── sync-skill-hosts.sh  # Validate and sync skill host metadata
 └── templates/           # Reusable templates (CLAUDE.md, etc.)
 ```
 
@@ -125,26 +125,39 @@ Portable shared skills should live in `.agents/skills/<skill-name>/` with:
 
 Claude-facing entries in `claude/skills/` should be thin mirrors or symlinks rather than hand-maintained forks.
 
+The table lists runtime skill names from `SKILL.md` frontmatter. A few legacy directories are underscore-prefixed on disk, for example `.agents/skills/_file-organizer/`, but the skill name remains `file-organizer`.
+
 | Skill | Description |
 |-------|-------------|
-| `code-review` | Thorough code review with actionable feedback |
-| `pr-description` | Generate PR descriptions from commits |
-| `write-tests` | Generate unit tests for code |
-| `fix-tests` | Fix failing tests |
-| `deslop` | Clean up AI-generated code slop |
-| `refactor` | Refactor code for clarity |
-| `complexity` | Analyze and reduce cognitive complexity |
-| `changelog` | Generate changelogs from commits |
-| `prd` | Product requirements document generation |
-| `debug` | Systematic debugging workflow |
-| `migrate` | Database/code migration assistance |
-| `prompt-engineering` | Improve prompts |
 | `address-review` | Address PR review comments |
-| `analyze-tool-errors` | Debug tool execution errors |
+| `autoresearch-skill` | Run autonomous optimization loops |
+| `changelog` | Generate changelogs from commits |
+| `code-review` | Thorough code review with actionable feedback |
+| `complexity` | Analyze and reduce cognitive complexity |
+| `debug` | Systematic debugging workflow |
+| `deep-research` | Research and synthesize multi-source topics |
+| `deslop` | Clean up AI-generated code slop |
+| `docs-freshness` | Sync documentation with shipped changes |
+| `e2e-testing` | Implement and debug browser tests |
 | `file-organizer` | Organize project files |
-| `interview-me` | Interview prep assistance |
-| `rebuild` | Rebuild/regenerate code |
-| `test-service` | Test service endpoints |
+| `fix-tests` | Fix failing tests |
+| `game-changing-features` | Find high-leverage product opportunities |
+| `grafana-dashboards` | Create Grafana dashboards |
+| `interview-me` | Refine ideas through structured questioning |
+| `learn-from-pr` | Extract lessons after PRs |
+| `md2docs` | Convert Markdown into Google Docs |
+| `pr` | Ship local work as a pull request |
+| `pr-description` | Generate PR descriptions from commits |
+| `prd` | Product requirements document generation |
+| `prompt-engineering` | Improve prompts |
+| `prompt-engineering-v1tamins` | Improve GPT-5.4/OpenRouter prompts |
+| `prove-work` | Record visual proof of work |
+| `python-performance-optimization` | Profile and optimize Python code |
+| `refactor` | Refactor code for clarity |
+| `skilling-it` | Create and refine shared agent skills |
+| `stickify` | Make communications more memorable |
+| `strategy-review` | Review plans for strategy, scope, and user value |
+| `write-tests` | Generate unit tests for code |
 
 ## Cursor Commands Reference
 

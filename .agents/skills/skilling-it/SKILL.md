@@ -55,10 +55,30 @@ Create a skill when you have:
 ```
 skill-name/
 ├── SKILL.md              # Required - core instructions (<500 lines)
+├── agents/openai.yaml    # Optional - Codex UI metadata
 ├── references/           # Optional - detailed docs (loaded as needed)
 ├── scripts/              # Optional - executable utilities
 └── assets/               # Optional - templates, images, fonts
 ```
+
+### Host Surfaces and Sync
+
+Treat `.agents/skills/<skill-name>/SKILL.md` as the canonical source. Other agent surfaces should be generated, symlinked, or thinly derived from it:
+
+| Surface | Purpose | Rule |
+|---------|---------|------|
+| `.agents/skills/<name>/SKILL.md` | Shared source of truth | Edit this first |
+| `.agents/skills/<name>/agents/openai.yaml` | Codex UI metadata | Keep short and trigger-oriented |
+| `claude/skills/<name>` | Claude compatibility | Symlink to `../../.agents/skills/<name>` |
+
+After creating or renaming a skill, run:
+
+```bash
+scripts/sync-skill-hosts.sh --write
+scripts/sync-skill-hosts.sh
+```
+
+The first command creates missing Claude symlinks and OpenAI metadata. The second command verifies frontmatter, symlink targets, and required metadata fields.
 
 ### Progressive Disclosure
 
@@ -349,7 +369,7 @@ Files used in output (not loaded into context).
 **Structure:**
 - [ ] SKILL.md exists with valid YAML frontmatter
 - [ ] Name is lowercase, hyphens only, max 64 chars
-- [ ] Directory name matches frontmatter name
+- [ ] Directory name matches frontmatter name, unless using a legacy underscore-prefixed directory
 - [ ] SKILL.md under 500 lines (detailed content in references/)
 - [ ] References are one level deep from SKILL.md
 - [ ] Long reference files (>100 lines) have a TOC
@@ -374,6 +394,7 @@ Files used in output (not loaded into context).
 - [ ] Instructions are clear and actionable
 - [ ] Referenced files exist
 - [ ] Tested with real usage scenarios (see [references/iterative-development.md](references/iterative-development.md))
+- [ ] `scripts/sync-skill-hosts.sh` passes
 
 ## Anti-Patterns
 
@@ -430,20 +451,6 @@ Start by reading the file.
 - **references/patterns.md** - Detailed patterns
 - **references/api.md** - API documentation
 ```
-
-### 6. Too Many Options
-
-````markdown
-# BAD: Paralysis of choice
-"Use pypdf, or pdfplumber, or PyMuPDF, or pdf2image, or..."
-
-# GOOD: Default with escape hatch
-"Use pdfplumber for text extraction:
-```python
-import pdfplumber
-```
-For scanned PDFs requiring OCR, use pdf2image with pytesseract instead."
-````
 
 ## Skill Locations
 
