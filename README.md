@@ -30,7 +30,7 @@ v1tamins/
 │   └── hooks/           # Pre/post execution hooks
 │       └── format.sh
 ├── cursor/
-│   ├── commands/        # 21 Cursor slash commands
+│   ├── commands/        # Cursor slash commands
 │   │   ├── code-review.md
 │   │   ├── security-audit.md
 │   │   ├── write-unit-tests.md
@@ -115,7 +115,7 @@ cp ~/v1tamins/mcp/mcp.json ~/.cursor/mcp.json
 | context7 | HTTP | Documentation lookup |
 | brave-search | stdio | Web search (requires `BRAVE_API_KEY`) |
 
-## Skills Reference
+## Claude/Codex Skills Reference
 
 Portable shared skills should live in `.agents/skills/<skill-name>/` with:
 
@@ -144,6 +144,7 @@ The table lists runtime skill names from `SKILL.md` frontmatter. A few legacy di
 | `game-changing-features` | Find high-leverage product opportunities |
 | `grafana-dashboards` | Create Grafana dashboards |
 | `interview-me` | Refine ideas through structured questioning |
+| `land-pr` | Commit, push, open, monitor, and ready a PR through CI handoff |
 | `learn-from-pr` | Extract lessons after PRs |
 | `md2docs` | Convert Markdown into Google Docs |
 | `pr` | Ship local work as a pull request |
@@ -172,6 +173,7 @@ The table lists runtime skill names from `SKILL.md` frontmatter. A few legacy di
 | `/reduce-cognitive-complexity` | Simplify complex code |
 | `/generate-pr-description` | Generate PR description |
 | `/debug-issue` | Debug workflow |
+| `/land-pr` | Commit, push, open, monitor, and ready a PR through CI handoff |
 | `/optimize-performance` | Performance optimization |
 | `/add-documentation` | Add code documentation |
 | `/clean-logging` | Clean up logging statements |
@@ -241,6 +243,7 @@ git push origin main
 ## Requirements
 
 - [Claude Code](https://claude.ai/code) CLI
+- [Codex](https://openai.com/codex/) CLI
 - [Cursor](https://cursor.sh) IDE
 - Node.js (for MCP servers)
 - Python/uvx (for LangSmith MCP)

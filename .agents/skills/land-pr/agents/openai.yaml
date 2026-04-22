@@ -1,0 +1,7 @@
+interface:
+  display_name: "Land PR"
+  short_description: "Commit, push, open, monitor, and ready a PR"
+  default_prompt: "Use $land-pr to turn the current working tree into a ready-to-review pull request."
+
+policy:
+  allow_implicit_invocation: true

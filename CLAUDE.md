@@ -18,7 +18,7 @@ v1tamins/
 │   ├── skills/          # Claude-compatible entries, symlinked or mirrored from .agents/skills
 │   └── hooks/           # Post-execution hooks (format.sh auto-formats Python/TS/JS)
 ├── cursor/
-│   ├── commands/        # 21 Cursor slash commands (markdown files)
+│   ├── commands/        # Cursor slash commands (markdown files)
 │   └── rules/           # Generic development rules (.mdc files)
 ├── mcp/
 │   └── mcp.json         # MCP server configurations (Linear, LangSmith, Playwright, etc.)
@@ -40,7 +40,7 @@ git clone git@github.com:v1-io/v1tamins.git ~/v1tamins
 cd ~/v1tamins && git pull
 ```
 
-The install script symlinks directories rather than copying files, so all developers share the same source of truth and updates propagate via `git pull`.
+The install script symlinks shared agent skills, Claude directories, and Cursor directories rather than copying files, so all developers share the same source of truth and updates propagate via `git pull`.
 
 ## Key Concepts
 
@@ -88,4 +88,4 @@ Configured integrations requiring environment variables:
 
 - **Symlink distribution**: Changes to v1tamins propagate to all users via `git pull`
 - **Project-agnostic**: Skills/rules work across different project types without modification
-- **Multi-tool unification**: Same capabilities available in Claude Code (skills) and Cursor (commands)
+- **Multi-tool unification**: Same capabilities available in Claude Code (skills), Cursor (commands), and Codex (skills)
