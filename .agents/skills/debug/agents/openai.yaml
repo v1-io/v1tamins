@@ -1,0 +1,7 @@
+interface:
+  display_name: "Debug"
+  short_description: "Trace failures to a durable root-cause fix"
+  default_prompt: "Use $debug to trace this failure to root cause and land a durable fix."
+
+policy:
+  allow_implicit_invocation: true

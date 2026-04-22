@@ -1,0 +1,7 @@
+interface:
+  display_name: "Fix Tests"
+  short_description: "Systematically fix a failing test suite"
+  default_prompt: "Use $fix-tests to work through these failing tests until the suite is green."
+
+policy:
+  allow_implicit_invocation: true

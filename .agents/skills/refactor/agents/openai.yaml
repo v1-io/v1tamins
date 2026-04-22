@@ -1,0 +1,7 @@
+interface:
+  display_name: "Refactor"
+  short_description: "Refactor code with KISS, DRY, and YAGNI"
+  default_prompt: "Use $refactor to simplify this code while preserving existing behavior."
+
+policy:
+  allow_implicit_invocation: true

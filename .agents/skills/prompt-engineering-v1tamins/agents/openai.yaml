@@ -1,0 +1,7 @@
+interface:
+  display_name: "Prompt Engineering V1tamins"
+  short_description: "Write GPT-5.4 prompts for OpenRouter workflows"
+  default_prompt: "Use $prompt-engineering-v1tamins to write or migrate this GPT-5.4 prompt workflow."
+
+policy:
+  allow_implicit_invocation: true
