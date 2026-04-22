@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**v1tamins** is a shared collection of AI development tools for the Version1 team. It provides skills, hooks, commands, rules, and MCP server configurations that are symlinked into developers' personal tool configurations (`~/.claude/` and `~/.cursor/`).
+**v1tamins** is a shared collection of AI development tools for the Version1 team. It provides skills, hooks, commands, rules, and MCP server configurations that are linked into developers' personal tool configurations (`~/.claude/`, `~/.cursor/`, and `~/.codex/`).
 
 This is a **configuration distribution repository**, not an application. It contains no build system or tests - quality is maintained through git review and usage feedback.
 
@@ -13,11 +13,13 @@ This is a **configuration distribution repository**, not an application. It cont
 ```
 v1tamins/
 ├── claude/
-│   ├── skills/          # 14 Claude Code skills (SKILL.md files with YAML frontmatter)
+│   ├── skills/          # Claude Code skills (SKILL.md files with YAML frontmatter)
 │   └── hooks/           # Post-execution hooks (format.sh auto-formats Python/TS/JS)
 ├── cursor/
-│   ├── commands/        # 21 Cursor slash commands (markdown files)
+│   ├── commands/        # Cursor slash commands (markdown files)
 │   └── rules/           # Generic development rules (.mdc files)
+├── codex/
+│   └── skills/          # Codex skills (SKILL.md files with YAML frontmatter)
 ├── mcp/
 │   └── mcp.json         # MCP server configurations (Linear, LangSmith, Playwright, etc.)
 ├── templates/
@@ -28,7 +30,7 @@ v1tamins/
 ## Installation
 
 ```bash
-# Clone and install (creates symlinks to ~/.claude/ and ~/.cursor/)
+# Clone and install (links configs into ~/.claude/, ~/.cursor/, and ~/.codex/)
 git clone git@github.com:v1-io/v1tamins.git ~/v1tamins
 ~/v1tamins/install.sh
 
@@ -36,7 +38,7 @@ git clone git@github.com:v1-io/v1tamins.git ~/v1tamins
 cd ~/v1tamins && git pull
 ```
 
-The install script symlinks directories rather than copying files, so all developers share the same source of truth and updates propagate via `git pull`.
+The install script symlinks Claude and Cursor directories, then symlinks Codex skills individually so existing personal Codex skills are preserved. This keeps v1tamins as the source of truth while letting updates propagate via `git pull`.
 
 ## Key Concepts
 
@@ -46,6 +48,9 @@ Each skill is a directory containing a `SKILL.md` file with:
 - Markdown body: usage syntax, workflow steps, examples
 
 Skills are invoked via `/skill-name` in Claude Code.
+
+### Codex Skills (codex/skills/)
+Codex skills use the same directory-per-skill shape with a `SKILL.md` file. The installer links each repo-owned Codex skill into `~/.codex/skills/` without replacing the whole directory.
 
 ### Hooks (claude/hooks/)
 `format.sh` runs as a PostToolUse hook, auto-formatting:
@@ -68,7 +73,7 @@ Configured integrations requiring environment variables:
 
 ## Contributing Skills
 
-1. Create `claude/skills/<skill-name>/SKILL.md`
+1. Create `claude/skills/<skill-name>/SKILL.md` and, when relevant, `codex/skills/<skill-name>/SKILL.md`
 2. Add YAML frontmatter with `name`, `description`, `allowed-tools`
 3. Document usage, workflow steps, and examples
 4. Test in a project before committing
@@ -78,4 +83,4 @@ Configured integrations requiring environment variables:
 
 - **Symlink distribution**: Changes to v1tamins propagate to all users via `git pull`
 - **Project-agnostic**: Skills/rules work across different project types without modification
-- **Multi-tool unification**: Same capabilities available in Claude Code (skills) and Cursor (commands)
+- **Multi-tool unification**: Same capabilities available in Claude Code (skills), Cursor (commands), and Codex (skills)

@@ -16,7 +16,7 @@ Daily supplements for healthy code. A shared collection of AI development tools 
 ```
 v1tamins/
 ├── claude/
-│   ├── skills/          # 20 Claude Code skills
+│   ├── skills/          # Claude Code skills
 │   │   ├── code-review/
 │   │   ├── pr-description/
 │   │   ├── write-tests/
@@ -26,7 +26,7 @@ v1tamins/
 │   └── hooks/           # Pre/post execution hooks
 │       └── format.sh
 ├── cursor/
-│   ├── commands/        # 22 Cursor slash commands
+│   ├── commands/        # Cursor slash commands
 │   │   ├── code-review.md
 │   │   ├── security-audit.md
 │   │   ├── write-unit-tests.md
@@ -35,6 +35,9 @@ v1tamins/
 │       ├── backend-patterns.mdc
 │       ├── frontend-patterns.mdc
 │       └── ...
+├── codex/
+│   └── skills/          # Codex skills
+│       └── land-pr/
 ├── mcp/
 │   └── mcp.json         # MCP server configurations
 └── templates/           # Reusable templates (CLAUDE.md, etc.)
@@ -76,6 +79,16 @@ ln -sf ~/v1tamins/cursor/commands ~/.cursor/commands
 ln -sf ~/v1tamins/cursor/rules ~/.cursor/rules
 ```
 
+### Codex Skills
+
+Codex looks for skills in `~/.codex/skills/`. The installer links repo-owned skills individually so personal Codex skills are preserved.
+
+```bash
+# Link the land-pr skill
+mkdir -p ~/.codex/skills
+ln -sf ~/v1tamins/codex/skills/land-pr ~/.codex/skills/land-pr
+```
+
 ### MCP Servers
 
 Copy or merge the MCP config into your Cursor config:
@@ -98,7 +111,7 @@ cp ~/v1tamins/mcp/mcp.json ~/.cursor/mcp.json
 | context7 | HTTP | Documentation lookup |
 | brave-search | stdio | Web search (requires `BRAVE_API_KEY`) |
 
-## Skills Reference
+## Claude/Codex Skills Reference
 
 | Skill | Description |
 |-------|-------------|
@@ -112,6 +125,7 @@ cp ~/v1tamins/mcp/mcp.json ~/.cursor/mcp.json
 | `changelog` | Generate changelogs from commits |
 | `prd` | Product requirements document generation |
 | `debug` | Systematic debugging workflow |
+| `land-pr` | Commit, push, open, monitor, and ready a PR through CI handoff |
 | `migrate` | Database/code migration assistance |
 | `prompt-engineering` | Improve prompts |
 | `address-review` | Address PR review comments |
@@ -134,6 +148,7 @@ cp ~/v1tamins/mcp/mcp.json ~/.cursor/mcp.json
 | `/reduce-cognitive-complexity` | Simplify complex code |
 | `/generate-pr-description` | Generate PR description |
 | `/debug-issue` | Debug workflow |
+| `/land-pr` | Commit, push, open, monitor, and ready a PR through CI handoff |
 | `/optimize-performance` | Performance optimization |
 | `/add-documentation` | Add code documentation |
 | `/clean-logging` | Clean up logging statements |
@@ -203,6 +218,7 @@ git push origin main
 ## Requirements
 
 - [Claude Code](https://claude.ai/code) CLI
+- [Codex](https://openai.com/codex/) CLI
 - [Cursor](https://cursor.sh) IDE
 - Node.js (for MCP servers)
 - Python/uvx (for LangSmith MCP)
