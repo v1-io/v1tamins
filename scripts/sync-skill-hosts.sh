@@ -2,193 +2,278 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SKILLS_DIR="$ROOT_DIR/.agents/skills"
-CLAUDE_DIR="$ROOT_DIR/claude/skills"
-WRITE=0
-
 usage() {
-  cat <<'USAGE'
-Usage: scripts/sync-skill-hosts.sh [--write]
+  cat <<'EOF'
+Usage: scripts/sync-skill-hosts.sh [--write] [--verbose]
 
-Checks shared skills for:
-  - SKILL.md frontmatter name/description
-  - directory name matching frontmatter name, allowing legacy leading underscore directories
-  - Claude compatibility symlink targets
-  - required agents/openai.yaml fields when metadata exists
+Validate canonical shared skills and their host surfaces.
 
-With --write, creates missing Claude symlinks and missing agents/openai.yaml files.
-USAGE
+Checks:
+  - every .agents/skills/<skill>/SKILL.md has parseable YAML frontmatter
+  - required frontmatter keys are present: name, description
+  - optional .agents/skills/<skill>/agents/openai.yaml files parse as YAML
+  - every canonical skill has a claude/skills/<skill> host entry
+  - Claude host symlinks point back to ../../.agents/skills/<skill>
+
+Options:
+  --write   create missing Claude host symlinks and repair wrong symlinks
+  --verbose print each successful check
+  -h, --help
+EOF
 }
 
-if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-  usage
-  exit 0
-fi
+write=false
+verbose=false
 
-if [[ "${1:-}" == "--write" ]]; then
-  WRITE=1
-elif [[ $# -gt 0 ]]; then
-  usage >&2
-  exit 2
-fi
+for arg in "$@"; do
+  case "$arg" in
+    --write)
+      write=true
+      ;;
+    --verbose)
+      verbose=true
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "ERROR: unknown argument: $arg" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
 
-extract_scalar() {
-  local key="$1"
-  local file="$2"
-
-  awk -v key="$key" '
-    $0 == "---" { fence++; next }
-    fence == 1 && $0 ~ "^" key ":[[:space:]]*" {
-      sub("^" key ":[[:space:]]*", "")
-      print
-      exit
-    }
-    fence == 2 { exit }
-  ' "$file" | sed 's/^["'\'']//; s/["'\'']$//'
-}
-
-extract_description() {
-  local file="$1"
-
-  awk '
-    $0 == "---" {
-      if (in_block) {
-        print description
-        exit
-      }
-      fence++
-      next
-    }
-
-    fence != 1 { next }
-
-    in_block && $0 ~ /^[A-Za-z0-9_-]+:[[:space:]]*/ {
-      print description
-      exit
-    }
-
-    in_block {
-      sub(/^[[:space:]]+/, "")
-      description = description (description == "" ? "" : " ") $0
-      next
-    }
-
-    $0 ~ /^description:[[:space:]]*[>|]/ {
-      in_block = 1
-      next
-    }
-
-    $0 ~ /^description:[[:space:]]*/ {
-      sub(/^description:[[:space:]]*/, "")
-      print
-      exit
-    }
-  ' "$file" | tr -s ' ' | sed 's/^ *//; s/ *$//; s/^["'\'']//; s/["'\'']$//'
-}
-
-yaml_quote() {
-  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/^/"/; s/$/"/'
-}
-
-titleize() {
-  printf '%s\n' "$1" |
-    tr '_-' '  ' |
-    awk '{ for (i = 1; i <= NF; i++) $i = toupper(substr($i, 1, 1)) substr($i, 2); print }'
-}
-
-short_description() {
-  local description="$1"
-  description="${description#Use when }"
-  description="${description%%. Triggers on*}"
-  description="${description%% Triggers on*}"
-  printf '%s' "$description" | cut -c 1-120
-}
-
-expected_openai_yaml() {
-  local skill_name="$1"
-  local description="$2"
-  local display_name short
-
-  display_name="$(titleize "$skill_name")"
-  short="$(short_description "$description")"
-
-  cat <<YAML
-interface:
-  display_name: $(yaml_quote "$display_name")
-  short_description: $(yaml_quote "$short")
-  default_prompt: $(yaml_quote "Use \$$skill_name for this task.")
-
-policy:
-  allow_implicit_invocation: true
-YAML
-}
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+agent_skills_dir="$repo_root/.agents/skills"
+claude_skills_dir="$repo_root/claude/skills"
 
 failures=0
+warnings=0
 
-while IFS= read -r skill_md; do
-  skill_dir="$(dirname "$skill_md")"
-  skill_dir_name="$(basename "$skill_dir")"
-  frontmatter_name="$(extract_scalar name "$skill_md")"
-  description="$(extract_description "$skill_md")"
+relpath() {
+  local path="$1"
+  printf '%s' "${path#"$repo_root"/}"
+}
 
-  if [[ -z "$frontmatter_name" || -z "$description" ]]; then
-    printf 'Missing name or description: %s\n' "${skill_md#$ROOT_DIR/}" >&2
-    failures=1
-    continue
+ok() {
+  if [ "$verbose" = true ]; then
+    printf 'ok: %s\n' "$1"
+  fi
+}
+
+warn() {
+  warnings=$((warnings + 1))
+  printf 'WARN: %s\n' "$1" >&2
+}
+
+fail() {
+  failures=$((failures + 1))
+  printf 'ERROR: %s\n' "$1" >&2
+}
+
+print_failure_summary() {
+  printf '\n%d validation error(s), %d warning(s)\n' "$failures" "$warnings" >&2
+}
+
+require_dir() {
+  local dir="$1"
+  if [ ! -d "$dir" ]; then
+    fail "missing directory: $(relpath "$dir")"
+  fi
+}
+
+validate_skill_frontmatter() {
+  local file="$1"
+  local expected_name="$2"
+
+  if ! command -v ruby >/dev/null 2>&1; then
+    fail "ruby is required to parse YAML frontmatter"
+    return 1
   fi
 
-  if [[ "$frontmatter_name" != "$skill_dir_name" && "$frontmatter_name" != "${skill_dir_name#_}" ]]; then
-    printf 'Name mismatch: %s declares %s\n' "${skill_md#$ROOT_DIR/}" "$frontmatter_name" >&2
-    failures=1
-  fi
+  if ruby -ryaml -rdate - "$file" "$expected_name" <<'RUBY'
+path = ARGV.fetch(0)
+expected_name = ARGV.fetch(1)
+content = File.read(path)
 
-  if [[ ! "$frontmatter_name" =~ ^[a-z0-9][a-z0-9-]{0,63}$ ]]; then
-    printf 'Invalid skill name: %s\n' "$frontmatter_name" >&2
-    failures=1
-  fi
-
-  if (( ${#description} > 1024 )); then
-    printf 'Description too long: %s (%s chars)\n' "$frontmatter_name" "${#description}" >&2
-    failures=1
-  fi
-
-  claude_link="$CLAUDE_DIR/$skill_dir_name"
-  claude_target="../../.agents/skills/$skill_dir_name"
-  if [[ ! -L "$claude_link" || "$(readlink "$claude_link" 2>/dev/null)" != "$claude_target" ]]; then
-    if (( WRITE )); then
-      mkdir -p "$CLAUDE_DIR"
-      if [[ -e "$claude_link" && ! -L "$claude_link" ]]; then
-        printf 'Refusing to replace non-symlink Claude entry: %s\n' "${claude_link#$ROOT_DIR/}" >&2
-        failures=1
-        continue
-      fi
-      rm -rf "$claude_link"
-      ln -s "$claude_target" "$claude_link"
-      printf 'Wrote Claude symlink: %s\n' "${claude_link#$ROOT_DIR/}"
-    else
-      printf 'Missing or stale Claude symlink: %s\n' "${claude_link#$ROOT_DIR/}" >&2
-      failures=1
-    fi
-  fi
-
-  openai_yaml="$skill_dir/agents/openai.yaml"
-  if [[ -f "$openai_yaml" ]]; then
-    for required_field in "display_name:" "short_description:" "default_prompt:" "allow_implicit_invocation:"; do
-      if ! grep -q "$required_field" "$openai_yaml"; then
-        printf 'OpenAI metadata missing %s %s\n' "$required_field" "${openai_yaml#$ROOT_DIR/}" >&2
-        failures=1
-      fi
-    done
-  elif (( WRITE )); then
-    mkdir -p "$skill_dir/agents"
-    expected_openai_yaml "$frontmatter_name" "$description" > "$openai_yaml"
-    printf 'Wrote OpenAI metadata: %s\n' "${openai_yaml#$ROOT_DIR/}"
-  fi
-done < <(find "$SKILLS_DIR" -mindepth 2 -maxdepth 2 -name SKILL.md -print | sort)
-
-if (( failures )); then
+unless content.match?(/\A---\s*\n/)
+  warn "#{path}: missing opening YAML frontmatter delimiter"
   exit 1
-fi
+end
 
-printf 'Skill host checks passed.\n'
+match = content.match(/\A---\s*\n(.*?)\n---\s*\n/m)
+unless match
+  warn "#{path}: missing closing YAML frontmatter delimiter"
+  exit 1
+end
+
+frontmatter = match[1]
+
+begin
+  begin
+    data = YAML.safe_load(frontmatter, permitted_classes: [Date, Time], aliases: false, filename: path)
+  rescue ArgumentError
+    data = YAML.safe_load(frontmatter, [Date, Time], [], false, path)
+  end
+rescue Psych::Exception => e
+  warn "#{path}: invalid YAML frontmatter: #{e.message}"
+  exit 1
+end
+
+unless data.is_a?(Hash)
+  warn "#{path}: YAML frontmatter must be a mapping"
+  exit 1
+end
+
+missing = %w[name description].select do |key|
+  value = data[key]
+  value.nil? || value.to_s.strip.empty?
+end
+
+unless missing.empty?
+  warn "#{path}: missing required frontmatter key(s): #{missing.join(', ')}"
+  exit 1
+end
+
+actual_name = data["name"].to_s.strip
+unless actual_name == expected_name
+  warn "#{path}: frontmatter name #{actual_name.inspect} must match directory #{expected_name.inspect}"
+  exit 1
+end
+RUBY
+  then
+    ok "$(relpath "$file") frontmatter"
+  else
+    fail "$(relpath "$file") frontmatter validation failed"
+  fi
+}
+
+validate_yaml_file() {
+  local file="$1"
+
+  if ! command -v ruby >/dev/null 2>&1; then
+    fail "ruby is required to parse YAML files"
+    return 1
+  fi
+
+  if ruby -ryaml -rdate - "$file" <<'RUBY'
+path = ARGV.fetch(0)
+
+begin
+  content = File.read(path)
+  begin
+    YAML.safe_load(content, permitted_classes: [Date, Time], aliases: false, filename: path)
+  rescue ArgumentError
+    YAML.safe_load(content, [Date, Time], [], false, path)
+  end
+rescue Psych::Exception => e
+  warn "#{path}: invalid YAML: #{e.message}"
+  exit 1
+end
+RUBY
+  then
+    ok "$(relpath "$file") YAML"
+  else
+    fail "$(relpath "$file") YAML validation failed"
+  fi
+}
+
+sync_claude_host_entry() {
+  local skill_dir="$1"
+  local skill_name
+  local host_entry
+  local expected_target
+
+  skill_name="$(basename "$skill_dir")"
+  host_entry="$claude_skills_dir/$skill_name"
+  expected_target="../../.agents/skills/$skill_name"
+
+  if [ -L "$host_entry" ]; then
+    local actual_target
+    actual_target="$(readlink "$host_entry")"
+
+    if [ "$actual_target" = "$expected_target" ]; then
+      ok "claude/skills/$skill_name symlink"
+    elif [ "$write" = true ]; then
+      ln -sfn "$expected_target" "$host_entry"
+      ok "repaired claude/skills/$skill_name symlink"
+    else
+      fail "claude/skills/$skill_name points to $actual_target; expected $expected_target"
+    fi
+  elif [ -e "$host_entry" ]; then
+    if [ -f "$host_entry/SKILL.md" ]; then
+      warn "claude/skills/$skill_name is a directory mirror; leaving it untouched"
+    else
+      fail "claude/skills/$skill_name exists but is not a symlink or skill mirror"
+    fi
+  elif [ "$write" = true ]; then
+    mkdir -p "$claude_skills_dir"
+    ln -s "$expected_target" "$host_entry"
+    ok "created claude/skills/$skill_name symlink"
+  else
+    fail "missing Claude host entry: claude/skills/$skill_name"
+  fi
+}
+
+check_for_stale_claude_entries() {
+  local entry
+  local skill_name
+
+  if [ ! -d "$claude_skills_dir" ]; then
+    return
+  fi
+
+  while IFS= read -r entry; do
+    skill_name="$(basename "$entry")"
+    if [ ! -d "$agent_skills_dir/$skill_name" ]; then
+      fail "stale Claude host entry without canonical skill: claude/skills/$skill_name"
+    fi
+  done < <(find "$claude_skills_dir" -mindepth 1 -maxdepth 1 ! -name '.DS_Store' ! -name '_*' ! -name '.*' -print | sort)
+}
+
+main() {
+  require_dir "$agent_skills_dir"
+  require_dir "$claude_skills_dir"
+
+  if [ "$failures" -ne 0 ]; then
+    print_failure_summary
+    exit 1
+  fi
+
+  while IFS= read -r skill_dir; do
+    local skill_md="$skill_dir/SKILL.md"
+    local openai_yaml="$skill_dir/agents/openai.yaml"
+
+    if [ -f "$skill_md" ]; then
+      validate_skill_frontmatter "$skill_md" "$(basename "$skill_dir")"
+    else
+      fail "missing SKILL.md: $(relpath "$skill_md")"
+    fi
+
+    if [ -f "$openai_yaml" ]; then
+      validate_yaml_file "$openai_yaml"
+    fi
+
+    sync_claude_host_entry "$skill_dir"
+  done < <(find "$agent_skills_dir" -mindepth 1 -maxdepth 1 -type d ! -name '_*' ! -name '.*' -print | sort)
+
+  check_for_stale_claude_entries
+
+  if [ "$failures" -ne 0 ]; then
+    print_failure_summary
+    if [ "$write" != true ]; then
+      printf 'Run scripts/sync-skill-hosts.sh --write to create missing symlinks or repair wrong symlinks.\n' >&2
+    fi
+    exit 1
+  fi
+
+  printf '\nSkill host sync checks passed'
+  if [ "$warnings" -ne 0 ]; then
+    printf ' with %d warning(s)' "$warnings"
+  fi
+  printf '.\n'
+}
+
+main "$@"

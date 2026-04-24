@@ -39,19 +39,60 @@ backup_if_exists() {
     fi
 }
 
+prepare_managed_directory() {
+    local dir="$1"
+
+    if [ -L "$dir" ]; then
+        echo -e "${YELLOW}Replacing directory symlink $dir with a real directory${NC}"
+        rm "$dir"
+    elif [ -e "$dir" ] && [ ! -d "$dir" ]; then
+        echo -e "${YELLOW}Backing up existing $dir to $dir.backup${NC}"
+        mv "$dir" "$dir.backup"
+    fi
+
+    mkdir -p "$dir"
+}
+
+link_managed_entries() {
+    local source_dir="$1"
+    local target_dir="$2"
+    local label="$3"
+    local entry
+    local name
+    local target
+    local backup
+
+    prepare_managed_directory "$target_dir"
+
+    for entry in "$source_dir"/*; do
+        [ -e "$entry" ] || continue
+
+        name="$(basename "$entry")"
+        target="$target_dir/$name"
+
+        if [ -L "$target" ]; then
+            rm "$target"
+        elif [ -e "$target" ]; then
+            backup="$target.backup.$(date +%Y%m%d%H%M%S)"
+            echo -e "${YELLOW}Backing up existing $label entry $target to $backup${NC}"
+            mv "$target" "$backup"
+        fi
+
+        ln -s "$entry" "$target"
+    done
+}
+
 # Shared agent / Codex skills setup
 echo -e "\n${CYAN}Setting up shared agent skills...${NC}"
-backup_if_exists ~/.agents/skills
-ln -sf "$SCRIPT_DIR/.agents/skills" ~/.agents/skills
-echo -e "${GREEN}✓ Shared agent skills linked${NC}"
+link_managed_entries "$SCRIPT_DIR/.agents/skills" ~/.agents/skills "agent skill"
+echo -e "${GREEN}✓ Shared agent skills linked individually${NC}"
 
 # Claude Code setup
 echo -e "\n${CYAN}Setting up Claude Code...${NC}"
-backup_if_exists ~/.claude/skills
 backup_if_exists ~/.claude/hooks
-ln -sf "$SCRIPT_DIR/claude/skills" ~/.claude/skills
+link_managed_entries "$SCRIPT_DIR/claude/skills" ~/.claude/skills "Claude skill"
 ln -sf "$SCRIPT_DIR/claude/hooks" ~/.claude/hooks
-echo -e "${GREEN}✓ Claude skills linked${NC}"
+echo -e "${GREEN}✓ Claude skills linked individually${NC}"
 echo -e "${GREEN}✓ Claude hooks linked${NC}"
 
 # Cursor setup

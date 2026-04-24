@@ -136,6 +136,17 @@ Run these passes in the main review. Use them as lenses, not as separate reports
 - **Frontend/UI:** async races, loading/error/empty states, accessibility, responsive behavior, console errors
 - **External services/LLM:** trust boundaries, schema validation, retries, timeouts, rate limits, cost controls
 
+When a UI change crosses an API, service client, state hook, or server route boundary, build a contract matrix before writing findings:
+
+| Layer | File(s) | Contract to verify | Tests/evidence |
+| --- | --- | --- | --- |
+| API route or handler | `...` | auth, status codes, request/response shape, pagination, timeout/abort behavior | `...` |
+| Service client | `...` | typed inputs/outputs, error mapping, retry/abort behavior | `...` |
+| State hook/store | `...` | loading, empty, stale, error, optimistic update, cancellation | `...` |
+| Component/view | `...` | rendered states, accessibility, responsive layout, destructive-action affordances | `...` |
+
+Use the matrix to catch half-wired work: backend without user path, UI without backend contract, service-client type drift, missing empty/error states, or tests that cover only one layer.
+
 After specialist passes, do one adversarial pass:
 
 > Think like an attacker, a chaos engineer, and a hostile QA tester. What fails under load, bad input, retries, concurrency, stale state, partial failure, or confused users?
