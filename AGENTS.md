@@ -78,7 +78,7 @@ Configured integrations requiring environment variables:
 2. Add `agents/openai.yaml` when the skill should appear cleanly in Codex skill lists
 3. Add YAML frontmatter with `name`, `description`, `allowed-tools`
 4. Document usage, workflow steps, and examples
-5. If Codex compatibility is needed, mirror or symlink it into `Codex/skills/<skill-name>/`
+5. If Claude compatibility is needed, mirror or symlink it into `claude/skills/<skill-name>/`
 6. Run `scripts/sync-skill-hosts.sh --write` after creating or renaming skills
 7. Run `scripts/sync-skill-hosts.sh` before committing
 8. Test in a project before committing

@@ -73,24 +73,29 @@ fail() {
   printf 'ERROR: %s\n' "$1" >&2
 }
 
+print_failure_summary() {
+  printf '\n%d validation error(s), %d warning(s)\n' "$failures" "$warnings" >&2
+}
+
 require_dir() {
   local dir="$1"
   if [ ! -d "$dir" ]; then
     fail "missing directory: $(relpath "$dir")"
-    return 1
   fi
 }
 
 validate_skill_frontmatter() {
   local file="$1"
+  local expected_name="$2"
 
   if ! command -v ruby >/dev/null 2>&1; then
     fail "ruby is required to parse YAML frontmatter"
     return 1
   fi
 
-  if ruby -ryaml -rdate - "$file" <<'RUBY'
+  if ruby -ryaml -rdate - "$file" "$expected_name" <<'RUBY'
 path = ARGV.fetch(0)
+expected_name = ARGV.fetch(1)
 content = File.read(path)
 
 unless content.match?(/\A---\s*\n/)
@@ -129,6 +134,12 @@ end
 
 unless missing.empty?
   warn "#{path}: missing required frontmatter key(s): #{missing.join(', ')}"
+  exit 1
+end
+
+actual_name = data["name"].to_s.strip
+unless actual_name == expected_name
+  warn "#{path}: frontmatter name #{actual_name.inspect} must match directory #{expected_name.inspect}"
   exit 1
 end
 RUBY
@@ -219,7 +230,7 @@ check_for_stale_claude_entries() {
     if [ ! -d "$agent_skills_dir/$skill_name" ]; then
       fail "stale Claude host entry without canonical skill: claude/skills/$skill_name"
     fi
-  done < <(find "$claude_skills_dir" -mindepth 1 -maxdepth 1 ! -name '.DS_Store' -print | sort)
+  done < <(find "$claude_skills_dir" -mindepth 1 -maxdepth 1 ! -name '.DS_Store' ! -name '_*' ! -name '.*' -print | sort)
 }
 
 main() {
@@ -227,6 +238,7 @@ main() {
   require_dir "$claude_skills_dir"
 
   if [ "$failures" -ne 0 ]; then
+    print_failure_summary
     exit 1
   fi
 
@@ -235,7 +247,7 @@ main() {
     local openai_yaml="$skill_dir/agents/openai.yaml"
 
     if [ -f "$skill_md" ]; then
-      validate_skill_frontmatter "$skill_md"
+      validate_skill_frontmatter "$skill_md" "$(basename "$skill_dir")"
     else
       fail "missing SKILL.md: $(relpath "$skill_md")"
     fi
@@ -245,12 +257,12 @@ main() {
     fi
 
     sync_claude_host_entry "$skill_dir"
-  done < <(find "$agent_skills_dir" -mindepth 1 -maxdepth 1 -type d -print | sort)
+  done < <(find "$agent_skills_dir" -mindepth 1 -maxdepth 1 -type d ! -name '_*' ! -name '.*' -print | sort)
 
   check_for_stale_claude_entries
 
   if [ "$failures" -ne 0 ]; then
-    printf '\n%d validation error(s), %d warning(s)\n' "$failures" "$warnings" >&2
+    print_failure_summary
     if [ "$write" != true ]; then
       printf 'Run scripts/sync-skill-hosts.sh --write to create missing symlinks or repair wrong symlinks.\n' >&2
     fi
