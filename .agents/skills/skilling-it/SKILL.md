@@ -337,6 +337,10 @@ Only add context the agent does not already have. Challenge each piece of inform
 - "Can I assume the agent knows this?"
 - "Does this paragraph justify its token cost?"
 
+### Public-Safe Extraction Gate
+
+Before moving guidance from a private project into a shared skill, keep the reusable workflow and remove private facts. Read [references/public-safe-extraction.md](references/public-safe-extraction.md) for the privacy checklist and scan command.
+
 ## Bundled Resources
 
 ### References (`references/`)
@@ -387,7 +391,8 @@ Files used in output (not loaded into context).
 - [ ] Examples are concrete with real input/output
 - [ ] No time-sensitive information
 - [ ] References supporting files if they exist
-- [ ] No sensitive information (credentials, internal URLs)
+- [ ] No sensitive information, internal URLs, private paths, customer data, or incident-specific identifiers
+- [ ] Shared skills pass the public-safe extraction gate
 
 **Testing:**
 - [ ] Skill triggers on expected user queries
@@ -484,3 +489,4 @@ For detailed patterns and extended guidance, see:
 - **[references/iterative-development.md](references/iterative-development.md)** - Agent A/B testing, evaluation-driven development, observing navigation
 - **[references/discipline-enforcement.md](references/discipline-enforcement.md)** - TDD for documentation, rationalization-proofing, gate functions
 - **[references/executable-code.md](references/executable-code.md)** - Script best practices, error handling, MCP tools, dependency management
+- **[references/public-safe-extraction.md](references/public-safe-extraction.md)** - Public-safe framing and privacy scans for shared skills

@@ -28,6 +28,16 @@ In Codex, the slash examples below map directly to `$address-review ...`.
 
 ## What It Does
 
+### 0. Build a Review Ledger
+
+Before editing files, build a working ledger of every actionable review item:
+
+| Comment ID | Source | File:Line | Finding | Status | Action | Validation | Reply |
+|---|---|---|---|---|---|---|---|
+| `<id>` | Copilot / Code Factory / human | `path:line` | short title | valid / invalid / partial / blocked | fix / skip / ask | command or reason | posted / pending |
+
+Use the ledger to avoid losing line-specific comments, stale bot findings, or false positives that still need a reply. If GitHub API access fails, say so explicitly and do not claim comments were addressed; fall back only to local diff review and mark replies as blocked.
+
 ### 1. Fetch Review Comments
 Checks **three** sources of review feedback:
 
@@ -96,6 +106,8 @@ For each finding (regardless of source):
 - For valid findings: implements fix following existing patterns
 - For partial: implements appropriate fix addressing the concern
 - Documents why invalid findings are skipped
+- Stages only files changed for the review fix, especially in noisy worktrees.
+- Runs `git diff --cached --check` or an equivalent staged-file check before committing when unrelated local files may already have whitespace or generated-output churn.
 
 ### 5. Reply
 
@@ -124,9 +136,10 @@ Replies are brief:
 - Valid: "Fixed" or "Fixed - [note if approach differs]"
 - Invalid: "Skipped - [brief reason]"
 - Partial: "Addressed - [note on approach]"
+- Blocked: "Could not verify/reply because [specific GitHub/API/tooling failure]"
 
 ### 6. Commit and Push
-Commits all fixes with descriptive message and pushes.
+Commit all validated fixes with a descriptive message and push when the user asked to complete the review-fix loop. Do not leave the PR in a state where local fixes exist but review comments are unanswered.
 
 ## Evaluation Criteria
 
@@ -139,6 +152,17 @@ Commits all fixes with descriptive message and pushes.
 - **Test mock updates**: Valid if mocks don't match implementation
 - **Refactoring suggestions**: Evaluate against KISS/YAGNI
 - **"Previous findings still unresolved"**: Code Factory re-flags findings across review rounds — prioritize these as they've been raised before
+
+## Completion Gates
+
+Before reporting done:
+
+- Every valid or partial finding has a code change or a clear reason it is blocked.
+- Every invalid finding has a concise explanation grounded in current file contents.
+- Focused tests or validation commands have run for the changed surface.
+- Only review-fix files are staged.
+- The commit is pushed if the user asked for push/PR completion.
+- Every GitHub review thread or aggregate bot comment has a reply, unless API access was unavailable and that gap is stated.
 
 ## Output
 

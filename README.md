@@ -40,7 +40,7 @@ v1tamins/
 ├── mcp/
 │   └── mcp.json         # MCP server configurations
 ├── scripts/
-│   └── sync-skill-hosts.sh  # Validate and sync skill host metadata
+│   └── sync-skill-hosts.sh  # Validate skill frontmatter and sync host metadata
 └── templates/           # Reusable templates (CLAUDE.md, etc.)
 ```
 
@@ -60,12 +60,16 @@ git clone git@github.com:v1-io/v1tamins.git ~/v1tamins
 
 The canonical repo path for portable skills is `.agents/skills/`.
 
-For repo-managed installs, link that directory into `~/.agents/skills/`:
+For repo-managed installs, keep `~/.agents/skills/` as a real user-owned directory and symlink each v1tamins skill into it:
 
 ```bash
-# Symlink shared skills directory
-ln -sf ~/v1tamins/.agents/skills ~/.agents/skills
+mkdir -p ~/.agents/skills
+for skill in ~/v1tamins/.agents/skills/*; do
+  ln -sfn "$skill" ~/.agents/skills/"$(basename "$skill")"
+done
 ```
+
+Do not symlink the whole `~/.agents/skills` directory to this repo. Public, vendor, and personal skills installed into global skill directories should remain outside v1tamins so they do not appear in `git status`.
 
 For standalone user-global Codex installs outside this repo, Codex's default skill location is `~/.codex/skills/`.
 
@@ -74,8 +78,10 @@ For standalone user-global Codex installs outside this repo, Codex's default ski
 Claude Code looks for skills in `~/.claude/skills/` and hooks in `~/.claude/hooks/`. In this repo, `claude/skills/` is the Claude compatibility surface and may symlink back to `.agents/skills/`.
 
 ```bash
-# Symlink skills directory
-ln -sf ~/v1tamins/claude/skills ~/.claude/skills
+mkdir -p ~/.claude/skills
+for skill in ~/v1tamins/claude/skills/*; do
+  ln -sfn "$skill" ~/.claude/skills/"$(basename "$skill")"
+done
 
 # Symlink hooks directory
 ln -sf ~/v1tamins/claude/hooks ~/.claude/hooks
@@ -190,6 +196,23 @@ Pull the latest changes and re-run install if needed:
 cd ~/v1tamins && git pull
 ```
 
+## Validation
+
+Run the skill host sync check before committing skill changes:
+
+```bash
+scripts/sync-skill-hosts.sh
+```
+
+When creating or renaming a skill, let the script create missing Claude host symlinks:
+
+```bash
+scripts/sync-skill-hosts.sh --write
+```
+
+The check validates `SKILL.md` YAML frontmatter, optional `agents/openai.yaml` metadata, and the `claude/skills/` compatibility surface.
+Use `--verbose` when you need the per-file trace.
+
 ## Contributing
 
 We welcome contributions! Here's how to get started:
@@ -214,7 +237,9 @@ We welcome contributions! Here's how to get started:
    git checkout -b feature/my-new-skill
    ```
 2. Make your changes and test them in a project
-3. Commit your changes with a descriptive message:
+3. If you created or renamed a skill, run `scripts/sync-skill-hosts.sh --write`
+4. Run `scripts/sync-skill-hosts.sh`
+5. Commit your changes with a descriptive message:
    ```bash
    git add .
    git commit -m "Add new skill: my-cool-skill"
@@ -247,3 +272,4 @@ git push origin main
 - [Cursor](https://cursor.sh) IDE
 - Node.js (for MCP servers)
 - Python/uvx (for LangSmith MCP)
+- Ruby (for YAML validation; no gems required)
