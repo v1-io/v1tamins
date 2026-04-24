@@ -1,6 +1,6 @@
 ---
-name: rewriting-after-exploration
-description: Use when a first-pass fix works but is exploratory, messy, or overbuilt, and you want to delete it and reimplement a better version using what the first pass taught you. Triggers on "delete your fix and implement a better version", "second pass rewrite", "rewrite after exploration", and "clean reimplementation".
+name: hindsight-refactor
+description: Use when a first-pass fix works but is exploratory, messy, or overbuilt, and you want to delete it and reimplement a better version using what the first pass taught you. Triggers on "delete your fix and implement a better version", "hindsight refactor", "second pass refactor", "second pass rewrite", "rewrite after exploration", and "clean reimplementation".
 allowed-tools:
   - Bash
   - Read
@@ -8,23 +8,23 @@ allowed-tools:
   - Grep
 ---
 
-# Rewrite After Exploration
+# Hindsight Refactor
 
 Use the first implementation as reconnaissance, not as the final answer.
 
 ## Usage
 
 Typical invocations:
-- Claude Code: `/rewriting-after-exploration`
-- Codex: invoke `rewriting-after-exploration` from the skills menu or use `$rewriting-after-exploration`
+- Claude Code: `/hindsight-refactor`
+- Codex: invoke `hindsight-refactor` from the skills menu or use `$hindsight-refactor`
 
 Examples:
 ```bash
-/rewriting-after-exploration
-/rewriting-after-exploration src/summarizer.py
+/hindsight-refactor
+/hindsight-refactor src/summarizer.py
 ```
 
-In Codex, the slash examples below map directly to `$rewriting-after-exploration ...`.
+In Codex, the slash examples below map directly to `$hindsight-refactor ...`.
 
 ## When To Use It
 
