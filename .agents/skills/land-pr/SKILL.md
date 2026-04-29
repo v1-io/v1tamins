@@ -11,63 +11,57 @@ allowed-tools:
 
 # Land PR
 
-Use this skill when implementation work is done and the next goal is a review-ready pull request with passing CI.
+## Overview
 
-## Usage
+Commit, push, open, and land a pull request through CI handoff. Use this command when implementation work is done and the next goal is a review-ready pull request with passing CI.
 
-Typical invocations:
-- Claude Code: `/land-pr`
-- Codex: invoke `land-pr` from the skills menu or use `$land-pr`
+## Input
 
-## Workflow
+The user can invoke this command without arguments from the repository containing the completed work:
 
-1. Inspect the repository state.
+```bash
+/land-pr
+```
+
+## Steps
+
+1. **Inspect Repository State**
    - Run `git status --short --branch`.
    - Identify the current branch, base branch, and changed files.
    - If the branch is `main` or another protected base branch, create a feature branch before committing.
-   - Do not revert unrelated user changes. If unrelated changes are present, leave them unstaged unless the user clearly wants them included.
+   - Do not revert unrelated user changes. Leave unrelated changes unstaged unless the user clearly wants them included.
 
-2. Commit and push the changed code.
-   - Review the diff before committing: `git diff` and, when relevant, `git diff --staged`.
-   - Run the fastest relevant local validation before commit when it is clear from the changed files.
+2. **Commit and Push**
+   - Review the diff before committing with `git diff` and, when relevant, `git diff --staged`.
+   - Run the fastest relevant local validation when it is clear from the changed files.
    - Stage only intended files.
    - Commit with a concise message that describes the user-visible or operational value.
    - Push the branch and set upstream if needed: `git push -u origin HEAD`.
 
-3. Open a draft pull request.
-   - If a PR already exists for the branch, reuse it.
-   - Otherwise create one with `gh pr create --draft`.
-   - Include a compact PR body with summary and validation.
+3. **Open a PR**
+   - Reuse an existing PR for the branch when one exists.
+   - Otherwise create one with `gh pr create`.
+   - Include a PR body with summary, a walkthrough of the changes, and validation steps taken.
    - Capture the PR number or URL with `gh pr view --json number,url,headRefName,baseRefName`.
 
-4. Monitor CI with a bounded loop.
+4. **Monitor CI**
    - Poll with `gh pr checks <pr>`.
    - Use a 3 minute timeout per monitoring pass.
    - Treat required checks that are pending or running as wait conditions.
    - Treat failed, cancelled, timed out, action_required, or skipped required checks as failures to investigate.
    - If checks are inconclusive because GitHub has not created runs yet, wait briefly and poll again within the same timeout.
 
-5. Remediate failed checks, up to three pushes.
-   - Inspect the failing check details. Prefer `gh run view --log-failed` or the failing job logs when available.
-   - Fix the root cause locally.
-   - Run the narrowest relevant validation that covers the failure.
-   - Commit the fix and push.
+5. **Remediate Failed Checks and Code Review Feedback**
+   - Make up to three remediation pushes.
+   - Inspect the failing check details before changing code. Prefer `gh run view --log-failed` or the failing job logs when available.
+   - Inspect review feedback and comments from human and bot reviewers.
+   - Fix the root cause(s) locally with the narrowest possible changes and push the fix.
    - Repeat the monitoring loop.
    - Stop after three remediation pushes if CI is still failing. Report the failing checks, what was attempted, and the latest PR URL.
 
-6. Mark the PR ready once green.
-   - When required checks pass, run `gh pr ready <pr>`.
-   - Confirm the PR is no longer draft with `gh pr view <pr> --json isDraft,state,url`.
+## CI Loop
 
-7. Move a linked Linear ticket to Human Review when one exists.
-   - Look for a Linear issue key in the branch name, commit messages, PR title, or PR body.
-   - If a Linear MCP/app/tool is available, move the matching issue to `Human Review`.
-   - If no Linear integration is available, use the local Linear CLI only if already configured.
-   - If no ticket is discoverable or Linear cannot be reached, do not block the PR; mention that the Linear handoff was skipped.
-
-## CI Loop Details
-
-Use three remediation attempts, not three polling attempts. A suggested shape:
+Use three remediation attempts, not three polling attempts:
 
 ```text
 remediation_pushes = 0
@@ -87,9 +81,9 @@ while remediation_pushes <= 3:
 
 Do not make speculative fixes without reading the failing check output. If the failure is unrelated to the branch, flaky, or infrastructure-owned, rerun the failed job once if appropriate and report the evidence instead of churning code.
 
-## Reporting
+## Output
 
-Final responses should include:
+Report:
 
 - PR URL and whether it is ready for review.
 - Checks status.

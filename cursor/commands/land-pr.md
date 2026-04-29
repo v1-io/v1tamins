@@ -27,10 +27,10 @@ The user can invoke this command without arguments from the repository containin
    - Commit with a concise message that describes the user-visible or operational value.
    - Push the branch and set upstream if needed: `git push -u origin HEAD`.
 
-3. **Open a Draft PR**
+3. **Open a PR**
    - Reuse an existing PR for the branch when one exists.
-   - Otherwise create one with `gh pr create --draft`.
-   - Include a compact PR body with summary and validation.
+   - Otherwise create one with `gh pr create`.
+   - Include a PR body with summary, a walkthrough of the changes, and validation steps taken.
    - Capture the PR number or URL with `gh pr view --json number,url,headRefName,baseRefName`.
 
 4. **Monitor CI**
@@ -40,23 +40,13 @@ The user can invoke this command without arguments from the repository containin
    - Treat failed, cancelled, timed out, action_required, or skipped required checks as failures to investigate.
    - If checks are inconclusive because GitHub has not created runs yet, wait briefly and poll again within the same timeout.
 
-5. **Remediate Failed Checks**
+5. **Remediate Failed Checks and Code Review Feedback**
    - Make up to three remediation pushes.
    - Inspect the failing check details before changing code. Prefer `gh run view --log-failed` or the failing job logs when available.
-   - Fix the root cause locally.
-   - Run the narrowest relevant validation that covers the failure.
-   - Commit the fix and push.
+   - Inspect review feedback and comments from human and bot reviewers.
+   - Fix the root cause(s) locally with the narrowest possible changes and push the fix.
    - Repeat the monitoring loop.
    - Stop after three remediation pushes if CI is still failing. Report the failing checks, what was attempted, and the latest PR URL.
-
-6. **Mark Ready for Review**
-   - When required checks pass, run `gh pr ready <pr>`.
-   - Confirm the PR is no longer draft with `gh pr view <pr> --json isDraft,state,url`.
-
-7. **Move Linear Ticket**
-   - Look for a Linear issue key in the branch name, commit messages, PR title, or PR body.
-   - If a Linear integration is available, move the matching issue to `Human Review`.
-   - If no ticket is discoverable or Linear cannot be reached, do not block the PR; mention that the Linear handoff was skipped.
 
 ## CI Loop
 
