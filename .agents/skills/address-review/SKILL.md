@@ -62,10 +62,11 @@ jq -r '[.[] | select(.in_reply_to_id == null)] as $originals |
 
 Do not drop an original comment only because it already has a reply. A replied comment may still need current-code verification, a follow-up reply, a reaction, or review-thread resolution.
 
-#### B. General PR-level comments (Copilot, humans)
+#### B. PR-level issue comments (Copilot, humans, bots)
+Fetch all PR-level issue comments, then classify them during analysis. Do not pre-filter to only comments with a `Review:` heading because human comments and some bot comments may still need a reply.
+
 ```bash
-gh api repos/{owner}/{repo}/issues/{pr}/comments --paginate | \
-jq -r '.[] | select(.body | test("^###? Review:"; "i"))'
+gh api repos/{owner}/{repo}/issues/{pr}/comments --paginate
 ```
 
 #### C. Code Factory AI review comments
@@ -91,11 +92,19 @@ query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
       reviewThreads(first: 100) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
         nodes {
           id
           isResolved
           isOutdated
           comments(first: 50) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
             nodes {
               id
               databaseId
@@ -113,6 +122,8 @@ query($owner: String!, $repo: String!, $number: Int!) {
   }
 }'
 ```
+
+If `reviewThreads.pageInfo.hasNextPage` is true, continue fetching with `after: <endCursor>` until all thread pages are loaded. If any thread's `comments.pageInfo.hasNextPage` is true, fetch additional comment pages for that thread before deciding whether it has been answered or can be resolved.
 
 Join review threads to line-specific comments by GraphQL `databaseId` matching the REST comment `id`. Track unresolved and outdated thread state in the ledger.
 
@@ -236,6 +247,8 @@ Before adding a reaction, fetch existing reactions and the current GitHub actor:
 ```bash
 gh api user --jq .login
 gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions \
+  -H "Accept: application/vnd.github+json"
+gh api repos/{owner}/{repo}/issues/comments/{comment_id}/reactions \
   -H "Accept: application/vnd.github+json"
 ```
 

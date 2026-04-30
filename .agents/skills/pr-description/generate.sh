@@ -2,6 +2,12 @@
 set -euo pipefail
 
 pr_ref="${1:-}"
+json_fields="number,url,title,body,baseRefName,headRefName,headRefOid,files,commits"
+
+usage() {
+  echo "Usage: $0 <PR_URL_or_NUMBER>" >&2
+  echo "       $0  # from a git checkout with a current-branch PR" >&2
+}
 
 if ! command -v gh >/dev/null 2>&1; then
   echo "Error: gh CLI is required" >&2
@@ -14,9 +20,23 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 if [ -z "$pr_ref" ]; then
-  metadata="$(gh pr view --json number,url,title,body,baseRefName,headRefName,headRefOid,files,commits)"
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "Error: no PR ref provided and current directory is not a git checkout" >&2
+    usage
+    exit 1
+  fi
+
+  if ! metadata="$(gh pr view --json "$json_fields")"; then
+    echo "Error: could not load PR metadata for the current branch" >&2
+    usage
+    exit 1
+  fi
 else
-  metadata="$(gh pr view "$pr_ref" --json number,url,title,body,baseRefName,headRefName,headRefOid,files,commits)"
+  if ! metadata="$(gh pr view --json "$json_fields" -- "$pr_ref")"; then
+    echo "Error: could not load PR metadata for: $pr_ref" >&2
+    usage
+    exit 1
+  fi
 fi
 
 number="$(jq -r '.number' <<<"$metadata")"
@@ -61,11 +81,34 @@ if [ "$local_sha" != "$head_sha" ]; then
   exit 0
 fi
 
-git fetch origin "$base_ref" >/dev/null 2>&1 || true
-
 merge_base=""
-if git rev-parse --verify "origin/$base_ref" >/dev/null 2>&1; then
-  merge_base="$(git merge-base "origin/$base_ref" HEAD 2>/dev/null || true)"
+base_remote=""
+stale_base_remote=""
+for remote in upstream origin; do
+  if ! git remote get-url "$remote" >/dev/null 2>&1; then
+    continue
+  fi
+
+  if git fetch "$remote" -- "$base_ref" >/dev/null 2>&1; then
+    if git rev-parse --verify --quiet "refs/remotes/$remote/$base_ref^{commit}" >/dev/null; then
+      base_remote="$remote"
+      break
+    fi
+  else
+    echo "Warning: could not fetch $remote/$base_ref" >&2
+    if [ -z "$stale_base_remote" ] && git rev-parse --verify --quiet "refs/remotes/$remote/$base_ref^{commit}" >/dev/null; then
+      stale_base_remote="$remote"
+    fi
+  fi
+done
+
+if [ -z "$base_remote" ] && [ -n "$stale_base_remote" ]; then
+  base_remote="$stale_base_remote"
+  echo "Warning: using existing local refs/remotes/$base_remote/$base_ref; it may be stale" >&2
+fi
+
+if [ -n "$base_remote" ]; then
+  merge_base="$(git merge-base "refs/remotes/$base_remote/$base_ref" HEAD 2>/dev/null || true)"
 fi
 
 if [ -n "$merge_base" ]; then
@@ -80,5 +123,5 @@ if [ -n "$merge_base" ]; then
   echo "=== Commit Range ($merge_base..HEAD) ==="
   git log --oneline "$merge_base"..HEAD
 else
-  echo "Warning: could not compute merge base against origin/$base_ref" >&2
+  echo "Warning: could not compute merge base against a fetched $base_ref remote branch" >&2
 fi
