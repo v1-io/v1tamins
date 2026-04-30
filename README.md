@@ -56,6 +56,9 @@ git clone git@github.com:v1-io/v1tamins.git ~/v1tamins
 
 # Run the install script
 ~/v1tamins/install.sh
+
+# Copy-mode install for runtimes that reject symlink targets outside ~/.agents/skills
+~/v1tamins/install.sh --copy-agent-skills
 ```
 
 ## Manual Setup
@@ -73,9 +76,17 @@ for skill in ~/v1tamins/.agents/skills/*; do
 done
 ```
 
+Some runtimes treat a skill symlink that resolves outside `~/.agents/skills/` as an escaped path and refuse to load it. For those runtimes, use copied agent skills instead:
+
+```bash
+~/v1tamins/install.sh --copy-agent-skills
+```
+
+Copied installs are refreshed by rerunning the installer. The installer marks copied v1tamins skill directories with `.v1tamins-managed-copy` so future runs can replace them without accumulating stale snapshots. Backups are moved to sibling `.backups` directories instead of staying under skill roots, because some runtimes load every `SKILL.md` under the root.
+
 Do not symlink the whole `~/.agents/skills` directory to this repo. Public, vendor, and personal skills installed into global skill directories should remain outside v1tamins so they do not appear in `git status`.
 
-For standalone user-global Codex installs outside this repo, Codex's default skill location is `~/.codex/skills/`.
+For standalone user-global Codex installs outside this repo, Codex's default skill location is `~/.codex/skills/`. Do not install v1tamins skills into both `~/.codex/skills/` and `~/.agents/skills/`; that creates duplicate Codex entries. `install.sh` removes legacy `~/.codex/skills` symlinks that point into the current v1tamins checkout.
 
 ### Claude Code Skills & Hooks
 
@@ -202,6 +213,10 @@ Pull the latest changes and re-run install if needed:
 
 ```bash
 cd ~/v1tamins && git pull
+./install.sh
+
+# Or, for copied agent skills:
+./install.sh --copy-agent-skills
 ```
 
 ## Validation

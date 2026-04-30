@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**v1tamins** is a public-facing shared collection of reusable AI development tools. It provides skills, hooks, commands, rules, and MCP server configurations that are symlinked into developers' personal tool configurations (`~/.agents/`, `~/.claude/`, and `~/.cursor/`).
+**v1tamins** is a public-facing shared collection of reusable AI development tools. It provides skills, hooks, commands, rules, and MCP server configurations that are installed into developers' personal tool configurations (`~/.agents/`, `~/.claude/`, and `~/.cursor/`).
 
 This is a **configuration distribution repository**, not an application. It contains no build system or tests - quality is maintained through git review, lightweight validation scripts, and usage feedback.
 
@@ -42,15 +42,18 @@ v1tamins/
 ## Installation
 
 ```bash
-# Clone and install (creates symlinks to ~/.agents/, ~/.claude/, and ~/.cursor/)
+# Clone and install (creates managed entries in ~/.agents/, ~/.claude/, and ~/.cursor/)
 git clone git@github.com:v1-io/v1tamins.git ~/v1tamins
 ~/v1tamins/install.sh
+
+# Use copied agent skills for runtimes that reject symlink targets outside ~/.agents/skills
+~/v1tamins/install.sh --copy-agent-skills
 
 # Update
 cd ~/v1tamins && git pull
 ```
 
-The install script symlinks shared agent skills, Claude directories, and Cursor directories rather than copying files, so all developers share the same source of truth and updates propagate via `git pull`.
+The install script symlinks shared agent skills by default so updates propagate via `git pull`. Use `--copy-agent-skills` when a runtime rejects symlinks that resolve outside `~/.agents/skills`; rerun the installer after updates to refresh copied skills. The installer also removes legacy `~/.codex/skills` symlinks that point into the current checkout so Codex does not show duplicate v1tamins skills.
 
 ## Key Concepts
 
@@ -103,6 +106,6 @@ Before publishing shared skills or instructions, run a privacy and portability s
 
 ## Architecture Notes
 
-- **Symlink distribution**: Changes to v1tamins propagate to all users via `git pull`
+- **Managed entry distribution**: Agent skills install as symlinks by default or copied directories for runtimes with symlink-escape restrictions
 - **Project-agnostic**: Skills/rules work across different project types without modification
 - **Multi-tool unification**: Same capabilities available in Claude Code (skills), Codex (skills), Cursor (commands/rules), and GitHub Copilot (repository instructions)

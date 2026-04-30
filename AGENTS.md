@@ -46,11 +46,16 @@ v1tamins/
 git clone git@github.com:v1-io/v1tamins.git ~/v1tamins
 ~/v1tamins/install.sh
 
+# Use copied agent skills for runtimes that reject symlink targets outside ~/.agents/skills
+~/v1tamins/install.sh --copy-agent-skills
+
 # Update
 cd ~/v1tamins && git pull
 ```
 
-The install script keeps global skill directories user-owned and symlinks individual v1tamins-managed skills into them. Do not symlink the whole `~/.agents/skills` or `~/.claude/skills` directory to this repo; public, vendor, and personal skill installs should stay outside v1tamins so they cannot be accidentally committed.
+The install script keeps global skill directories user-owned and installs individual v1tamins-managed skills into them. The default agent-skill mode is per-skill symlinks so `git pull` updates are reflected immediately. Use `--copy-agent-skills` when a runtime rejects symlinks that resolve outside `~/.agents/skills`; rerun the installer after updates to refresh copied skills. The installer also removes legacy `~/.codex/skills` symlinks that point into the current checkout so Codex does not show duplicate v1tamins skills.
+
+Do not symlink the whole `~/.agents/skills` or `~/.claude/skills` directory to this repo; public, vendor, and personal skill installs should stay outside v1tamins so they cannot be accidentally committed.
 
 ## Key Concepts
 
@@ -103,6 +108,6 @@ Before publishing shared skills or instructions, run a privacy and portability s
 
 ## Architecture Notes
 
-- **Managed symlink distribution**: Individual v1tamins skills are linked into user-global skill directories, while external skills remain outside the repo
+- **Managed entry distribution**: Individual v1tamins skills are installed into user-global skill directories as symlinks by default or as copied directories for runtimes with symlink-escape restrictions, while external skills remain outside the repo
 - **Project-agnostic**: Skills/rules work across different project types without modification
 - **Multi-tool unification**: Same capabilities available in Codex (skills), Claude Code (skills), Cursor (commands/rules), and GitHub Copilot (repository instructions)
