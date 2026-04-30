@@ -1,6 +1,6 @@
-# GPT-5.4 Prompt Patterns
+# GPT-5.4 Compatibility Patterns
 
-Ready-to-paste prompt blocks and migration defaults for GPT-5.4-first assistants, agents, and coding workflows.
+Compatibility prompt blocks and migration defaults for older GPT-5.4 assistants, agents, and coding workflows. For current work, prefer `gpt-5-5-patterns.md`.
 
 ## Table of Contents
 
