@@ -1,28 +1,29 @@
 ---
 name: prompt-engineering-v1tamins
-description: Use when writing, migrating, or reviewing prompts, system prompts, commands, hooks, or agent skills for GPT-5.4, GPT-5.4-mini, or GPT-5.4-nano workflows, especially on OpenRouter chat/completions. Triggers on "GPT-5.4 prompt", "OpenRouter prompt", "prompt migration", "reasoning effort", "reasoning_details", "OpenAI system prompt".
+description: Use when writing, migrating, or reviewing prompts, system prompts, commands, hooks, or agent skills for GPT-5.5 workflows, especially OpenAI Responses API or OpenRouter chat/completions hosts. Triggers on "GPT-5.5 prompt", "OpenRouter prompt", "prompt migration", "reasoning effort", "reasoning_details", "OpenAI system prompt".
 ---
 
 # Prompt Engineering V1tamins
 
-GPT-5.4-first fork of the original `prompt-engineering` skill for assistants, agents, coding workflows, and structured outputs.
+GPT-5.5-first fork of the original `prompt-engineering` skill for assistants, agents, coding workflows, and structured outputs.
 
-Default assumption: the host uses GPT-5.4-family models through a chat-style API such as OpenRouter `chat/completions`. Responses-API guidance is secondary and should only be used when the host explicitly says it supports that runtime.
+Default assumption: the host uses GPT-5.5, but the host API must be identified before applying API-specific advice. Use Responses API guidance when the host supports it; use OpenRouter `chat/completions` guidance when that is the runtime.
 
 ## Quick Start
 
 1. Start from the smallest prompt that passes evals.
 2. Make three things explicit:
-   - output contract
-   - tool-use expectations
-   - completion criteria
+   - requested outcome and success criteria
+   - constraints and missing-evidence behavior
+   - output contract and stopping conditions
 3. Choose `reasoning_effort` from task shape, not instinct.
 4. Match the host runtime before adding API-specific guidance:
    - OpenRouter `chat/completions` -> preserve `reasoning_details`, not `phase`
    - Responses API -> `phase` and `previous_response_id` may matter
 5. Add only the blocks that fix a measured failure mode.
 6. Use the reference files:
-   - `references/gpt-5-4-patterns.md` - ready-to-paste GPT-5.4 blocks, migration defaults, runtime notes
+   - `references/gpt-5-5-patterns.md` - ready-to-paste GPT-5.5 blocks, migration defaults, runtime notes
+   - `references/gpt-5-4-patterns.md` - compatibility guidance for older GPT-5.4 workflows
    - `references/advanced.md` - carry-forward patterns from the original `prompt-engineering` skill
 
 ## Instructions
@@ -39,9 +40,9 @@ Use one of these workload shapes before writing the prompt:
 
 Match the prompt to the workload:
 
-- `execution` - keep it compact; prefer `none` or `low`; add a small verification clause for risky actions
-- `research` - add `research_mode`, `citation_rules`, and `grounding_rules`; consider `medium` or `high`
-- `long_horizon_agent` - add `tool_persistence_rules`, `dependency_checks`, `completeness_contract`, `empty_result_recovery`, and `verification_loop`
+- `execution` - keep it compact; prefer `low` for tool-using paths and reserve `none` for simple transforms/classification
+- `research` - define outcome, success criteria, citation rules, and grounding rules; start with `medium`
+- `long_horizon_agent` - add outcome-first policy, selective tool persistence, dependency checks, completeness contract, empty-result recovery, and verification loop
 - `strict_output` - clamp format hard; output only the target format; validate before finalizing
 - `customer_facing` - separate persistent personality from per-response writing controls
 
@@ -58,15 +59,19 @@ Define:
 Do not add background the model already knows.
 Do not add blocks that do not change eval results.
 
-### 3. Define defaults up front
+### 3. Define the outcome before process
 
-Add a default follow-through policy when initiative matters.
+For GPT-5.5, define the target outcome and success criteria before adding process instructions.
+Prefer decision rules and stopping conditions over step-by-step choreography.
+Keep `ALWAYS` and `NEVER` for true invariants only.
+
+Use an outcome-first block when initiative matters.
 Add an instruction-priority block when style, tone, or task shape may change mid-session.
 Use `<task_update>` blocks for mid-conversation changes instead of scattering overrides across multiple paragraphs.
 
 ### 4. Make tool use disciplined
 
-When correctness depends on tools, tell GPT-5.4:
+When correctness depends on tools, tell GPT-5.5:
 
 - when to use tools
 - when not to stop
@@ -100,26 +105,27 @@ Ban fabricated citations, URLs, IDs, quote spans, table names, and fields.
 Label inference as inference.
 State conflicts explicitly when sources disagree.
 
-### 8. Tune reasoning last
+### 8. Tune reasoning and verbosity last
 
-Treat `reasoning_effort` as a last-mile knob.
+Treat `reasoning_effort` and API-level verbosity as last-mile knobs.
 Default guidance:
 
-- `none` - fast transforms, action selection, short execution tasks
-- `low` - slightly ambiguous routing or tool use
+- `none` - simple transforms/classification where no planning, search, or tool decision remains
+- `low` - slightly ambiguous routing or latency-sensitive tool use
 - `medium` - research, long-context synthesis, nuanced review
 - `high` - only when evals show a clear gain
 - `xhigh` - reserve for rare, long, reasoning-heavy work where latency is secondary
 
 Before increasing `reasoning_effort`, first try:
 
+- `<outcome_first_response_policy>`
 - `<completeness_contract>`
 - `<verification_loop>`
 - `<tool_persistence_rules>`
 
-### 9. Match the host runtime before adding API-specific advice
+Use prompt-level verbosity controls first. If the host supports `text.verbosity` or an equivalent, verify on examples because GPT-5.5 low verbosity can be more concise than GPT-5.4 low verbosity.
 
-Default to chat-style APIs unless the host explicitly says otherwise.
+### 9. Match the host runtime before adding API-specific advice
 
 For OpenRouter `chat/completions` style hosts:
 
@@ -129,7 +135,12 @@ For OpenRouter `chat/completions` style hosts:
 - prefer prompt-level verbosity controls first; treat API-level verbosity as optional and host-specific
 - do not assume `phase`, `previous_response_id`, or compaction exist
 
-Only add Responses-API guidance when the host explicitly supports it.
+For Responses API hosts:
+
+- preserve output items needed for replay, including `phase` when manually replaying reasoning/tool chains
+- use Structured Outputs instead of prompt-only JSON schemas when the host supports it
+- optimize prompt caching by keeping stable instructions first and dynamic context later
+- avoid adding current date/time unless the task needs business-specific temporal context
 
 ### 10. Keep coding-agent boundaries explicit
 
@@ -142,12 +153,12 @@ In coding and terminal agents:
 
 ### 11. Write prompt migrations as change sets, not rewrites
 
-When migrating an existing prompt:
+When migrating an existing prompt to GPT-5.5:
 
 1. Switch the model first.
 2. Pin `reasoning_effort`.
 3. Run evals.
-4. Add the smallest missing block.
+4. Replace fixed process instructions with outcome, success criteria, constraints, and stop rules.
 5. Re-run evals.
 6. Repeat one change at a time.
 
@@ -224,5 +235,6 @@ Before finalizing:
 
 ## Reference Files
 
-- `references/gpt-5-4-patterns.md` - ready-to-paste GPT-5.4 blocks, OpenRouter chat-completions notes, Responses appendix, migration defaults
+- `references/gpt-5-5-patterns.md` - ready-to-paste GPT-5.5 blocks, OpenAI Responses API notes, OpenRouter chat-completions notes, migration defaults
+- `references/gpt-5-4-patterns.md` - compatibility blocks for older GPT-5.4 workflows
 - `references/advanced.md` - carry-forward agent prompting and persuasion patterns from the original `prompt-engineering` skill
