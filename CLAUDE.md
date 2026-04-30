@@ -20,6 +20,8 @@ v1tamins/
 ├── cursor/
 │   ├── commands/        # Cursor slash commands (markdown files)
 │   └── rules/           # Generic development rules (.mdc files)
+├── .github/
+│   └── copilot-instructions.md  # Repository-wide GitHub Copilot guidance
 ├── mcp/
 │   └── mcp.json         # MCP server configurations (Linear, LangSmith, Playwright, etc.)
 ├── scripts/
@@ -66,6 +68,9 @@ Enable debug logging: `CLAUDE_FORMAT_DEBUG=1`
 
 Note: Project-specific rules (backend patterns, frontend patterns, etc.) should live in individual project repositories.
 
+### GitHub Copilot Instructions (.github/copilot-instructions.md)
+Repository-wide GitHub Copilot guidance lives in `.github/copilot-instructions.md`. Keep it concise, broadly applicable, and aligned with `AGENTS.md`, `CLAUDE.md`, and the current repo structure. Do not duplicate long skill workflows there; link Copilot back to canonical surfaces such as `.agents/skills`, `scripts/sync-skill-hosts.sh`, and repo contribution rules.
+
 ### MCP Servers (mcp/mcp.json)
 Configured integrations requiring environment variables:
 - `LANGSMITH_API_KEY` - LLM observability
@@ -84,8 +89,10 @@ Configured integrations requiring environment variables:
 8. Test in a project before committing
 9. Push to share with team
 
+When updating `.github/copilot-instructions.md`, also check this file, `AGENTS.md`, and `README.md` so the documented host surfaces stay consistent.
+
 ## Architecture Notes
 
 - **Symlink distribution**: Changes to v1tamins propagate to all users via `git pull`
 - **Project-agnostic**: Skills/rules work across different project types without modification
-- **Multi-tool unification**: Same capabilities available in Claude Code (skills), Cursor (commands), and Codex (skills)
+- **Multi-tool unification**: Same capabilities available in Claude Code (skills), Codex (skills), Cursor (commands/rules), and GitHub Copilot (repository instructions)

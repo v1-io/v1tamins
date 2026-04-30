@@ -37,6 +37,8 @@ v1tamins/
 │   │   └── ...
 │   └── rules/           # Cursor rules
 │       └── development.mdc
+├── .github/
+│   └── copilot-instructions.md  # Repository-wide GitHub Copilot guidance
 ├── mcp/
 │   └── mcp.json         # MCP server configurations
 ├── scripts/
@@ -99,6 +101,10 @@ ln -sf ~/v1tamins/cursor/commands ~/.cursor/commands
 ln -sf ~/v1tamins/cursor/rules ~/.cursor/rules
 ```
 
+### GitHub Copilot Instructions
+
+GitHub Copilot uses `.github/copilot-instructions.md` for repository-wide guidance in Copilot Chat, Copilot coding agent, and Copilot code review. Keep this file concise and broadly applicable; put tool-specific or host-specific details in `AGENTS.md`, `CLAUDE.md`, skills, or templates instead.
+
 ### MCP Servers
 
 Copy or merge the MCP config into your Cursor config:
@@ -135,7 +141,7 @@ The table lists runtime skill names from `SKILL.md` frontmatter. A few legacy di
 
 | Skill | Description |
 |-------|-------------|
-| `address-review` | Address PR review comments |
+| `address-review` | Address and resolve PR review feedback |
 | `autoresearch-skill` | Run autonomous optimization loops |
 | `changelog` | Generate changelogs from commits |
 | `code-review` | Thorough code review with actionable feedback |
@@ -154,7 +160,7 @@ The table lists runtime skill names from `SKILL.md` frontmatter. A few legacy di
 | `learn-from-pr` | Extract lessons after PRs |
 | `md2docs` | Convert Markdown into Google Docs |
 | `pr` | Ship local work as a pull request |
-| `pr-description` | Generate PR descriptions from commits |
+| `pr-description` | Generate PR titles and descriptions from PR metadata, diff, validation, and repo guidance |
 | `prd` | Product requirements document generation |
 | `prompt-engineering` | Improve prompts |
 | `prompt-engineering-v1tamins` | Improve GPT-5.4/OpenRouter prompts |
@@ -239,7 +245,8 @@ We welcome contributions! Here's how to get started:
 2. Make your changes and test them in a project
 3. If you created or renamed a skill, run `scripts/sync-skill-hosts.sh --write`
 4. Run `scripts/sync-skill-hosts.sh`
-5. Commit your changes with a descriptive message:
+5. If you changed `.github/copilot-instructions.md`, keep it aligned with `AGENTS.md`, `CLAUDE.md`, and the current repository structure
+6. Commit your changes with a descriptive message:
    ```bash
    git add .
    git commit -m "Add new skill: my-cool-skill"
