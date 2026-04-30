@@ -2,9 +2,23 @@
 
 ## Repository Context
 
-v1tamins is a configuration distribution repository for Version1 AI development tooling. It ships shared agent skills, hooks, Cursor rules, MCP configuration, and project templates into developer-local tool directories.
+v1tamins is a public-facing configuration distribution repository for reusable AI development tooling. It ships shared agent skills, hooks, Cursor rules, MCP configuration, and project templates into developer-local tool directories.
 
 This is not an application repository. There is no product runtime or build system. Quality comes from repo review, lightweight validation scripts, and testing skill behavior in real projects.
+
+## Public-Safe Requirement
+
+Assume every committed file in this repository may be read outside the original private project context. Keep guidance generalizable and remove private or project-specific details before committing.
+
+Do not add:
+
+- Secrets, tokens, credentials, account IDs, or environment-specific values.
+- Private customer, project, person, Slack channel, dashboard, trace, or ticket details.
+- Internal URLs, private domains, production incident IDs, or proprietary timelines.
+- Absolute local filesystem paths such as `/Users/...`, `/home/...`, or drive-letter paths.
+- Instructions that only make sense inside one private repository or one company workflow.
+
+When extracting a lesson from a private project, keep the reusable workflow, failure mode, validation pattern, or decision rule. Replace private facts with placeholders such as `<repo>`, `<service>`, `<org-id>`, `<ticket>`, or `<incident-id>`. If the guidance cannot be made general without losing its value, leave it in that project instead of adding it to v1tamins.
 
 ## Canonical Surfaces
 
@@ -20,7 +34,7 @@ This is not an application repository. There is no product runtime or build syst
 - Skill frontmatter must include `name` and `description`; descriptions should be triggering conditions, not workflow summaries.
 - Keep `SKILL.md` lean. Move detailed examples, API notes, or long references into a directly linked `references/` file.
 - Use imperative workflow instructions. Prefer concrete commands and validation gates over vague guidance.
-- Preserve public-safe wording in shared skills. Do not add private project names, customer details, internal URLs, secrets, or incident-specific facts.
+- Preserve public-safe wording in shared skills. Before publishing, scan for private names, URLs, absolute paths, secrets, and incident-specific facts.
 - If a skill includes scripts, reference them from `SKILL.md` and keep scripts deterministic, portable, and validated with shell syntax checks where possible.
 
 ## Validation Expectations
@@ -30,6 +44,7 @@ Run the smallest validation that matches the change:
 - Skill frontmatter, host metadata, symlinks, or new/renamed skills: `scripts/sync-skill-hosts.sh`
 - Shell helper changes: `bash -n <script>`
 - Markdown/YAML metadata changes: parse YAML frontmatter or metadata when practical
+- Shared skill or instruction changes: scan the changed files for private URLs, absolute paths, secrets, tokens, customer names, and project-specific facts
 - Before committing: `git diff --check`
 
 For PR descriptions, report exactly which validations ran and do not claim unavailable checks passed.

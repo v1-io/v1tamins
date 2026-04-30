@@ -4,9 +4,17 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## Project Overview
 
-**v1tamins** is a shared collection of AI development tools for the Version1 team. It provides skills, hooks, commands, rules, and MCP server configurations that are linked into developers' personal tool configurations (`~/.agents/`, `~/.claude/`, and `~/.cursor/`).
+**v1tamins** is a public-facing shared collection of reusable AI development tools. It provides skills, hooks, commands, rules, and MCP server configurations that are linked into developers' personal tool configurations (`~/.agents/`, `~/.claude/`, and `~/.cursor/`).
 
 This is a **configuration distribution repository**, not an application. It contains no build system or tests - quality is maintained through git review, lightweight validation scripts, and usage feedback.
+
+## Public-Safe Requirement
+
+Assume every committed file in this repository may be read outside the original private project context. Keep guidance generalizable and remove private or project-specific details before committing.
+
+Do not add secrets, tokens, account IDs, private customer or project names, internal URLs, Slack channels, dashboard links, trace URLs, ticket URLs, production incident IDs, proprietary timelines, absolute local paths, or instructions that only make sense inside one private repository.
+
+When extracting a private project lesson into v1tamins, keep the reusable workflow, failure mode, validation pattern, or decision rule. Replace private facts with placeholders such as `<repo>`, `<service>`, `<org-id>`, `<ticket>`, or `<incident-id>`. If the guidance cannot be generalized without losing its value, keep it in that project's local instructions instead of this repo.
 
 ## Repository Structure
 
@@ -90,6 +98,8 @@ Configured integrations requiring environment variables:
 9. Push to share with team
 
 When updating `.github/copilot-instructions.md`, also check this file, `CLAUDE.md`, and `README.md` so the documented host surfaces stay consistent.
+
+Before publishing shared skills or instructions, run a privacy and portability scan over the changed files. Review hits for private URLs, absolute paths, secrets, tokens, customer names, project-specific facts, and OS-specific commands that should be generalized.
 
 ## Architecture Notes
 

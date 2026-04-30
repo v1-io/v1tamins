@@ -11,6 +11,8 @@
 
 Daily supplements for healthy code. A shared collection of AI development tools from the Version1 team.
 
+This repository is public-facing. Shared skills and instructions must be generalizable and must not include secrets, private customer/project details, internal URLs, absolute local paths, incident-specific facts, or guidance that only makes sense inside one private repository.
+
 ## What's Inside
 
 ```
