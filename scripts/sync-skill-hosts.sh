@@ -16,6 +16,8 @@ Checks:
   - Claude host symlinks point back to ../../.agents/skills/<skill>
   - every public canonical skill has a plugins/v1tamins/skills/v1-<skill> mirror
   - plugin mirrors have v1-prefixed frontmatter names and no stale entries
+  - the Codex plugin manifest, Codex marketplace manifest, Claude Code plugin
+    manifest, and Claude Code marketplace manifest all parse as JSON
 
 Options:
   --write   create missing Claude host symlinks, repair wrong symlinks, and refresh plugin mirrors
@@ -54,6 +56,8 @@ plugin_dir="$repo_root/plugins/v1tamins"
 plugin_skills_dir="$plugin_dir/skills"
 plugin_manifest="$plugin_dir/.codex-plugin/plugin.json"
 marketplace_manifest="$repo_root/.agents/plugins/marketplace.json"
+claude_plugin_manifest="$plugin_dir/.claude-plugin/plugin.json"
+claude_marketplace_manifest="$repo_root/.claude-plugin/marketplace.json"
 
 failures=0
 warnings=0
@@ -452,6 +456,18 @@ main() {
     validate_json_file "$marketplace_manifest"
   else
     fail "missing Codex marketplace manifest: .agents/plugins/marketplace.json"
+  fi
+
+  if [ -f "$claude_plugin_manifest" ]; then
+    validate_json_file "$claude_plugin_manifest"
+  else
+    fail "missing Claude Code plugin manifest: plugins/v1tamins/.claude-plugin/plugin.json"
+  fi
+
+  if [ -f "$claude_marketplace_manifest" ]; then
+    validate_json_file "$claude_marketplace_manifest"
+  else
+    fail "missing Claude Code marketplace manifest: .claude-plugin/marketplace.json"
   fi
 
   if [ "$failures" -ne 0 ]; then

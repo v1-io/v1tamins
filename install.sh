@@ -18,8 +18,9 @@ usage() {
 Usage: install.sh [options]
 
 Options:
-  This script installs compatibility surfaces only. For Codex, prefer the
-  v1tamins plugin package under plugins/v1tamins/.
+  This script installs compatibility surfaces only. For both Claude Code and
+  Codex, prefer the v1tamins plugin package under plugins/v1tamins/. See
+  README.md for plugin install commands.
 
   --agent-skills-mode symlink|copy
       Install ~/.agents/skills entries as symlinks (default) or real copied
