@@ -1,0 +1,42 @@
+{
+  "name": "v1tamins",
+  "version": "0.1.0",
+  "description": "Reusable AI development skills and workflow guidance from Version1.",
+  "author": {
+    "name": "Version1",
+    "url": "https://github.com/v1-io"
+  },
+  "homepage": "https://github.com/v1-io/v1tamins",
+  "repository": "https://github.com/v1-io/v1tamins",
+  "license": "MIT",
+  "keywords": [
+    "ai-development",
+    "agent-skills",
+    "codex",
+    "workflow-automation",
+    "code-review",
+    "pull-requests",
+    "testing",
+    "documentation"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "v1tamins",
+    "shortDescription": "Reusable AI development skills and workflow guidance.",
+    "longDescription": "v1tamins packages reusable AI development skills for reviewing code, writing tests, preparing PRs, improving documentation, debugging failures, and keeping agent workflows consistent across projects. Plugin-distributed skills use a v1- prefix to avoid collisions with other public skills.",
+    "developerName": "Version1",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/v1-io/v1tamins",
+    "defaultPrompt": [
+      "/v1-pr prepare this branch",
+      "/v1-code-review review this PR",
+      "/v1-address-review address PR feedback"
+    ],
+    "screenshots": []
+  }
+}

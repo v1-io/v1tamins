@@ -1,0 +1,7 @@
+interface:
+  display_name: "PR Description"
+  short_description: "Write or update an evidence-grounded PR description"
+  default_prompt: "Use $v1-pr-description to write or update this pull request title and body from the actual PR diff, metadata, repo guidance, and validation evidence."
+
+policy:
+  allow_implicit_invocation: true

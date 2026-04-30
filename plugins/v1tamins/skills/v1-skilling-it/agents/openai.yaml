@@ -1,0 +1,7 @@
+interface:
+  display_name: "Skilling It"
+  short_description: "Create and refine shared agent skills"
+  default_prompt: "Use $v1-skilling-it to create or improve a shared skill for this repo."
+
+policy:
+  allow_implicit_invocation: true

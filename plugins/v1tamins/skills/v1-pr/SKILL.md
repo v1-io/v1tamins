@@ -1,6 +1,6 @@
 ---
-name: pr
-description: Use when shipping local work as a pull request. Triggers on "ship it", "create PR", "open PR", "submit PR", "/pr".
+name: v1-pr
+description: Use when shipping local work as a pull request. Triggers on "ship it", "create PR", "open PR", "submit PR", "/v1-pr".
 allowed-tools:
   - Bash
   - Read
@@ -9,7 +9,6 @@ allowed-tools:
   - Agent
   - Skill
 ---
-
 # PR: Ship Local Work
 
 Take local changes from working directory to a fully described, reviewed pull request in one command.
@@ -17,8 +16,8 @@ Take local changes from working directory to a fully described, reviewed pull re
 ## Usage
 
 Typical invocations:
-- Claude Code: `/pr`
-- Codex: invoke `pr` from the skills menu or use `$pr`
+- Claude Code: `/v1-pr`
+- Codex: invoke `v1-pr` from the skills menu or use `$v1-pr`
 
 No arguments needed. Operates on the current repo and working directory.
 
@@ -123,8 +122,8 @@ Capture the PR number and URL for subsequent steps.
 Invoke the **pr-description** skill to generate a grounded title and description based on the actual diff and commit history.
 
 Typical invocation:
-- Claude Code: `/pr-description <PR_NUMBER>`
-- Codex: invoke `pr-description` from the skills menu or use `$pr-description <PR_NUMBER>`
+- Claude Code: `/v1-pr-description <PR_NUMBER>`
+- Codex: invoke `v1-pr-description` from the skills menu or use `$v1-pr-description <PR_NUMBER>`
 
 This analyzes `git diff main HEAD` and `git log main..HEAD`, then updates the PR title and body via `gh pr edit`.
 
@@ -172,8 +171,8 @@ If that workflow is not available, fall back to the shared `code-review` skill i
 If the PR includes frontend or visual changes (`.tsx`, `.jsx`, `.vue`, `.html`, `.css`, template files), offer to run the **prove-work** skill to generate a demo GIF:
 
 Typical invocation:
-- Claude Code: `/prove-work --pr <PR_NUMBER>`
-- Codex: invoke `prove-work` from the skills menu or use `$prove-work --pr <PR_NUMBER>`
+- Claude Code: `/v1-prove-work --pr <PR_NUMBER>`
+- Codex: invoke `v1-prove-work` from the skills menu or use `$v1-prove-work --pr <PR_NUMBER>`
 
 Skip this step if:
 - All changes are backend-only, config, or infrastructure

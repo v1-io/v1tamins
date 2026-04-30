@@ -1,0 +1,7 @@
+interface:
+  display_name: "Deep Research"
+  short_description: "Produce a cited multi-source research report"
+  default_prompt: "Use $v1-deep-research to produce a structured, cited report on this topic."
+
+policy:
+  allow_implicit_invocation: true
