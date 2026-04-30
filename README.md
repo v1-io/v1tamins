@@ -11,6 +11,8 @@
 
 Daily supplements for healthy code. A shared collection of AI development tools from the Version1 team.
 
+This repository is public-facing. Shared skills and instructions must be generalizable and must not include secrets, private customer/project details, internal URLs, absolute local paths, incident-specific facts, or guidance that only makes sense inside one private repository.
+
 ## What's Inside
 
 ```
@@ -37,6 +39,8 @@ v1tamins/
 │   │   └── ...
 │   └── rules/           # Cursor rules
 │       └── development.mdc
+├── .github/
+│   └── copilot-instructions.md  # Repository-wide GitHub Copilot guidance
 ├── mcp/
 │   └── mcp.json         # MCP server configurations
 ├── scripts/
@@ -52,6 +56,9 @@ git clone git@github.com:v1-io/v1tamins.git ~/v1tamins
 
 # Run the install script
 ~/v1tamins/install.sh
+
+# Copy-mode install for runtimes that reject symlink targets outside ~/.agents/skills
+~/v1tamins/install.sh --copy-agent-skills
 ```
 
 ## Manual Setup
@@ -69,9 +76,17 @@ for skill in ~/v1tamins/.agents/skills/*; do
 done
 ```
 
+Some runtimes treat a skill symlink that resolves outside `~/.agents/skills/` as an escaped path and refuse to load it. For those runtimes, use copied agent skills instead:
+
+```bash
+~/v1tamins/install.sh --copy-agent-skills
+```
+
+Copied installs are refreshed by rerunning the installer. The installer marks copied v1tamins skill directories with `.v1tamins-managed-copy` so future runs can replace them without accumulating stale snapshots. Backups are moved to sibling `.backups` directories instead of staying under skill roots, because some runtimes load every `SKILL.md` under the root.
+
 Do not symlink the whole `~/.agents/skills` directory to this repo. Public, vendor, and personal skills installed into global skill directories should remain outside v1tamins so they do not appear in `git status`.
 
-For standalone user-global Codex installs outside this repo, Codex's default skill location is `~/.codex/skills/`.
+For standalone user-global Codex installs outside this repo, Codex's default skill location is `~/.codex/skills/`. Do not install v1tamins skills into both `~/.codex/skills/` and `~/.agents/skills/`; that creates duplicate Codex entries. `install.sh` removes legacy `~/.codex/skills` symlinks that point into the current v1tamins checkout.
 
 ### Claude Code Skills & Hooks
 
@@ -98,6 +113,10 @@ ln -sf ~/v1tamins/cursor/commands ~/.cursor/commands
 # Symlink rules directory
 ln -sf ~/v1tamins/cursor/rules ~/.cursor/rules
 ```
+
+### GitHub Copilot Instructions
+
+GitHub Copilot uses `.github/copilot-instructions.md` for repository-wide guidance in Copilot Chat, Copilot coding agent, and Copilot code review. Keep this file concise and broadly applicable; put tool-specific or host-specific details in `AGENTS.md`, `CLAUDE.md`, skills, or templates instead.
 
 ### MCP Servers
 
@@ -135,7 +154,7 @@ The table lists runtime skill names from `SKILL.md` frontmatter. A few legacy di
 
 | Skill | Description |
 |-------|-------------|
-| `address-review` | Address PR review comments |
+| `address-review` | Address and resolve PR review feedback |
 | `autoresearch-skill` | Run autonomous optimization loops |
 | `changelog` | Generate changelogs from commits |
 | `code-review` | Thorough code review with actionable feedback |
@@ -154,7 +173,7 @@ The table lists runtime skill names from `SKILL.md` frontmatter. A few legacy di
 | `learn-from-pr` | Extract lessons after PRs |
 | `md2docs` | Convert Markdown into Google Docs |
 | `pr` | Ship local work as a pull request |
-| `pr-description` | Generate PR descriptions from commits |
+| `pr-description` | Generate PR titles and descriptions from PR metadata, diff, validation, and repo guidance |
 | `prd` | Product requirements document generation |
 | `prompt-engineering` | Improve prompts |
 | `prompt-engineering-v1tamins` | Improve GPT-5.4/OpenRouter prompts |
@@ -194,6 +213,10 @@ Pull the latest changes and re-run install if needed:
 
 ```bash
 cd ~/v1tamins && git pull
+./install.sh
+
+# Or, for copied agent skills:
+./install.sh --copy-agent-skills
 ```
 
 ## Validation
@@ -239,7 +262,8 @@ We welcome contributions! Here's how to get started:
 2. Make your changes and test them in a project
 3. If you created or renamed a skill, run `scripts/sync-skill-hosts.sh --write`
 4. Run `scripts/sync-skill-hosts.sh`
-5. Commit your changes with a descriptive message:
+5. If you changed `.github/copilot-instructions.md`, keep it aligned with `AGENTS.md`, `CLAUDE.md`, and the current repository structure
+6. Commit your changes with a descriptive message:
    ```bash
    git add .
    git commit -m "Add new skill: my-cool-skill"

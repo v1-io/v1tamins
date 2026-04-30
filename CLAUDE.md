@@ -4,9 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**v1tamins** is a shared collection of AI development tools for the Version1 team. It provides skills, hooks, commands, rules, and MCP server configurations that are symlinked into developers' personal tool configurations (`~/.agents/`, `~/.claude/`, and `~/.cursor/`).
+**v1tamins** is a public-facing shared collection of reusable AI development tools. It provides skills, hooks, commands, rules, and MCP server configurations that are installed into developers' personal tool configurations (`~/.agents/`, `~/.claude/`, and `~/.cursor/`).
 
 This is a **configuration distribution repository**, not an application. It contains no build system or tests - quality is maintained through git review, lightweight validation scripts, and usage feedback.
+
+## Public-Safe Requirement
+
+Assume every committed file in this repository may be read outside the original private project context. Keep guidance generalizable and remove private or project-specific details before committing.
+
+Do not add secrets, tokens, account IDs, private customer or project names, internal URLs, Slack channels, dashboard links, trace URLs, ticket URLs, production incident IDs, proprietary timelines, absolute local paths, or instructions that only make sense inside one private repository.
+
+When extracting a private project lesson into v1tamins, keep the reusable workflow, failure mode, validation pattern, or decision rule. Replace private facts with placeholders such as `<repo>`, `<service>`, `<org-id>`, `<ticket>`, or `<incident-id>`. If the guidance cannot be generalized without losing its value, keep it in that project's local instructions instead of this repo.
 
 ## Repository Structure
 
@@ -20,6 +28,8 @@ v1tamins/
 ├── cursor/
 │   ├── commands/        # Cursor slash commands (markdown files)
 │   └── rules/           # Generic development rules (.mdc files)
+├── .github/
+│   └── copilot-instructions.md  # Repository-wide GitHub Copilot guidance
 ├── mcp/
 │   └── mcp.json         # MCP server configurations (Linear, LangSmith, Playwright, etc.)
 ├── scripts/
@@ -32,15 +42,18 @@ v1tamins/
 ## Installation
 
 ```bash
-# Clone and install (creates symlinks to ~/.agents/, ~/.claude/, and ~/.cursor/)
+# Clone and install (creates managed entries in ~/.agents/, ~/.claude/, and ~/.cursor/)
 git clone git@github.com:v1-io/v1tamins.git ~/v1tamins
 ~/v1tamins/install.sh
+
+# Use copied agent skills for runtimes that reject symlink targets outside ~/.agents/skills
+~/v1tamins/install.sh --copy-agent-skills
 
 # Update
 cd ~/v1tamins && git pull
 ```
 
-The install script symlinks shared agent skills, Claude directories, and Cursor directories rather than copying files, so all developers share the same source of truth and updates propagate via `git pull`.
+The install script symlinks shared agent skills by default so updates propagate via `git pull`. Use `--copy-agent-skills` when a runtime rejects symlinks that resolve outside `~/.agents/skills`; rerun the installer after updates to refresh copied skills. The installer also removes legacy `~/.codex/skills` symlinks that point into the current checkout so Codex does not show duplicate v1tamins skills.
 
 ## Key Concepts
 
@@ -66,6 +79,9 @@ Enable debug logging: `CLAUDE_FORMAT_DEBUG=1`
 
 Note: Project-specific rules (backend patterns, frontend patterns, etc.) should live in individual project repositories.
 
+### GitHub Copilot Instructions (.github/copilot-instructions.md)
+Repository-wide GitHub Copilot guidance lives in `.github/copilot-instructions.md`. Keep it concise, broadly applicable, and aligned with `AGENTS.md`, `CLAUDE.md`, and the current repo structure. Do not duplicate long skill workflows there; link Copilot back to canonical surfaces such as `.agents/skills`, `scripts/sync-skill-hosts.sh`, and repo contribution rules.
+
 ### MCP Servers (mcp/mcp.json)
 Configured integrations requiring environment variables:
 - `LANGSMITH_API_KEY` - LLM observability
@@ -84,8 +100,12 @@ Configured integrations requiring environment variables:
 8. Test in a project before committing
 9. Push to share with team
 
+When updating `.github/copilot-instructions.md`, also check this file, `AGENTS.md`, and `README.md` so the documented host surfaces stay consistent.
+
+Before publishing shared skills or instructions, run a privacy and portability scan over the changed files. Review hits for private URLs, absolute paths, secrets, tokens, customer names, project-specific facts, and OS-specific commands that should be generalized.
+
 ## Architecture Notes
 
-- **Symlink distribution**: Changes to v1tamins propagate to all users via `git pull`
+- **Managed entry distribution**: Agent skills install as symlinks by default or copied directories for runtimes with symlink-escape restrictions
 - **Project-agnostic**: Skills/rules work across different project types without modification
-- **Multi-tool unification**: Same capabilities available in Claude Code (skills), Cursor (commands), and Codex (skills)
+- **Multi-tool unification**: Same capabilities available in Claude Code (skills), Codex (skills), Cursor (commands/rules), and GitHub Copilot (repository instructions)
