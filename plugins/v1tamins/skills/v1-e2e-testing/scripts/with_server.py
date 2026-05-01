@@ -86,12 +86,15 @@ def main():
         for i, server in enumerate(servers):
             print(f"Starting server {i+1}/{len(servers)}: {server['cmd']}")
 
-            # Use shell=True to support commands with cd and &&
+            # Use shell=True to support commands with cd and &&.
+            # Discard stdout/stderr so a chatty server can't fill its pipe
+            # buffer and block. Switch to inherited streams or a log file if
+            # output is needed for debugging.
             process = subprocess.Popen(
                 server["cmd"],
                 shell=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
             )
             server_processes.append(process)
 

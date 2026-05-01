@@ -251,7 +251,11 @@ refresh_runtime_names() {
 canonical_skill_exists_by_name() {
   local expected_name="$1"
 
-  grep -Fx -- "$expected_name" "$runtime_names_file" >/dev/null 2>&1
+  case "$expected_name" in
+    _*|.*) return 1 ;;
+  esac
+
+  [ -d "$agent_skills_dir/$expected_name" ]
 }
 
 mirror_skill_to_plugin() {
