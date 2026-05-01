@@ -62,6 +62,7 @@ with sync_playwright() as p:
 - Cross-browser compatibility
 - Real API integration
 - Authentication flows
+- Reproducing browser-only bugs when a deterministic or high-rate feedback loop is needed for debugging
 
 **Not for:**
 - Unit-level logic (use unit tests)
@@ -85,6 +86,15 @@ User task → Is it static HTML?
             3. Identify selectors from rendered state
             4. Execute actions with discovered selectors
 ```
+
+## Debugging Reproduction Loops
+
+When using Playwright as a debug loop, make the script prove the specific symptom the user reported:
+
+- Assert on the exact wrong state, console error, failed network response, URL, or visible element
+- Loop flaky triggers enough times to measure the failure rate before changing code
+- Capture screenshots, console logs, and network responses only where they distinguish hypotheses
+- Promote the script into a regression test only when it exercises the real user path that caused the bug
 
 ## Playwright Configuration
 

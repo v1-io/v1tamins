@@ -38,6 +38,7 @@ In Codex, the slash examples below map directly to `$write-tests ...`.
 - Covers edge cases and error conditions
 - Tests both positive and negative scenarios
 - Aims for high code coverage
+- For bug fixes, tests the real failure pattern at the narrowest correct seam rather than a shallow approximation
 
 ### 2. Test Structure
 - Uses project's testing framework conventions
@@ -166,6 +167,7 @@ const mockResponse = {
 - Mock setup is >50% of test
 - "Mocking just to be safe"
 - Test fails when you remove mock
+- Regression test cannot fail for the original bug because it bypasses the real call path
 
 ### Gate Function
 
