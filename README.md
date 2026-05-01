@@ -18,9 +18,12 @@ This repository is public-facing. Shared skills and instructions must be general
 ```
 v1tamins/
 ├── .agents/
+│   ├── plugins/marketplace.json  # Codex marketplace manifest
 │   └── skills/          # Canonical shared skills for Codex and other agent runtimes
 │       ├── md2docs/
 │       └── ...
+├── .claude-plugin/
+│   └── marketplace.json  # Claude Code marketplace manifest
 ├── claude/
 │   ├── skills/          # Claude-compatible entries, symlinked or mirrored from .agents/skills
 │   │   ├── code-review/
@@ -39,6 +42,11 @@ v1tamins/
 │   │   └── ...
 │   └── rules/           # Cursor rules
 │       └── development.mdc
+├── plugins/
+│   └── v1tamins/        # Plugin package for Claude Code and Codex with generated v1-* skill mirrors
+│       ├── .claude-plugin/plugin.json
+│       ├── .codex-plugin/plugin.json
+│       └── skills/
 ├── .github/
 │   └── copilot-instructions.md  # Repository-wide GitHub Copilot guidance
 ├── mcp/
@@ -54,7 +62,7 @@ v1tamins/
 # Clone the repo
 git clone git@github.com:v1-io/v1tamins.git ~/v1tamins
 
-# Run the install script
+# Run the compatibility install script
 ~/v1tamins/install.sh
 
 # Copy-mode install for runtimes that reject symlink targets outside ~/.agents/skills
@@ -63,7 +71,45 @@ git clone git@github.com:v1-io/v1tamins.git ~/v1tamins
 
 ## Manual Setup
 
-### Codex / Shared Agent Skills
+### Plugin Install (Claude Code and Codex)
+
+The preferred distribution is the plugin package in `plugins/v1tamins/`. The same package serves both Claude Code and Codex through sibling per-runtime manifests (`.claude-plugin/plugin.json` and `.codex-plugin/plugin.json`) reading from one shared `skills/` directory. Plugin-distributed skills use a `v1-` prefix, such as `v1-pr`, `v1-debug`, and `v1-address-review`, to avoid collisions with other public or personal skills.
+
+#### Claude Code
+
+```text
+/plugin marketplace add v1-io/v1tamins
+/plugin install v1tamins@v1tamins
+```
+
+For local development, point the marketplace at the checkout instead:
+
+```text
+/plugin marketplace add ~/v1tamins
+```
+
+#### Codex
+
+```bash
+codex plugin marketplace add v1-io/v1tamins
+```
+
+Then install or enable the `v1tamins` plugin from Codex's plugin UI. For local development, use the checkout path instead:
+
+```bash
+codex plugin marketplace add ~/v1tamins
+```
+
+`install.sh` does not install the plugin. It remains the compatibility adapter for shared agent installs, Claude hooks, Cursor commands/rules, and older local setups.
+
+The plugin skill files under `plugins/v1tamins/skills/` are generated mirrors. Edit `.agents/skills/` first, then run:
+
+```bash
+scripts/sync-skill-hosts.sh --write
+scripts/sync-skill-hosts.sh
+```
+
+### Shared Agent Skills
 
 The canonical repo path for portable skills is `.agents/skills/`.
 
@@ -86,9 +132,11 @@ Copied installs are refreshed by rerunning the installer. The installer marks co
 
 Do not symlink the whole `~/.agents/skills` directory to this repo. Public, vendor, and personal skills installed into global skill directories should remain outside v1tamins so they do not appear in `git status`.
 
-For standalone user-global Codex installs outside this repo, Codex's default skill location is `~/.codex/skills/`. Do not install v1tamins skills into both `~/.codex/skills/` and `~/.agents/skills/`; that creates duplicate Codex entries. `install.sh` removes legacy `~/.codex/skills` symlinks that point into the current v1tamins checkout.
+For standalone user-global Codex installs outside this repo, Codex's default skill location is `~/.codex/skills/`. Prefer the Codex plugin instead of installing v1tamins directly into `~/.codex/skills/`. Do not install v1tamins skills into both `~/.codex/skills/` and `~/.agents/skills/`; that creates duplicate Codex entries. `install.sh` removes legacy `~/.codex/skills` symlinks that point into the current v1tamins checkout.
 
-### Claude Code Skills & Hooks
+### Claude Code Skills & Hooks (compatibility / non-plugin install)
+
+Prefer the plugin install above for Claude Code. The instructions below are for users who can't or don't want to use the plugin and would rather symlink individual skills.
 
 Claude Code looks for skills in `~/.claude/skills/` and hooks in `~/.claude/hooks/`. In this repo, `claude/skills/` is the Claude compatibility surface and may symlink back to `.agents/skills/`.
 
@@ -227,13 +275,13 @@ Run the skill host sync check before committing skill changes:
 scripts/sync-skill-hosts.sh
 ```
 
-When creating or renaming a skill, let the script create missing Claude host symlinks:
+When creating or renaming a skill, let the script create missing Claude host symlinks and refresh plugin mirrors:
 
 ```bash
 scripts/sync-skill-hosts.sh --write
 ```
 
-The check validates `SKILL.md` YAML frontmatter, optional `agents/openai.yaml` metadata, and the `claude/skills/` compatibility surface.
+The check validates `SKILL.md` YAML frontmatter, optional `agents/openai.yaml` metadata, the `claude/skills/` compatibility surface, the generated `plugins/v1tamins/skills/v1-*` plugin mirrors, and both runtime plugin manifests (Claude Code at `plugins/v1tamins/.claude-plugin/plugin.json` and Codex at `plugins/v1tamins/.codex-plugin/plugin.json`) plus the marketplace manifests at `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`.
 Use `--verbose` when you need the per-file trace.
 
 ## Contributing
@@ -260,7 +308,7 @@ We welcome contributions! Here's how to get started:
    git checkout -b feature/my-new-skill
    ```
 2. Make your changes and test them in a project
-3. If you created or renamed a skill, run `scripts/sync-skill-hosts.sh --write`
+3. If you created, renamed, or changed a skill, run `scripts/sync-skill-hosts.sh --write`
 4. Run `scripts/sync-skill-hosts.sh`
 5. If you changed `.github/copilot-instructions.md`, keep it aligned with `AGENTS.md`, `CLAUDE.md`, and the current repository structure
 6. Commit your changes with a descriptive message:

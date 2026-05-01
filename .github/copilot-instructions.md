@@ -25,6 +25,8 @@ When extracting a lesson from a private project, keep the reusable workflow, fai
 - Treat `.agents/skills/<name>/SKILL.md` as the canonical shared skill source.
 - Keep Codex metadata in `.agents/skills/<name>/agents/openai.yaml` short and trigger-oriented.
 - Keep `claude/skills/<name>` as a compatibility entry that symlinks or mirrors the canonical `.agents/skills/<name>` skill.
+- Treat `plugins/v1tamins/skills/v1-<name>/` as generated mirrors that serve both the Claude Code plugin (`plugins/v1tamins/.claude-plugin/plugin.json`) and the Codex plugin (`plugins/v1tamins/.codex-plugin/plugin.json`). Do not edit those mirrors directly; edit `.agents/skills/<name>/` and re-run `scripts/sync-skill-hosts.sh --write`.
+- The Claude Code marketplace manifest lives at `.claude-plugin/marketplace.json`; the Codex marketplace manifest lives at `.agents/plugins/marketplace.json`.
 - Use `scripts/sync-skill-hosts.sh --write` after creating or renaming skills, then run `scripts/sync-skill-hosts.sh` before committing.
 - Do not symlink the whole `~/.agents/skills` or `~/.claude/skills` directory to this repo. The installer manages individual v1tamins-owned entries so external and personal skills stay outside the repository.
 

@@ -1,0 +1,32 @@
+{
+  "name": "v1tamins",
+  "owner": {
+    "name": "Version1",
+    "url": "https://github.com/v1-io"
+  },
+  "metadata": {
+    "description": "Plugin marketplace for v1tamins shared AI development skills.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "v1tamins",
+      "description": "Reusable AI development skills and workflow guidance from Version1.",
+      "author": {
+        "name": "Version1",
+        "url": "https://github.com/v1-io"
+      },
+      "homepage": "https://github.com/v1-io/v1tamins",
+      "tags": [
+        "ai-development",
+        "agent-skills",
+        "code-review",
+        "pull-requests",
+        "workflow-automation",
+        "testing",
+        "documentation"
+      ],
+      "source": "./plugins/v1tamins"
+    }
+  ]
+}

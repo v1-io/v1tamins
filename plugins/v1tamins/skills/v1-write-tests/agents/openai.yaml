@@ -1,0 +1,7 @@
+interface:
+  display_name: "Write Tests"
+  short_description: "Write focused tests for code changes"
+  default_prompt: "Use $v1-write-tests to add focused test coverage for this change."
+
+policy:
+  allow_implicit_invocation: true

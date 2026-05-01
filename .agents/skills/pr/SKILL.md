@@ -63,7 +63,7 @@ If the branch name reasonably matches the work, proceed.
 Format: `<type>/<optional-ticket>-<short-description>`
 
 - Types: `feat/`, `fix/`, `chore/`, `refactor/`
-- If the diff, commit messages, or file contents reference a Linear ticket (e.g., `VER-1234`, `HUM-56`), include it: `feat/VER-1234-add-webhook-auth`
+- If the diff, commit messages, or file contents reference a Linear ticket (e.g., `PROJ-1234`, `OPS-56`), include it: `feat/PROJ-1234-add-webhook-auth`
 - Keep descriptions to 3-5 hyphenated words
 - Examples: `feat/VER-42-user-onboarding`, `fix/payment-retry-logic`, `chore/update-dependencies`
 

@@ -18,6 +18,10 @@ usage() {
 Usage: install.sh [options]
 
 Options:
+  This script installs compatibility surfaces only. For both Claude Code and
+  Codex, prefer the v1tamins plugin package under plugins/v1tamins/. See
+  README.md for plugin install commands.
+
   --agent-skills-mode symlink|copy
       Install ~/.agents/skills entries as symlinks (default) or real copied
       directories. Use copy for runtimes that reject symlink targets outside
@@ -167,6 +171,48 @@ cleanup_legacy_codex_skill_links() {
     fi
 }
 
+cleanup_stale_agent_skill_entries() {
+    local target_dir="$1"
+    local entry
+    local name
+    local target
+    local removed=0
+
+    [ -d "$target_dir" ] || return 0
+
+    echo -e "\n${CYAN}Cleaning stale managed agent skills...${NC}"
+
+    for entry in "$target_dir"/*; do
+        [ -e "$entry" ] || continue
+        name="$(basename "$entry")"
+
+        if [ -e "$SCRIPT_DIR/.agents/skills/$name" ]; then
+            continue
+        fi
+
+        if [ -L "$entry" ]; then
+            target="$(readlink "$entry")"
+            case "$target" in
+                "$SCRIPT_DIR/.agents/skills"/*)
+                    echo -e "${YELLOW}Removing stale agent skill link $entry${NC}"
+                    rm "$entry"
+                    removed=$((removed + 1))
+                    ;;
+            esac
+        elif [ -d "$entry" ] && [ -f "$entry/.v1tamins-managed-copy" ]; then
+            echo -e "${YELLOW}Removing stale managed agent skill copy $entry${NC}"
+            rm -rf "$entry"
+            removed=$((removed + 1))
+        fi
+    done
+
+    if [ "$removed" -eq 0 ]; then
+        echo -e "${GREEN}✓ No stale managed agent skills found${NC}"
+    else
+        echo -e "${GREEN}✓ Removed $removed stale managed agent skill entries${NC}"
+    fi
+}
+
 link_managed_entries() {
     local source_dir="$1"
     local target_dir="$2"
@@ -228,6 +274,7 @@ copy_managed_entries() {
 # Shared agent / Codex skills setup
 cleanup_legacy_codex_skill_links
 echo -e "\n${CYAN}Setting up shared agent skills...${NC}"
+cleanup_stale_agent_skill_entries ~/.agents/skills
 if [ "$AGENT_SKILLS_MODE" = "copy" ]; then
     copy_managed_entries "$SCRIPT_DIR/.agents/skills" ~/.agents/skills "agent skill"
     echo -e "${GREEN}✓ Shared agent skills copied individually${NC}"
