@@ -62,13 +62,13 @@ skill-name/
 
 ### Host Surfaces and Sync
 
-Treat `.agents/skills/<skill-name>/SKILL.md` as the canonical source. Other agent surfaces should be generated, symlinked, or thinly derived from it:
+Treat `.agents/skills/<skill-name>/SKILL.md` as the canonical source. Other agent surfaces should be generated or thinly derived from it:
 
 | Surface | Purpose | Rule |
 |---------|---------|------|
 | `.agents/skills/<name>/SKILL.md` | Shared source of truth | Edit this first |
 | `.agents/skills/<name>/agents/openai.yaml` | Codex UI metadata | Keep short and trigger-oriented |
-| `claude/skills/<name>` | Claude compatibility | Symlink to `../../.agents/skills/<name>` |
+| `plugins/v1tamins/skills/v1-<name>/` | Generated plugin mirror for Claude Code + Codex | Never hand-edit; refresh via the sync script |
 
 After creating or renaming a skill, run:
 
@@ -77,7 +77,7 @@ scripts/sync-skill-hosts.sh --write
 scripts/sync-skill-hosts.sh
 ```
 
-The first command creates missing Claude symlinks and OpenAI metadata. The second command verifies frontmatter, symlink targets, and required metadata fields.
+The first command refreshes plugin mirrors. The second verifies frontmatter, plugin mirrors, and manifest metadata.
 
 ### Progressive Disclosure
 
@@ -463,7 +463,7 @@ Start by reading the file.
 | `.agents/skills/` | Canonical project skills (committed to git) |
 | `~/.agents/skills/` | Shared user-wide skills in this environment |
 | `~/.codex/skills/` | Codex default user-global install path |
-| `claude/skills/` | Claude compatibility layer, usually symlinked back to `.agents/skills/` |
+| `~/.claude/skills/` | Claude Code default user-global install path |
 
 ## Troubleshooting
 

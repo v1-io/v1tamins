@@ -12,15 +12,13 @@ Checks:
   - every .agents/skills/<skill>/SKILL.md has parseable YAML frontmatter
   - required frontmatter keys are present: name, description
   - optional .agents/skills/<skill>/agents/openai.yaml files parse as YAML
-  - every canonical skill has a claude/skills/<skill> host entry
-  - Claude host symlinks point back to ../../.agents/skills/<skill>
   - every public canonical skill has a plugins/v1tamins/skills/v1-<skill> mirror
   - plugin mirrors have v1-prefixed frontmatter names and no stale entries
   - the Codex plugin manifest, Codex marketplace manifest, Claude Code plugin
     manifest, and Claude Code marketplace manifest all parse as JSON
 
 Options:
-  --write   create missing Claude host symlinks, repair wrong symlinks, and refresh plugin mirrors
+  --write   create or repair plugin mirrors
   --verbose print each successful check
   -h, --help
 EOF
@@ -51,7 +49,6 @@ done
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 agent_skills_dir="$repo_root/.agents/skills"
-claude_skills_dir="$repo_root/claude/skills"
 plugin_dir="$repo_root/plugins/v1tamins"
 plugin_skills_dir="$plugin_dir/skills"
 plugin_manifest="$plugin_dir/.codex-plugin/plugin.json"
@@ -60,7 +57,6 @@ claude_plugin_manifest="$plugin_dir/.claude-plugin/plugin.json"
 claude_marketplace_manifest="$repo_root/.claude-plugin/marketplace.json"
 
 failures=0
-warnings=0
 runtime_names_file="$(mktemp "${TMPDIR:-/tmp}/v1tamins-runtime-names.XXXXXX")"
 trap 'rm -f "$runtime_names_file"' EXIT
 
@@ -75,18 +71,13 @@ ok() {
   fi
 }
 
-warn() {
-  warnings=$((warnings + 1))
-  printf 'WARN: %s\n' "$1" >&2
-}
-
 fail() {
   failures=$((failures + 1))
   printf 'ERROR: %s\n' "$1" >&2
 }
 
 print_failure_summary() {
-  printf '\n%d validation error(s), %d warning(s)\n' "$failures" "$warnings" >&2
+  printf '\n%d validation error(s)\n' "$failures" >&2
 }
 
 require_dir() {
@@ -393,62 +384,8 @@ check_for_stale_plugin_entries() {
   done < <(find "$plugin_skills_dir" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -print 2>/dev/null | sort)
 }
 
-sync_claude_host_entry() {
-  local skill_dir="$1"
-  local skill_name
-  local host_entry
-  local expected_target
-
-  skill_name="$(basename "$skill_dir")"
-  host_entry="$claude_skills_dir/$skill_name"
-  expected_target="../../.agents/skills/$skill_name"
-
-  if [ -L "$host_entry" ]; then
-    local actual_target
-    actual_target="$(readlink "$host_entry")"
-
-    if [ "$actual_target" = "$expected_target" ]; then
-      ok "claude/skills/$skill_name symlink"
-    elif [ "$write" = true ]; then
-      ln -sfn "$expected_target" "$host_entry"
-      ok "repaired claude/skills/$skill_name symlink"
-    else
-      fail "claude/skills/$skill_name points to $actual_target; expected $expected_target"
-    fi
-  elif [ -e "$host_entry" ]; then
-    if [ -f "$host_entry/SKILL.md" ]; then
-      warn "claude/skills/$skill_name is a directory mirror; leaving it untouched"
-    else
-      fail "claude/skills/$skill_name exists but is not a symlink or skill mirror"
-    fi
-  elif [ "$write" = true ]; then
-    mkdir -p "$claude_skills_dir"
-    ln -s "$expected_target" "$host_entry"
-    ok "created claude/skills/$skill_name symlink"
-  else
-    fail "missing Claude host entry: claude/skills/$skill_name"
-  fi
-}
-
-check_for_stale_claude_entries() {
-  local entry
-  local skill_name
-
-  if [ ! -d "$claude_skills_dir" ]; then
-    return
-  fi
-
-  while IFS= read -r entry; do
-    skill_name="$(basename "$entry")"
-    if [ ! -d "$agent_skills_dir/$skill_name" ]; then
-      fail "stale Claude host entry without canonical skill: claude/skills/$skill_name"
-    fi
-  done < <(find "$claude_skills_dir" -mindepth 1 -maxdepth 1 ! -name '.DS_Store' ! -name '_*' ! -name '.*' -print | sort)
-}
-
 main() {
   require_dir "$agent_skills_dir"
-  require_dir "$claude_skills_dir"
 
   if [ -f "$plugin_manifest" ]; then
     validate_json_file "$plugin_manifest"
@@ -495,29 +432,20 @@ main() {
       validate_yaml_file "$openai_yaml"
     fi
 
-    sync_claude_host_entry "$skill_dir"
-  done < <(find "$agent_skills_dir" -mindepth 1 -maxdepth 1 -type d ! -name '_*' ! -name '.*' -print | sort)
-
-  while IFS= read -r skill_dir; do
     sync_plugin_mirror "$skill_dir"
   done < <(find "$agent_skills_dir" -mindepth 1 -maxdepth 1 -type d ! -name '_*' ! -name '.*' -print | sort)
 
-  check_for_stale_claude_entries
   check_for_stale_plugin_entries
 
   if [ "$failures" -ne 0 ]; then
     print_failure_summary
     if [ "$write" != true ]; then
-      printf 'Run scripts/sync-skill-hosts.sh --write to create missing symlinks or repair wrong symlinks.\n' >&2
+      printf 'Run scripts/sync-skill-hosts.sh --write to refresh plugin mirrors.\n' >&2
     fi
     exit 1
   fi
 
-  printf '\nSkill host sync checks passed'
-  if [ "$warnings" -ne 0 ]; then
-    printf ' with %d warning(s)' "$warnings"
-  fi
-  printf '.\n'
+  printf '\nSkill host sync checks passed.\n'
 }
 
 main "$@"

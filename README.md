@@ -9,339 +9,397 @@
   ╚═══╝    ╚═╝    ╚═╝   ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚══════╝
 ```
 
-Daily supplements for healthy code. A shared collection of AI development tools from the Version1 team.
+**AI coding agents fail in five predictable ways. v1tamins is one sharp skill for each.**
 
-This repository is public-facing. Shared skills and instructions must be generalizable and must not include secrets, private customer/project details, internal URLs, absolute local paths, incident-specific facts, or guidance that only makes sense inside one private repository.
+Daily supplements for healthy code, from the Version1 team. Plugin install for Claude Code and Codex. Skills compose into the workflows you actually use — idea → ship, bug → fix, weekly compounding. Mix and match.
 
-## What's Inside
+## The skill universe
 
-```
-v1tamins/
-├── .agents/
-│   ├── plugins/marketplace.json  # Codex marketplace manifest
-│   └── skills/          # Canonical shared skills for Codex and other agent runtimes
-│       ├── md2docs/
-│       └── ...
-├── .claude-plugin/
-│   └── marketplace.json  # Claude Code marketplace manifest
-├── claude/
-│   ├── skills/          # Claude-compatible entries, symlinked or mirrored from .agents/skills
-│   │   ├── code-review/
-│   │   ├── pr-description/
-│   │   ├── write-tests/
-│   │   ├── fix-tests/
-│   │   ├── deslop/
-│   │   └── ...
-│   └── hooks/           # Pre/post execution hooks
-│       └── format.sh
-├── cursor/
-│   ├── commands/        # Cursor slash commands
-│   │   ├── code-review.md
-│   │   ├── security-audit.md
-│   │   ├── write-unit-tests.md
-│   │   └── ...
-│   └── rules/           # Cursor rules
-│       └── development.mdc
-├── plugins/
-│   └── v1tamins/        # Plugin package for Claude Code and Codex with generated v1-* skill mirrors
-│       ├── .claude-plugin/plugin.json
-│       ├── .codex-plugin/plugin.json
-│       └── skills/
-├── .github/
-│   └── copilot-instructions.md  # Repository-wide GitHub Copilot guidance
-├── mcp/
-│   └── mcp.json         # MCP server configurations
-├── scripts/
-│   └── sync-skill-hosts.sh  # Validate skill frontmatter and sync host metadata
-└── templates/           # Reusable templates (CLAUDE.md, etc.)
-```
-
-## Quick Install
-
-```bash
-# Clone the repo
-git clone git@github.com:v1-io/v1tamins.git ~/v1tamins
-
-# Run the compatibility install script
-~/v1tamins/install.sh
-
-# Copy-mode install for runtimes that reject symlink targets outside ~/.agents/skills
-~/v1tamins/install.sh --copy-agent-skills
+```mermaid
+mindmap
+  root((v1tamins))
+    Plan
+      ("interview-me")
+      ("strategy-review")
+      ("shared-language")
+      (prd)
+    Build
+      (debug)
+      ("fix-tests")
+      ("write-tests")
+      ("e2e-testing")
+    Quality
+      (simplify)
+      (deslop)
+      (refactor)
+      (complexity)
+      ("hindsight-refactor")
+    Ship
+      (pr)
+      ("pr-description")
+      ("land-pr")
+      ("code-review")
+      ("address-review")
+      ("prove-work")
+    Compound
+      (goldpan)
+      ("docs-freshness")
+      (changelog)
+    Communicate
+      (stickify)
+      (md2docs)
+    Research
+      ("deep-research")
+      (autoresearch)
+    Meta
+      ("skilling-it")
+      ("prompt-engineering")
 ```
 
-## Manual Setup
+## Why these skills exist
 
-### Plugin Install (Claude Code and Codex)
+You've felt all five of these:
 
-The preferred distribution is the plugin package in `plugins/v1tamins/`. The same package serves both Claude Code and Codex through sibling per-runtime manifests (`.claude-plugin/plugin.json` and `.codex-plugin/plugin.json`) reading from one shared `skills/` directory. Plugin-distributed skills use a `v1-` prefix, such as `v1-pr`, `v1-debug`, and `v1-address-review`, to avoid collisions with other public or personal skills.
+- The 800 lines that solved a different problem.
+- The bug fix that took three tries to actually fix.
+- The diff full of belt-and-braces error handling for cases that can't happen.
+- The PR that sat in draft for two days because writing the description felt like work.
+- The teammate who rediscovers your fix six months later because nobody wrote it down.
 
-#### Claude Code
+Each v1tamin is the smallest sharp tool we could build for one of those failures. None of them try to be the whole process.
+
+<details>
+<summary><b>#1 &mdash; The plan is wrong before a line of code is written</b></summary>
+
+<br>
+
+You describe a feature. The agent writes 800 lines. About 60% solves a different problem. The rest is now your debugging tax.
+
+> [!TIP]
+> The fix isn't better prompts. It's grilling the idea, building a shared vocabulary, and writing the requirements down — before any code gets written.
+
+- [`/interview-me`](./.agents/skills/interview-me/SKILL.md) — office-hours-style questioning that takes a fuzzy idea ("what if we did X") and walks every branch of the decision tree until you can describe what you actually want
+- [`/strategy-review`](./.agents/skills/strategy-review/SKILL.md) — a CEO-style read of a plan, PRD, or proposal that pushes back on scope, ambition, and hidden assumptions ("is this big enough?")
+- [`/shared-language`](./.agents/skills/shared-language/SKILL.md) — extract a DDD-style glossary from the current conversation, flag ambiguous terms, and write `LANGUAGE.md`. Pays off session after session: variables, files, and prompts all start using one vocabulary
+- [`/prd`](./.agents/skills/prd/SKILL.md) — turn a Linear ticket or feature request into a real PRD
+
+</details>
+
+<details>
+<summary><b>#2 &mdash; The code doesn't work</b></summary>
+
+<br>
+
+Aligned and confident. You hit run. It crashes. The agent's first instinct is to wrap it in a try/except and declare victory.
+
+> [!TIP]
+> Yours should be a failing test that pins the symptom. Short feedback loops beat long debugging sessions — failing tests, real reproductions, instrumentation before guesses.
+
+- [`/debug`](./.agents/skills/debug/SKILL.md) — disciplined diagnosis loop: reproduce → minimise → hypothesise → instrument → fix → regression-test. The skill to reach for first when something is broken or flaky
+- [`/fix-tests`](./.agents/skills/fix-tests/SKILL.md) — systematic loop that fixes failing tests until the suite is green, with feedback at every step
+- [`/write-tests`](./.agents/skills/write-tests/SKILL.md) — generate unit tests for new functionality with sensible coverage and meaningful assertions
+- [`/e2e-testing`](./.agents/skills/e2e-testing/SKILL.md) — Playwright-based browser tests, including a playbook for de-flaking
+
+</details>
+
+<details>
+<summary><b>#3 &mdash; The diff is sloppy</b></summary>
+
+<br>
+
+Agents over-build. Extra try/except. Unused helpers. Premature abstractions. Defensive fallbacks for cases that can't happen. The code works — and the codebase gets a little harder to change.
+
+> [!IMPORTANT]
+> Ship that diff once and the next change inherits its shape. Run a quality pass *before* marking work as done.
+
+- [`/simplify`](./.agents/skills/simplify/SKILL.md) — review recent changes for reuse, unnecessary complexity, and efficiency before considering the work shippable
+- [`/deslop`](./.agents/skills/deslop/SKILL.md) — strip AI-generated boilerplate, defensive checks, and verbose comments that add nothing
+- [`/refactor`](./.agents/skills/refactor/SKILL.md) — apply KISS / DRY / SOLID / YAGNI to a working diff
+- [`/complexity`](./.agents/skills/complexity/SKILL.md) — flatten nested code and reduce cognitive complexity in specific functions
+- [`/hindsight-refactor`](./.agents/skills/hindsight-refactor/SKILL.md) — when the first-pass fix is exploratory or overbuilt, delete it and reimplement a clean version using what the first pass taught you
+
+</details>
+
+<details>
+<summary><b>#4 &mdash; Shipping is the slow part</b></summary>
+
+<br>
+
+Code's done. Now: title, body, screenshots, push, watch CI, fix the lint failure, address the bot's three comments, fix the lint *again*, mark ready. Each step is a context switch — and the longer the diff sits, the colder it gets.
+
+These skills compress the ship phase into one chained workflow.
+
+- [`/pr`](./.agents/skills/pr/SKILL.md) — turn local work into a draft PR with a sensible title and body
+- [`/pr-description`](./.agents/skills/pr-description/SKILL.md) — generate or refresh a PR title/body from metadata, diff, and validation evidence (use standalone or chained inside `/pr`)
+- [`/land-pr`](./.agents/skills/land-pr/SKILL.md) — the full hand-off: commit → push → open as draft → monitor `gh pr checks` → fix failed checks (up to 3 retries) → mark ready → move linked Linear ticket to Human Review
+- [`/code-review`](./.agents/skills/code-review/SKILL.md) — review the current branch or a specific PR with actionable, file-anchored feedback (also posts to GitHub)
+- [`/address-review`](./.agents/skills/address-review/SKILL.md) — work through unresolved review threads from Copilot, Code Factory, bots, or humans and reply with the right diff or context
+- [`/prove-work`](./.agents/skills/prove-work/SKILL.md) — record a browser GIF of the new behaviour to drop into the PR description
+
+> [!WARNING]
+> `/land-pr` will mark a PR ready for review and move a linked Linear ticket to Human Review. Don't run it on work that isn't actually done.
+
+</details>
+
+<details>
+<summary><b>#5 &mdash; We forget what we learned</b></summary>
+
+<br>
+
+The pain you can't feel in the moment: solving the same problem twice. Six months from now, a teammate hits the bug you fixed last sprint and rediscovers your solution in three days, because nobody wrote down what worked.
+
+> [!NOTE]
+> Compounding requires fresh material. `/goldpan` pans for it across PRs and session logs. `/ce-compound` writes it up. Run weekly — your future self is on the team too.
+
+- [`/goldpan`](./.agents/skills/goldpan/SKILL.md) — pan recent merged PRs and agent session logs (Claude Code + Codex + Cursor) for compound-worthy moments, present the candidates, then queue them through `/ce-compound` for documentation
+- [`/docs-freshness`](./.agents/skills/docs-freshness/SKILL.md) — sync READMEs and docs with what actually shipped (post-merge, post-release, or after a new skill lands)
+- [`/changelog`](./.agents/skills/changelog/SKILL.md) — generate release notes from recent merged PRs
+
+</details>
+
+## Workflows that compose
+
+Each skill does one thing. The leverage is the chain. These cycles are how Version1 actually ships — not idealised, just the paths we keep walking.
+
+### Idea → shipped feature
+
+```mermaid
+flowchart LR
+  A([/interview-me]) --> B([/strategy-review])
+  B --> C([/prd])
+  C --> D{{... build ...}}
+  D --> E([/simplify])
+  E --> F([/code-review])
+  F --> G([/pr])
+  G --> H([/prove-work])
+  H --> I([/land-pr])
+  I -.weekly.-> J([/goldpan])
+  J -.feeds back.-> A
+  click A href "./.agents/skills/interview-me/SKILL.md"
+  click B href "./.agents/skills/strategy-review/SKILL.md"
+  click C href "./.agents/skills/prd/SKILL.md"
+  click E href "./.agents/skills/simplify/SKILL.md"
+  click F href "./.agents/skills/code-review/SKILL.md"
+  click G href "./.agents/skills/pr/SKILL.md"
+  click H href "./.agents/skills/prove-work/SKILL.md"
+  click I href "./.agents/skills/land-pr/SKILL.md"
+  click J href "./.agents/skills/goldpan/SKILL.md"
+```
+
+### Bug investigation
+
+```mermaid
+flowchart LR
+  A([/debug]) --> B([/write-tests])
+  B --> C([/simplify])
+  C --> D([/land-pr])
+  click A href "./.agents/skills/debug/SKILL.md"
+  click B href "./.agents/skills/write-tests/SKILL.md"
+  click C href "./.agents/skills/simplify/SKILL.md"
+  click D href "./.agents/skills/land-pr/SKILL.md"
+```
+
+### PR review hand-off
+
+```mermaid
+flowchart LR
+  A([/code-review]) --> B([/address-review])
+  B --> C([/land-pr])
+  click A href "./.agents/skills/code-review/SKILL.md"
+  click B href "./.agents/skills/address-review/SKILL.md"
+  click C href "./.agents/skills/land-pr/SKILL.md"
+```
+
+### Weekly compounding
+
+```mermaid
+flowchart LR
+  A([/goldpan 7d]) --> B([/ce-compound])
+  B --> C([/docs-freshness])
+  C --> D([/changelog])
+  click A href "./.agents/skills/goldpan/SKILL.md"
+  click C href "./.agents/skills/docs-freshness/SKILL.md"
+  click D href "./.agents/skills/changelog/SKILL.md"
+```
+
+### Communication
+
+```mermaid
+flowchart LR
+  A([/stickify]) -.-> B([/md2docs])
+  A -.-> C([/prove-work])
+  click A href "./.agents/skills/stickify/SKILL.md"
+  click B href "./.agents/skills/md2docs/SKILL.md"
+  click C href "./.agents/skills/prove-work/SKILL.md"
+```
+
+## Skill reference
+
+### Plan & align
+
+| Skill | When to use |
+|-------|-------------|
+| [`/interview-me`](./.agents/skills/interview-me/SKILL.md) | Fuzzy idea, ticket, or feature request needs to be fleshed out before any code is written |
+| [`/strategy-review`](./.agents/skills/strategy-review/SKILL.md) | Stress-test a plan, PRD, or product direction for scope, ambition, and hidden assumptions |
+| [`/shared-language`](./.agents/skills/shared-language/SKILL.md) | Build a DDD glossary so devs and agents stop talking past each other |
+| [`/prd`](./.agents/skills/prd/SKILL.md) | Generate a PRD from a Linear ticket or feature request |
+
+### Build & debug
+
+| Skill | When to use |
+|-------|-------------|
+| [`/debug`](./.agents/skills/debug/SKILL.md) | Disciplined diagnosis loop for hard bugs, flakes, and perf regressions |
+| [`/fix-tests`](./.agents/skills/fix-tests/SKILL.md) | Systematic loop until the test suite is green |
+| [`/write-tests`](./.agents/skills/write-tests/SKILL.md) | Generate meaningful unit tests for new code |
+| [`/e2e-testing`](./.agents/skills/e2e-testing/SKILL.md) | Playwright tests, including a de-flaking playbook |
+
+### Quality pass before merge
+
+| Skill | When to use |
+|-------|-------------|
+| [`/simplify`](./.agents/skills/simplify/SKILL.md) | Review recent changes for reuse, unnecessary complexity, and efficiency before declaring done |
+| [`/deslop`](./.agents/skills/deslop/SKILL.md) | Strip AI-generated boilerplate, defensive checks, and dead comments |
+| [`/refactor`](./.agents/skills/refactor/SKILL.md) | Apply KISS / DRY / SOLID / YAGNI to a working diff |
+| [`/complexity`](./.agents/skills/complexity/SKILL.md) | Reduce cognitive complexity in specific functions |
+| [`/hindsight-refactor`](./.agents/skills/hindsight-refactor/SKILL.md) | Throw away the messy first-pass fix and reimplement cleanly using what it taught you |
+
+### Ship
+
+| Skill | When to use |
+|-------|-------------|
+| [`/pr`](./.agents/skills/pr/SKILL.md) | Turn local work into a draft PR |
+| [`/pr-description`](./.agents/skills/pr-description/SKILL.md) | Generate or refresh a PR title and body from metadata, diff, and validation |
+| [`/land-pr`](./.agents/skills/land-pr/SKILL.md) | Full hand-off: commit → push → CI → fix → mark ready → update Linear |
+| [`/code-review`](./.agents/skills/code-review/SKILL.md) | Multi-angle review on the current branch or a specific PR, posted to GitHub |
+| [`/address-review`](./.agents/skills/address-review/SKILL.md) | Resolve unresolved threads from Copilot, Code Factory, bots, or humans |
+| [`/prove-work`](./.agents/skills/prove-work/SKILL.md) | Record a browser GIF for the PR description or Slack |
+
+### Compound the learning
+
+| Skill | When to use |
+|-------|-------------|
+| [`/goldpan`](./.agents/skills/goldpan/SKILL.md) | Pan recent merged PRs + agent session logs for compound-worthy moments and queue them through `/ce-compound` |
+| [`/docs-freshness`](./.agents/skills/docs-freshness/SKILL.md) | Sync READMEs and docs with what actually shipped |
+| [`/changelog`](./.agents/skills/changelog/SKILL.md) | Generate release notes from recent merged PRs |
+
+### Communication
+
+| Skill | When to use |
+|-------|-------------|
+| [`/stickify`](./.agents/skills/stickify/SKILL.md) | Make pitches, announcements, PR descriptions, or marketing copy memorable (Made-to-Stick framework) |
+| [`/md2docs`](./.agents/skills/md2docs/SKILL.md) | Publish a Markdown doc as a fully-formatted Google Doc |
+
+### Research
+
+| Skill | When to use |
+|-------|-------------|
+| [`/deep-research`](./.agents/skills/deep-research/SKILL.md) | Multi-source research with iterative refinement and structured synthesis. Not for simple lookups |
+| [`/autoresearch-skill`](./.agents/skills/autoresearch-skill/SKILL.md) | Autonomous optimization loop — point it at any measurable target and it iterates |
+
+### Meta — write the tools
+
+| Skill | When to use |
+|-------|-------------|
+| [`/skilling-it`](./.agents/skills/skilling-it/SKILL.md) | Create or improve a shared agent skill (this repo's own toolchain) |
+| [`/prompt-engineering`](./.agents/skills/prompt-engineering/SKILL.md) | Write or improve prompts, system prompts, hooks, or sub-agent briefs |
+| [`/prompt-engineering-v1tamins`](./.agents/skills/prompt-engineering-v1tamins/SKILL.md) | Same, specialised for GPT-5.5 / OpenAI Responses API / OpenRouter migrations |
+
+---
+
+## Install
+
+v1tamins ships as a plugin for Claude Code and Codex. One shared `skills/` directory under `plugins/v1tamins/` serves both runtimes through sibling per-runtime manifests. Plugin-distributed skills carry a `v1-` prefix (`v1-pr`, `v1-debug`, `v1-goldpan`) to avoid colliding with other public or personal skills.
+
+> [!NOTE]
+> Skills prefixed with `_` in `.agents/skills/` are gitignored. Build your own private skills the same way — they'll never end up in a PR.
+
+**Claude Code**
 
 ```text
 /plugin marketplace add v1-io/v1tamins
 /plugin install v1tamins@v1tamins
 ```
 
-For local development, point the marketplace at the checkout instead:
+For local development against a checkout, point the marketplace at the path:
 
 ```text
 /plugin marketplace add ~/v1tamins
 ```
 
-#### Codex
+**Codex**
 
 ```bash
 codex plugin marketplace add v1-io/v1tamins
 ```
 
-Then install or enable the `v1tamins` plugin from Codex's plugin UI. For local development, use the checkout path instead:
+Then install or enable the `v1tamins` plugin from Codex's plugin UI. For local development use `~/v1tamins` in place of `v1-io/v1tamins`.
 
-```bash
-codex plugin marketplace add ~/v1tamins
+Updates flow through the runtime's marketplace refresh — there's nothing to rerun.
+
+### Recommended companion: compound-engineering
+
+A few v1tamins skills compose directly with [Every's compound-engineering plugin](https://github.com/EveryInc/compound-engineering-plugin):
+
+- `/goldpan` queues approved candidates through `/ce-compound` to write durable solution docs
+- `/pr` chains into `/ce-code-review` for multi-agent review before merge
+
+Install it alongside v1tamins:
+
+```text
+# Claude Code
+/plugin marketplace add EveryInc/compound-engineering-plugin
+/plugin install compound-engineering@compound-engineering-plugin
+
+# Codex
+codex plugin marketplace add EveryInc/compound-engineering-plugin
+# then install compound-engineering from Codex's plugin UI
 ```
 
-`install.sh` does not install the plugin. It remains the compatibility adapter for shared agent installs, Claude hooks, Cursor commands/rules, and older local setups.
+> [!NOTE]
+> v1tamins works without it — only `/goldpan` will fail noisily if compound-engineering isn't installed. Everything else degrades gracefully.
 
-The plugin skill files under `plugins/v1tamins/skills/` are generated mirrors. Edit `.agents/skills/` first, then run:
+## Repo layout
 
-```bash
-scripts/sync-skill-hosts.sh --write
-scripts/sync-skill-hosts.sh
+```text
+v1tamins/
+├── .agents/skills/          # Canonical shared skills (source of truth)
+├── .agents/plugins/         # Codex marketplace manifest
+├── .claude-plugin/          # Claude Code marketplace manifest
+├── plugins/v1tamins/        # Plugin package — generated v1-* mirrors of every skill
+│   ├── .claude-plugin/      #   Claude Code plugin manifest
+│   ├── .codex-plugin/       #   Codex plugin manifest
+│   └── skills/              #   Shared skills consumed by both runtimes
+└── scripts/                 # Validation + sync scripts
 ```
-
-### Shared Agent Skills
-
-The canonical repo path for portable skills is `.agents/skills/`.
-
-For repo-managed installs, keep `~/.agents/skills/` as a real user-owned directory and symlink each v1tamins skill into it:
-
-```bash
-mkdir -p ~/.agents/skills
-for skill in ~/v1tamins/.agents/skills/*; do
-  ln -sfn "$skill" ~/.agents/skills/"$(basename "$skill")"
-done
-```
-
-Some runtimes treat a skill symlink that resolves outside `~/.agents/skills/` as an escaped path and refuse to load it. For those runtimes, use copied agent skills instead:
-
-```bash
-~/v1tamins/install.sh --copy-agent-skills
-```
-
-Copied installs are refreshed by rerunning the installer. The installer marks copied v1tamins skill directories with `.v1tamins-managed-copy` so future runs can replace them without accumulating stale snapshots. Backups are moved to sibling `.backups` directories instead of staying under skill roots, because some runtimes load every `SKILL.md` under the root.
-
-Do not symlink the whole `~/.agents/skills` directory to this repo. Public, vendor, and personal skills installed into global skill directories should remain outside v1tamins so they do not appear in `git status`.
-
-For standalone user-global Codex installs outside this repo, Codex's default skill location is `~/.codex/skills/`. Prefer the Codex plugin instead of installing v1tamins directly into `~/.codex/skills/`. Do not install v1tamins skills into both `~/.codex/skills/` and `~/.agents/skills/`; that creates duplicate Codex entries. `install.sh` removes legacy `~/.codex/skills` symlinks that point into the current v1tamins checkout.
-
-### Claude Code Skills & Hooks (compatibility / non-plugin install)
-
-Prefer the plugin install above for Claude Code. The instructions below are for users who can't or don't want to use the plugin and would rather symlink individual skills.
-
-Claude Code looks for skills in `~/.claude/skills/` and hooks in `~/.claude/hooks/`. In this repo, `claude/skills/` is the Claude compatibility surface and may symlink back to `.agents/skills/`.
-
-```bash
-mkdir -p ~/.claude/skills
-for skill in ~/v1tamins/claude/skills/*; do
-  ln -sfn "$skill" ~/.claude/skills/"$(basename "$skill")"
-done
-
-# Symlink hooks directory
-ln -sf ~/v1tamins/claude/hooks ~/.claude/hooks
-```
-
-### Cursor Commands & Rules
-
-Cursor looks for commands in `~/.cursor/commands/` and rules in `~/.cursor/rules/`.
-
-```bash
-# Symlink commands directory
-ln -sf ~/v1tamins/cursor/commands ~/.cursor/commands
-
-# Symlink rules directory
-ln -sf ~/v1tamins/cursor/rules ~/.cursor/rules
-```
-
-### GitHub Copilot Instructions
-
-GitHub Copilot uses `.github/copilot-instructions.md` for repository-wide guidance in Copilot Chat, Copilot coding agent, and Copilot code review. Keep this file concise and broadly applicable; put tool-specific or host-specific details in `AGENTS.md`, `CLAUDE.md`, skills, or templates instead.
-
-### MCP Servers
-
-Copy or merge the MCP config into your Cursor config:
-
-```bash
-# Copy MCP config (overwrites existing)
-cp ~/v1tamins/mcp/mcp.json ~/.cursor/mcp.json
-
-# Or manually merge with existing config
-```
-
-**Configured MCP Servers:**
-| Server | Type | Description |
-|--------|------|-------------|
-| Linear | SSE | Project management integration |
-| LangSmith | stdio | LLM observability (requires `LANGSMITH_API_KEY`) |
-| Postman | HTTP | API testing (requires `POSTMAN_API_KEY`) |
-| Notion | stdio | Documentation integration |
-| Playwright | stdio | Browser automation |
-| context7 | HTTP | Documentation lookup |
-| brave-search | stdio | Web search (requires `BRAVE_API_KEY`) |
-
-## Claude/Codex Skills Reference
-
-Portable shared skills should live in `.agents/skills/<skill-name>/` with:
-
-- `SKILL.md` as the shared source of truth
-- `agents/openai.yaml` for Codex UI metadata when needed
-- optional `scripts/`, `references/`, and `assets/`
-
-Claude-facing entries in `claude/skills/` should be thin mirrors or symlinks rather than hand-maintained forks.
-
-The table lists runtime skill names from `SKILL.md` frontmatter. A few legacy directories are underscore-prefixed on disk, for example `.agents/skills/_file-organizer/`, but the skill name remains `file-organizer`.
-
-| Skill | Description |
-|-------|-------------|
-| `address-review` | Address and resolve PR review feedback |
-| `autoresearch-skill` | Run autonomous optimization loops |
-| `changelog` | Generate changelogs from commits |
-| `code-review` | Thorough code review with actionable feedback |
-| `complexity` | Analyze and reduce cognitive complexity |
-| `debug` | Systematic debugging workflow |
-| `deep-research` | Research and synthesize multi-source topics |
-| `deslop` | Clean up AI-generated code slop |
-| `docs-freshness` | Sync documentation with shipped changes |
-| `e2e-testing` | Implement and debug browser tests |
-| `file-organizer` | Organize project files |
-| `fix-tests` | Fix failing tests |
-| `game-changing-features` | Find high-leverage product opportunities |
-| `grafana-dashboards` | Create Grafana dashboards |
-| `interview-me` | Refine ideas through structured questioning |
-| `land-pr` | Commit, push, open, monitor, and ready a PR through CI handoff |
-| `learn-from-pr` | Extract lessons after PRs |
-| `md2docs` | Convert Markdown into Google Docs |
-| `pr` | Ship local work as a pull request |
-| `pr-description` | Generate PR titles and descriptions from PR metadata, diff, validation, and repo guidance |
-| `prd` | Product requirements document generation |
-| `prompt-engineering` | Improve prompts |
-| `prompt-engineering-v1tamins` | Improve GPT-5.4/OpenRouter prompts |
-| `prove-work` | Record visual proof of work |
-| `python-performance-optimization` | Profile and optimize Python code |
-| `refactor` | Refactor code for clarity |
-| `skilling-it` | Create and refine shared agent skills |
-| `stickify` | Make communications more memorable |
-| `strategy-review` | Review plans for strategy, scope, and user value |
-| `write-tests` | Generate unit tests for code |
-
-## Cursor Commands Reference
-
-| Command | Description |
-|---------|-------------|
-| `/code-review` | Review selected code |
-| `/security-audit` | Security vulnerability scan |
-| `/write-unit-tests` | Generate unit tests |
-| `/fix-failing-tests` | Fix broken tests |
-| `/deslop` | Remove AI slop from code |
-| `/refactor-code` | Refactor for clarity |
-| `/reduce-cognitive-complexity` | Simplify complex code |
-| `/generate-pr-description` | Generate PR description |
-| `/debug-issue` | Debug workflow |
-| `/land-pr` | Commit, push, open, monitor, and ready a PR through CI handoff |
-| `/optimize-performance` | Performance optimization |
-| `/add-documentation` | Add code documentation |
-| `/clean-logging` | Clean up logging statements |
-| `/security-review` | Security-focused review |
-| `/address-copilot-review` | Address Copilot review comments |
-| `/frontend-design` | Frontend design guidance |
-| `/write-prd-for-linear` | Generate PRD for Linear |
-
-## Updating
-
-Pull the latest changes and re-run install if needed:
-
-```bash
-cd ~/v1tamins && git pull
-./install.sh
-
-# Or, for copied agent skills:
-./install.sh --copy-agent-skills
-```
-
-## Validation
-
-Run the skill host sync check before committing skill changes:
-
-```bash
-scripts/sync-skill-hosts.sh
-```
-
-When creating or renaming a skill, let the script create missing Claude host symlinks and refresh plugin mirrors:
-
-```bash
-scripts/sync-skill-hosts.sh --write
-```
-
-The check validates `SKILL.md` YAML frontmatter, optional `agents/openai.yaml` metadata, the `claude/skills/` compatibility surface, the generated `plugins/v1tamins/skills/v1-*` plugin mirrors, and both runtime plugin manifests (Claude Code at `plugins/v1tamins/.claude-plugin/plugin.json` and Codex at `plugins/v1tamins/.codex-plugin/plugin.json`) plus the marketplace manifests at `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`.
-Use `--verbose` when you need the per-file trace.
 
 ## Contributing
 
-We welcome contributions! Here's how to get started:
-
-### Fork and Clone
-
-1. Fork the repository on GitHub
-2. Clone your fork locally:
-   ```bash
-   git clone git@github.com:YOUR_USERNAME/v1tamins.git ~/v1tamins
-   cd ~/v1tamins
-   ```
-3. Add the upstream remote:
+1. Fork and clone, add upstream:
    ```bash
    git remote add upstream git@github.com:v1-io/v1tamins.git
    ```
-
-### Make Changes
-
-1. Create a new branch for your changes:
+2. Create a branch.
+3. Edit the canonical skill at `.agents/skills/<skill-name>/SKILL.md`. Each `SKILL.md` needs YAML frontmatter with `name`, `description`, and `allowed-tools`. Add an `agents/openai.yaml` when the skill should appear cleanly in Codex's skill list.
+4. After creating, renaming, or changing a skill, regenerate plugin mirrors:
    ```bash
-   git checkout -b feature/my-new-skill
+   scripts/sync-skill-hosts.sh --write
+   scripts/sync-skill-hosts.sh
    ```
-2. Make your changes and test them in a project
-3. If you created, renamed, or changed a skill, run `scripts/sync-skill-hosts.sh --write`
-4. Run `scripts/sync-skill-hosts.sh`
-5. If you changed `.github/copilot-instructions.md`, keep it aligned with `AGENTS.md`, `CLAUDE.md`, and the current repository structure
-6. Commit your changes with a descriptive message:
-   ```bash
-   git add .
-   git commit -m "Add new skill: my-cool-skill"
-   ```
+5. Test the skill in a real project before committing.
+6. Run a privacy and portability scan over your changes — no secrets, internal URLs, customer names, or absolute local paths.
+7. Open a PR.
 
-### Open a Pull Request
-
-1. Push your branch to your fork:
-   ```bash
-   git push origin feature/my-new-skill
-   ```
-2. Go to the [v1tamins repository](https://github.com/v1-io/v1tamins) on GitHub
-3. Click "Compare & pull request"
-4. Fill in a clear title and description of your changes
-5. Submit the pull request for review
-
-### Keeping Your Fork Updated
+## Validation
 
 ```bash
-git fetch upstream
-git checkout main
-git merge upstream/main
-git push origin main
+scripts/sync-skill-hosts.sh           # check
+scripts/sync-skill-hosts.sh --write   # repair plugin mirrors
+scripts/sync-skill-hosts.sh --verbose # per-file trace
 ```
+
+The check validates `SKILL.md` frontmatter, optional `agents/openai.yaml` metadata, the generated `plugins/v1tamins/skills/v1-*` plugin mirrors, both runtime plugin manifests (`plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`), and both marketplace manifests (`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`).
 
 ## Requirements
 
-- [Claude Code](https://claude.ai/code) CLI
-- [Codex](https://openai.com/codex/) CLI
-- [Cursor](https://cursor.sh) IDE
-- Node.js (for MCP servers)
-- Python/uvx (for LangSmith MCP)
-- Ruby (for YAML validation; no gems required)
+- [Claude Code](https://claude.ai/code) and/or [Codex](https://openai.com/codex/)
+- Ruby (for skill frontmatter validation; no gems required)

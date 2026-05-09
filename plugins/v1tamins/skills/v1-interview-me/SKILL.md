@@ -295,7 +295,7 @@ For standalone specs, use this structure:
 After producing output, suggest relevant next actions:
 - **Implementation ready?** -> "Want me to start building this?" (chains to relevant implementation skills)
 - **Needs broader input?** -> "Should I write this up for team review?" (chains to `stickify` for persuasive framing)
-- **Linear ticket?** -> "Want me to create/update the Linear ticket?" (chains to Linear MCP tools)
+- **Linear ticket?** -> "Want me to create/update the Linear ticket?" (chains to whatever Linear tooling the project has wired up)
 - **PRD needed?** -> "Should I expand this into a full PRD?" (chains to `prd` skill)
 
 ## Reference Files

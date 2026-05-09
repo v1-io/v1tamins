@@ -17,7 +17,6 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 for dir in \
   "$REPO_ROOT/.agents/skills/e2e-testing" \
-  "$REPO_ROOT/claude/skills/e2e-testing" \
   "${CLAUDE_PLUGIN_ROOT:-}" \
   "$HOME/.agents/skills/e2e-testing" \
   "$HOME/.codex/skills/e2e-testing" \

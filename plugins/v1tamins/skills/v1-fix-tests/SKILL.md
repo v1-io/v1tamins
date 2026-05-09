@@ -27,6 +27,7 @@ Use this after you've pasted test failure output into the conversation.
    - Checks "Failed Test Details" for MULTIPLE failing test groups
    - Notes ALL test groups that failed (backend, frontend, linting, etc.)
    - Creates list of all failures before starting fixes
+   - Confirms the failing command is a reliable feedback loop for the user-visible problem; if not, first narrow or rebuild the loop using the `debug` skill
 
 2. **Fixes EACH Failure**
    - For EACH failing service/group:
@@ -51,6 +52,8 @@ Use this after you've pasted test failure output into the conversation.
 - Don't stop after fixing one failure - check for multiple failing groups
 - Always re-run full test suite after fixes
 - Parse entire error output - summary AND detailed sections
+- Prefer fixing code over weakening assertions; only change tests when the test is wrong or the intended behavior changed
+- If the failure is flaky, improve the reproduction rate before patching: loop the focused command, isolate time/randomness/filesystem/network, and record the observed failure rate
 
 ## Testing Commands
 
