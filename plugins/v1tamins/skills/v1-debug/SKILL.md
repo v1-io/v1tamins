@@ -61,7 +61,7 @@ Do not proceed to root-cause hypotheses until the loop reproduces the real user-
 import sys, traceback
 
 def debug_context(note, **kwargs):
-    print(f"[DEBUG-a4f2] {note}: {kwargs}", file=sys.stderr)
+    print(f"[DEBUG-<id>] {note}: {kwargs}", file=sys.stderr)  # replace <id> with a unique short tag per probe
     print(''.join(traceback.format_stack(limit=15)), file=sys.stderr)
 ```
 

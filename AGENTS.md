@@ -49,7 +49,7 @@ For local development against a checkout, use `~/v1tamins` in place of `v1-io/v1
 
 Portable shared skills live in `.agents/skills/`. Each skill is a directory containing a `SKILL.md` file with:
 
-- YAML frontmatter: `name`, `description`, `allowed-tools`
+- YAML frontmatter: `name`, `description` (required); `allowed-tools` (recommended)
 - Markdown body: usage syntax, workflow steps, examples
 
 Codex-specific UI metadata lives in `agents/openai.yaml` when needed.
@@ -64,7 +64,7 @@ Skills prefixed with `_` (e.g. `_grafana-dashboards`) are gitignored — they ex
 
 1. Create `.agents/skills/<skill-name>/SKILL.md`
 2. Add `agents/openai.yaml` when the skill should appear cleanly in Codex skill lists
-3. Add YAML frontmatter with `name`, `description`, `allowed-tools`
+3. Add YAML frontmatter with `name` and `description`. `allowed-tools` is recommended when the skill needs tool restrictions
 4. Document usage, workflow steps, and examples
 5. Run `scripts/sync-skill-hosts.sh --write` after creating, renaming, or changing skills
 6. Run `scripts/sync-skill-hosts.sh` before committing

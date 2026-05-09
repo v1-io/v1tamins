@@ -379,7 +379,7 @@ v1tamins/
    git remote add upstream git@github.com:v1-io/v1tamins.git
    ```
 2. Create a branch.
-3. Edit the canonical skill at `.agents/skills/<skill-name>/SKILL.md`. Each `SKILL.md` needs YAML frontmatter with `name`, `description`, and `allowed-tools`. Add an `agents/openai.yaml` when the skill should appear cleanly in Codex's skill list.
+3. Edit the canonical skill at `.agents/skills/<skill-name>/SKILL.md`. Each `SKILL.md` needs YAML frontmatter with `name` and `description`. `allowed-tools` is recommended for skills that need tool restrictions; see [skilling-it](./.agents/skills/skilling-it/SKILL.md) for the full schema. Add an `agents/openai.yaml` when the skill should appear cleanly in Codex's skill list.
 4. After creating, renaming, or changing a skill, regenerate plugin mirrors:
    ```bash
    scripts/sync-skill-hosts.sh --write
@@ -403,3 +403,4 @@ The check validates `SKILL.md` frontmatter, optional `agents/openai.yaml` metada
 
 - [Claude Code](https://claude.ai/code) and/or [Codex](https://openai.com/codex/)
 - Ruby (for skill frontmatter validation; no gems required)
+- `jq` (for JSON manifest validation in `scripts/sync-skill-hosts.sh`)
