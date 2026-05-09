@@ -91,7 +91,7 @@ Creates a Product Requirements Document with these sections:
 
 ## Notes
 
-- Requires Linear MCP server to be configured
+- Requires Linear access (via whatever Linear tooling the project has wired up)
 - Converts ambiguous language into testable statements
 - Prefers bullets over prose
 - Includes existing images with descriptive captions
