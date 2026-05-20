@@ -10,7 +10,7 @@ Create effective shared agent skills following best practices for discovery, pro
 
 Create a skill in 5 steps:
 
-1. **Create directory:** repo canonical path `plugins/v1tamins/skills/v1-my-skill-name` or user-global install path `~/.codex/skills/v1-my-skill-name`
+1. **Create directory:** repo canonical path `plugins/v1tamins/skills/v1-my-skill-name`, Codex user-global path `~/.codex/skills/v1-my-skill-name`, or Claude Code user-global path `~/.claude/skills/v1-my-skill-name`
 2. **Create SKILL.md** with frontmatter (see template below)
 3. **Write description** as triggering conditions ("Use when...")
 4. **Add instructions** in imperative form
