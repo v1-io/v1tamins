@@ -25,7 +25,7 @@ This skill composes two existing primitives — `ce-compound` (writes solution d
 2. **Calibration check** (Phase 0): if no project signals file exists, prompt to calibrate.
 3. Launch two scout subagents in parallel — Scout A (merged PRs) and Scout B+C (sessions across all platforms).
 4. De-dup candidates against the project's solutions docs.
-5. Write `.claude/session-notes/compound-candidates-<YYYY-MM-DD>.md` and present the top candidates inline.
+5. Write `.agents/goldpan/session-notes/compound-candidates-<YYYY-MM-DD>.md` and present the top candidates inline.
 6. Ask the user which candidates to queue. For each approved candidate, stage a context bundle and invoke `/ce-compound` in lightweight mode sequentially.
 
 The skill never writes directly into `docs/solutions/` — `/ce-compound` owns that path. The skill only invokes `/ce-compound` after explicit per-candidate approval.
@@ -131,7 +131,23 @@ The default keyword set is the universal compound signals: `AIDEV-NOTE`, `Root C
 **Step 3 — Deep-dive** only the top sessions, using `ce-session-extract` rather than reading raw JSONL:
 
 ```bash
-EXT="$HOME/.claude/plugins/marketplaces/every-marketplace/plugins/compound-engineering/skills/ce-session-extract"
+CE_SKILLS_DIR="${CE_SKILLS_DIR:-}"
+if [ -z "$CE_SKILLS_DIR" ]; then
+  for dir in \
+    "$HOME/.codex/plugins/cache/compound-engineering-plugin/compound-engineering"/*/skills; do
+    [ -d "$dir/ce-session-extract/scripts" ] && CE_SKILLS_DIR="$dir" && break
+  done
+fi
+if [ -z "$CE_SKILLS_DIR" ] && [ -d "$HOME/.claude/plugins" ]; then
+  scripts_dir="$(find "$HOME/.claude/plugins" -path '*/compound-engineering/skills/ce-session-extract/scripts' -type d 2>/dev/null | sort | head -1)"
+  [ -n "$scripts_dir" ] && CE_SKILLS_DIR="${scripts_dir%/ce-session-extract/scripts}"
+fi
+if [ -z "$CE_SKILLS_DIR" ]; then
+  echo "ERROR: Could not find ce-session-extract" >&2
+  exit 1
+fi
+
+EXT="$CE_SKILLS_DIR/ce-session-extract"
 
 # Filtered narrative (user/assistant text + collapsed tool calls) — cap to last N lines
 cat <session-file> | python3 "$EXT/scripts/extract-skeleton.py" | tail -n 200
@@ -162,7 +178,7 @@ Anti-signals (drop the session candidate):
 
 ### Phase 3: Write the report
 
-Write to `.claude/session-notes/compound-candidates-<today>.md` using the template in [references/report-template.md](references/report-template.md). Inline in the chat, list only the **High** candidates with a one-line synopsis and a copy-paste `/ce-compound` invocation hint, then move directly into Phase 4.
+Write to `.agents/goldpan/session-notes/compound-candidates-<today>.md` using the template in [references/report-template.md](references/report-template.md). Inline in the chat, list only the **High** candidates with a one-line synopsis and a copy-paste `/ce-compound` invocation hint, then move directly into Phase 4.
 
 ### Phase 4: Approval & Queue
 
@@ -176,7 +192,7 @@ If `AskUserQuestion` is unavailable (non-Claude-Code harness, or call errors), f
 
 #### 4b. Stage one context bundle per approved candidate
 
-For each approved candidate, write `.claude/session-notes/compound-queue/<YYYY-MM-DD>-<slug>.md` containing the synthesized evidence. The bundle is the input that `/ce-compound` will treat as "the recently solved problem". Format:
+For each approved candidate, write `.agents/goldpan/session-notes/compound-queue/<YYYY-MM-DD>-<slug>.md` containing the synthesized evidence. The bundle is the input that `/ce-compound` will treat as "the recently solved problem". Format:
 
 ```markdown
 # Queued compound candidate: <title>
@@ -214,7 +230,7 @@ If the synthesis is thin (the source material lacks a clear problem/solution nar
 For each staged bundle, invoke the compound skill via the `Skill` tool, one at a time:
 
 ```
-Skill(skill: "compound-engineering:ce-compound", args: "<title> — see .claude/session-notes/compound-queue/<file>")
+Skill(skill: "compound-engineering:ce-compound", args: "<title> — see .agents/goldpan/session-notes/compound-queue/<file>")
 ```
 
 Before the call, print the bundle contents into chat as plain markdown so `/ce-compound`'s Phase 0/1 sees the problem in recent conversation. When `/ce-compound` asks Full vs Lightweight, pick **Lightweight** unless the user explicitly chose Full at approval time. When it asks about session-history search, choose **No** — this skill already panned the relevant sessions.
@@ -231,7 +247,7 @@ Queue complete. Documented N of M approved candidates.
 - OK <path2>
 - FAIL <path3>  (skipped: <reason>)
 
-Bundles retained at .claude/session-notes/compound-queue/ — delete after review.
+Bundles retained at .agents/goldpan/session-notes/compound-queue/ — delete after review.
 ```
 
 Do not write to `docs/solutions/` directly. All documentation goes through `/ce-compound`.

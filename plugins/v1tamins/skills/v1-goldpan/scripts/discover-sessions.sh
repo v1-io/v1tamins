@@ -30,12 +30,37 @@ else
   REPO=$(basename "$PWD")
 fi
 
-# Resolve ce-session-inventory plugin path. The marketplace path does not
-# include a version segment, so it is stable as long as compound-engineering
-# is installed.
-INV_DIR="${HOME}/.claude/plugins/marketplaces/every-marketplace/plugins/compound-engineering/skills/ce-session-inventory"
-if [ ! -d "$INV_DIR/scripts" ]; then
-  echo "ce-session-inventory not found at $INV_DIR/scripts" >&2
+resolve_ce_skills_dir() {
+  local dir
+
+  if [ -n "${CE_SKILLS_DIR:-}" ] && [ -d "$CE_SKILLS_DIR/ce-session-inventory/scripts" ]; then
+    printf '%s\n' "$CE_SKILLS_DIR"
+    return 0
+  fi
+
+  for dir in \
+    "${HOME}/.codex/plugins/cache/compound-engineering-plugin/compound-engineering"/*/skills; do
+    if [ -d "$dir/ce-session-inventory/scripts" ]; then
+      printf '%s\n' "$dir"
+      return 0
+    fi
+  done
+
+  if [ -d "${HOME}/.claude/plugins" ]; then
+    while IFS= read -r scripts_dir; do
+      dir="${scripts_dir%/ce-session-inventory/scripts}"
+      printf '%s\n' "$dir"
+      return 0
+    done < <(find "${HOME}/.claude/plugins" -path '*/compound-engineering/skills/ce-session-inventory/scripts' -type d 2>/dev/null | sort)
+  fi
+
+  return 1
+}
+
+CE_SKILLS_DIR="$(resolve_ce_skills_dir || true)"
+INV_DIR="$CE_SKILLS_DIR/ce-session-inventory"
+if [ -z "$CE_SKILLS_DIR" ]; then
+  echo "ce-session-inventory not found in Codex or Claude plugin caches" >&2
   echo "Install the compound-engineering plugin and re-run." >&2
   exit 1
 fi

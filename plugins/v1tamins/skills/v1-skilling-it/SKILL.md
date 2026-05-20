@@ -10,7 +10,7 @@ Create effective shared agent skills following best practices for discovery, pro
 
 Create a skill in 5 steps:
 
-1. **Create directory:** repo canonical path `.agents/skills/my-skill-name` or user-global install path `~/.agents/skills/my-skill-name`
+1. **Create directory:** repo canonical path `plugins/v1tamins/skills/v1-my-skill-name`, Codex user-global path `~/.codex/skills/v1-my-skill-name`, or Claude Code user-global path `~/.claude/skills/v1-my-skill-name`
 2. **Create SKILL.md** with frontmatter (see template below)
 3. **Write description** as triggering conditions ("Use when...")
 4. **Add instructions** in imperative form
@@ -20,7 +20,7 @@ Create a skill in 5 steps:
 
 ```markdown
 ---
-name: my-skill-name
+name: v1-my-skill-name
 description: Use when [triggering condition 1], [triggering condition 2]. Triggers on "[phrase 1]", "[phrase 2]".
 ---
 
@@ -52,7 +52,7 @@ Create a skill when you have:
 ## Skill Structure
 
 ```
-skill-name/
+v1-skill-name/
 ├── SKILL.md              # Required - core instructions (<500 lines)
 ├── agents/openai.yaml    # Optional - Codex UI metadata
 ├── references/           # Optional - detailed docs (loaded as needed)
@@ -60,24 +60,24 @@ skill-name/
 └── assets/               # Optional - templates, images, fonts
 ```
 
-### Host Surfaces and Sync
+### Plugin Package Surface
 
-Treat `.agents/skills/<skill-name>/SKILL.md` as the canonical source. Other agent surfaces should be generated or thinly derived from it:
+Treat `plugins/v1tamins/skills/v1-<skill-name>/SKILL.md` as the canonical source for v1tamins. The plugin package is installed directly by Codex and Claude Code through the manifests under `plugins/v1tamins/`.
 
 | Surface | Purpose | Rule |
 |---------|---------|------|
-| `.agents/skills/<name>/SKILL.md` | Shared source of truth | Edit this first |
-| `.agents/skills/<name>/agents/openai.yaml` | Codex UI metadata | Keep short and trigger-oriented |
-| `plugins/v1tamins/skills/v1-<name>/` | Generated plugin mirror for Claude Code + Codex | Never hand-edit; refresh via the sync script |
+| `plugins/v1tamins/skills/v1-<name>/SKILL.md` | Shared source of truth | Edit this first |
+| `plugins/v1tamins/skills/v1-<name>/agents/openai.yaml` | Codex UI metadata | Keep short and trigger-oriented |
+| `plugins/v1tamins/.codex-plugin/plugin.json` | Codex plugin manifest | Keep `skills` pointed at `./skills/` |
+| `plugins/v1tamins/.claude-plugin/plugin.json` | Claude Code plugin manifest | Keep plugin metadata aligned |
 
 After creating or renaming a skill, run:
 
 ```bash
-scripts/sync-skill-hosts.sh --write
-scripts/sync-skill-hosts.sh
+scripts/validate-plugin.sh
 ```
 
-The first command refreshes plugin mirrors. The second verifies frontmatter, plugin mirrors, and manifest metadata.
+This verifies frontmatter, plugin skills, manifest metadata, bundled asset references, known skill references, and portable helper paths. `scripts/sync-skill-hosts.sh` remains only as a legacy compatibility wrapper.
 
 ### Progressive Disclosure
 
@@ -398,7 +398,7 @@ Files used in output (not loaded into context).
 - [ ] Instructions are clear and actionable
 - [ ] Referenced files exist
 - [ ] Tested with real usage scenarios (see [references/iterative-development.md](references/iterative-development.md))
-- [ ] `scripts/sync-skill-hosts.sh` passes
+- [ ] `scripts/validate-plugin.sh` passes
 
 ## Anti-Patterns
 
@@ -460,8 +460,7 @@ Start by reading the file.
 
 | Location | Purpose |
 |----------|---------|
-| `.agents/skills/` | Canonical project skills (committed to git) |
-| `~/.agents/skills/` | Shared user-wide skills in this environment |
+| `plugins/v1tamins/skills/` | Canonical v1tamins plugin skills (committed to git) |
 | `~/.codex/skills/` | Codex default user-global install path |
 | `~/.claude/skills/` | Claude Code default user-global install path |
 

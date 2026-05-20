@@ -1,7 +1,0 @@
-interface:
-  display_name: "Changelog"
-  short_description: "Draft release notes from recent merged PRs"
-  default_prompt: "Use $changelog to generate release notes from the latest merged pull requests."
-
-policy:
-  allow_implicit_invocation: true

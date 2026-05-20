@@ -1,6 +1,6 @@
 # Advanced Prompting Patterns
 
-Copied and condensed from the original `prompt-engineering` skill so the GPT-5.4-focused fork keeps the reusable cross-model ideas that still matter.
+Copied and condensed from the original `v1-prompt-engineering` skill so the GPT-5.4-focused fork keeps the reusable cross-model ideas that still matter.
 
 ## Table of Contents
 

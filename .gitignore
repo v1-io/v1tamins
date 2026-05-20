@@ -23,7 +23,6 @@ client_secret*.json
 token.json
 
 # Private skills
-.agents/skills/_*
 plugins/v1tamins/skills/v1-_*
 
 # Local-only repo guidance (kept on disk, not distributed)

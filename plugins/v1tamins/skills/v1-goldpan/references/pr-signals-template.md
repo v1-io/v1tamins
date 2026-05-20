@@ -6,7 +6,7 @@ The signals file's role: capture verbatim, project-specific evidence — section
 
 ## Template
 
-Copy the block below into `.agents/goldpan-signals.md` and fill in the placeholders. Or run `/goldpan recalibrate` to have it auto-generated from your last 30 days of merged PRs.
+Copy the block below into `.agents/goldpan-signals.md` and fill in the placeholders. Or run `/v1-goldpan recalibrate` to have it auto-generated from your last 30 days of merged PRs.
 
 ```markdown
 # <Project> PR Signals (grounded in <N> merges, <YYYY-MM-DD> → <YYYY-MM-DD>)

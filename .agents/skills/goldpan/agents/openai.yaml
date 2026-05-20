@@ -1,7 +1,0 @@
-interface:
-  display_name: "Goldpan"
-  short_description: "Pan recent PRs and agent sessions for compound-worthy moments and queue them through /ce-compound"
-  default_prompt: "Use $goldpan 7d to pan the last week of work for compound-worthy moments."
-
-policy:
-  allow_implicit_invocation: true

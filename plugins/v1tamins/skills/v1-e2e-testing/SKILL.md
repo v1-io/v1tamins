@@ -15,11 +15,10 @@ Build reliable, fast E2E test suites that catch regressions and enable confident
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 for dir in \
-  "$REPO_ROOT/.agents/skills/e2e-testing" \
+  "$REPO_ROOT/plugins/v1tamins/skills/v1-e2e-testing" \
   "${CLAUDE_PLUGIN_ROOT:-}" \
-  "$HOME/.agents/skills/e2e-testing" \
-  "$HOME/.codex/skills/e2e-testing" \
-  "$HOME/.claude/skills/e2e-testing"; do
+  "$HOME/.codex/skills/v1-e2e-testing" \
+  "$HOME/.claude/skills/v1-e2e-testing"; do
   [ -n "$dir" ] && [ -f "$dir/scripts/with_server.py" ] && SKILL_ROOT="$dir" && break
 done
 

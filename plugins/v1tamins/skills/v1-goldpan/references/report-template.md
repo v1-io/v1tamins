@@ -1,6 +1,6 @@
 # Report Template
 
-Write the consolidated candidate list to `.claude/session-notes/compound-candidates-<YYYY-MM-DD>.md`. Use this structure verbatim — only adjust counts.
+Write the consolidated candidate list to `.agents/goldpan/session-notes/compound-candidates-<YYYY-MM-DD>.md`. Use this structure verbatim — only adjust counts.
 
 ```markdown
 # Compound Candidates — <YYYY-MM-DD>
@@ -49,7 +49,7 @@ Brief list of PRs/sessions considered but rejected, with one-word reason: `refac
 Show the user only the High section, condensed, then immediately move into Phase 4a (approval prompt). Do not stop — the queue step is part of the same turn.
 
 ```
-Wrote <N> candidates to .claude/session-notes/compound-candidates-<date>.md
+Wrote <N> candidates to .agents/goldpan/session-notes/compound-candidates-<date>.md
 (<H> High, <M> Medium, <D> already-documented refresh candidates).
 
 High candidates:

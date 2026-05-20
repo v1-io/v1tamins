@@ -1,7 +1,0 @@
-interface:
-  display_name: "Stickify"
-  short_description: "Make product and marketing copy stickier"
-  default_prompt: "Use $stickify to rewrite this copy so it is clearer, sharper, and more memorable."
-
-policy:
-  allow_implicit_invocation: true

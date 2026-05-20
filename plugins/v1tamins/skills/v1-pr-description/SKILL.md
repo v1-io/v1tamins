@@ -37,7 +37,21 @@ gh pr view {pr} --json number,url,title,body,baseRefName,headRefName,headRefOid,
 Optional helper:
 
 ```bash
-.agents/skills/pr-description/generate.sh {PR_URL_or_NUMBER}
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+for dir in \
+  "$REPO_ROOT/plugins/v1tamins/skills/v1-pr-description" \
+  "$HOME/.codex/skills/v1-pr-description" \
+  "$HOME/.claude/skills/v1-pr-description" \
+  "$HOME/.codex/plugins/cache/v1tamins/v1tamins"/*/skills/v1-pr-description; do
+  [ -f "$dir/generate.sh" ] && SKILL_ROOT="$dir" && break
+done
+
+if [ -z "${SKILL_ROOT:-}" ]; then
+  echo "ERROR: Could not find v1-pr-description/generate.sh" >&2
+  exit 1
+fi
+
+"$SKILL_ROOT/generate.sh" {PR_URL_or_NUMBER}
 ```
 
 Use the helper to collect metadata, changed files, commits, and merge-base diff context. Treat its output as evidence, not as the finished PR description.
