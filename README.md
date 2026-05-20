@@ -182,11 +182,11 @@ flowchart LR
   click B href "./.agents/skills/strategy-review/SKILL.md"
   click C href "./.agents/skills/bare-bones/SKILL.md"
   click D href "./.agents/skills/prd/SKILL.md"
-  click E href "./.agents/skills/simplify/SKILL.md"
-  click F href "./.agents/skills/code-review/SKILL.md"
-  click G href "./.agents/skills/pr/SKILL.md"
-  click H href "./.agents/skills/prove-work/SKILL.md"
-  click I href "./.agents/skills/land-pr/SKILL.md"
+  click F href "./.agents/skills/simplify/SKILL.md"
+  click G href "./.agents/skills/code-review/SKILL.md"
+  click H href "./.agents/skills/pr/SKILL.md"
+  click I href "./.agents/skills/prove-work/SKILL.md"
+  click J href "./.agents/skills/land-pr/SKILL.md"
   click K href "./.agents/skills/goldpan/SKILL.md"
 ```
 

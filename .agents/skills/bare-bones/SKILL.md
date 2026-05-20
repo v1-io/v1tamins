@@ -150,6 +150,9 @@ Outcome: [one sentence]
 ### Non-Goals
 - [...]
 
+### Blocking Questions
+- [...]
+
 ## Scope Ledger
 
 | Keep | Cut | Defer | Question |
