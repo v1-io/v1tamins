@@ -37,7 +37,7 @@ gh pr view {pr} --json number,url,title,body,baseRefName,headRefName,headRefOid,
 Optional helper:
 
 ```bash
-.agents/skills/pr-description/generate.sh {PR_URL_or_NUMBER}
+plugins/v1tamins/skills/v1-pr-description/generate.sh {PR_URL_or_NUMBER}
 ```
 
 Use the helper to collect metadata, changed files, commits, and merge-base diff context. Treat its output as evidence, not as the finished PR description.

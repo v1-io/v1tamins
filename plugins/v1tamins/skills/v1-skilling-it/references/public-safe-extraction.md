@@ -24,7 +24,7 @@ Use this reference when converting a private project lesson into a reusable shar
 Run a privacy and portability scan before recommending or publishing a shared-skill change:
 
 ```bash
-rg -n "(/Users/|/home/|[A-Za-z]:\\\\|https?://|slack|customer|secret|token|date -v)" .agents/skills/<skill-name>
+rg -n "(/Users/|/home/|[A-Za-z]:\\\\|https?://|slack|customer|secret|token|date -v)" plugins/v1tamins/skills/v1-<skill-name>
 ```
 
 Review every hit. Keep intentional public references, but rewrite private or host-specific details. If the skill genuinely needs project-specific facts, keep it in that project's local skill directory instead of v1tamins.

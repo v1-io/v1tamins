@@ -1,7 +1,0 @@
-interface:
-  display_name: "E2E Testing"
-  short_description: "Build or debug reliable Playwright E2E tests"
-  default_prompt: "Use $e2e-testing to build or debug end-to-end coverage for this flow."
-
-policy:
-  allow_implicit_invocation: true

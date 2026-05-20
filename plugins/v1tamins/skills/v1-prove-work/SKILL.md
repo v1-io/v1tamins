@@ -120,11 +120,10 @@ Run the conversion script:
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 for dir in \
-  "$REPO_ROOT/.agents/skills/prove-work" \
+  "$REPO_ROOT/plugins/v1tamins/skills/v1-prove-work" \
   "${CLAUDE_PLUGIN_ROOT:-}" \
-  "$HOME/.agents/skills/prove-work" \
-  "$HOME/.codex/skills/prove-work" \
-  "$HOME/.claude/skills/prove-work"; do
+  "$HOME/.codex/skills/v1-prove-work" \
+  "$HOME/.claude/skills/v1-prove-work"; do
   [ -n "$dir" ] && [ -f "$dir/scripts/video_to_gif.py" ] && SKILL_DIR="$dir" && break
 done
 
@@ -162,11 +161,10 @@ gh pr view --json number --jq .number 2>/dev/null
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 for dir in \
-  "$REPO_ROOT/.agents/skills/prove-work" \
+  "$REPO_ROOT/plugins/v1tamins/skills/v1-prove-work" \
   "${CLAUDE_PLUGIN_ROOT:-}" \
-  "$HOME/.agents/skills/prove-work" \
-  "$HOME/.codex/skills/prove-work" \
-  "$HOME/.claude/skills/prove-work"; do
+  "$HOME/.codex/skills/v1-prove-work" \
+  "$HOME/.claude/skills/v1-prove-work"; do
   [ -n "$dir" ] && [ -f "$dir/scripts/video_to_gif.py" ] && SKILL_DIR="$dir" && break
 done
 

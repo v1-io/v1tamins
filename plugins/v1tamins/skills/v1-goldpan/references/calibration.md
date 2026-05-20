@@ -2,7 +2,7 @@
 
 Calibration grounds this skill in the team's actual writing style by analyzing recent merged PRs and producing `.agents/goldpan-signals.md` — a project-specific evidence file that future scout runs use to score candidates.
 
-Run on first use, or with `/goldpan recalibrate` to refresh after major team or codebase changes (new authors joined, large refactors, framework migrations).
+Run on first use, or with `/v1-goldpan recalibrate` to refresh after major team or codebase changes (new authors joined, large refactors, framework migrations).
 
 ## When this runs
 
@@ -164,7 +164,7 @@ The signals file becomes stale when:
 - A large refactor changes which subsystems are "high-leverage"
 - The codebase moves to a new language/framework
 
-Trigger a fresh calibration with `/goldpan recalibrate`. The previous signals file is overwritten — git history preserves it if the file is committed.
+Trigger a fresh calibration with `/v1-goldpan recalibrate`. The previous signals file is overwritten — git history preserves it if the file is committed.
 
 ## When calibration should be skipped
 

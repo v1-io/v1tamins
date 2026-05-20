@@ -1,7 +1,0 @@
-interface:
-  display_name: "Prompt Engineering V1tamins"
-  short_description: "Write GPT-5.5 prompts for OpenAI and OpenRouter workflows"
-  default_prompt: "Use $prompt-engineering-v1tamins to write or migrate this GPT-5.5 prompt workflow."
-
-policy:
-  allow_implicit_invocation: true

@@ -1,7 +1,0 @@
-interface:
-  display_name: "Deslop"
-  short_description: "Remove AI slop and verbose code paths"
-  default_prompt: "Use $deslop to remove AI-generated slop and unnecessary complexity from this code."
-
-policy:
-  allow_implicit_invocation: true

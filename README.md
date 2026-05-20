@@ -19,42 +19,42 @@ Daily supplements for healthy code, from the Version1 team. Plugin install for C
 mindmap
   root((v1tamins))
     Plan
-      ("interview-me")
-      ("strategy-review")
-      ("bare-bones")
-      ("shared-language")
-      (prd)
+      ("v1-interview-me")
+      ("v1-strategy-review")
+      ("v1-bare-bones")
+      ("v1-shared-language")
+      ("v1-prd")
     Build
-      (debug)
-      ("fix-tests")
-      ("write-tests")
-      ("e2e-testing")
+      ("v1-debug")
+      ("v1-fix-tests")
+      ("v1-write-tests")
+      ("v1-e2e-testing")
     Quality
-      (simplify)
-      (deslop)
-      (refactor)
-      (complexity)
-      ("hindsight-refactor")
+      ("v1-simplify")
+      ("v1-deslop")
+      ("v1-refactor")
+      ("v1-complexity")
+      ("v1-hindsight-refactor")
     Ship
-      (pr)
-      ("pr-description")
-      ("land-pr")
-      ("code-review")
-      ("address-review")
-      ("prove-work")
+      ("v1-pr")
+      ("v1-pr-description")
+      ("v1-land-pr")
+      ("v1-code-review")
+      ("v1-address-review")
+      ("v1-prove-work")
     Compound
-      (goldpan)
-      ("docs-freshness")
-      (changelog)
+      ("v1-goldpan")
+      ("v1-docs-freshness")
+      ("v1-changelog")
     Communicate
-      (stickify)
-      (md2docs)
+      ("v1-stickify")
+      ("v1-md2docs")
     Research
-      ("deep-research")
-      (autoresearch)
+      ("v1-deep-research")
+      ("v1-autoresearch-skill")
     Meta
-      ("skilling-it")
-      ("prompt-engineering")
+      ("v1-skilling-it")
+      ("v1-prompt-engineering")
 ```
 
 ## Why these skills exist
@@ -79,11 +79,11 @@ You describe a feature. The agent writes 800 lines. About 60% solves a different
 > [!TIP]
 > The fix isn't better prompts. It's grilling the idea, building a shared vocabulary, and writing the requirements down — before any code gets written.
 
-- [`/interview-me`](./.agents/skills/interview-me/SKILL.md) — office-hours-style questioning that takes a fuzzy idea ("what if we did X") and walks every branch of the decision tree until you can describe what you actually want
-- [`/strategy-review`](./.agents/skills/strategy-review/SKILL.md) — a CEO-style read of a plan, PRD, or proposal that pushes back on scope, ambition, and hidden assumptions ("is this big enough?")
-- [`/bare-bones`](./.agents/skills/bare-bones/SKILL.md) — strip an overscoped plan down to the smallest useful version before it turns into implementation sprawl
-- [`/shared-language`](./.agents/skills/shared-language/SKILL.md) — extract a DDD-style glossary from the current conversation, flag ambiguous terms, and write `LANGUAGE.md`. Pays off session after session: variables, files, and prompts all start using one vocabulary
-- [`/prd`](./.agents/skills/prd/SKILL.md) — turn a Linear ticket or feature request into a real PRD
+- [`/v1-interview-me`](./plugins/v1tamins/skills/v1-interview-me/SKILL.md) — office-hours-style questioning that takes a fuzzy idea ("what if we did X") and walks every branch of the decision tree until you can describe what you actually want
+- [`/v1-strategy-review`](./plugins/v1tamins/skills/v1-strategy-review/SKILL.md) — a CEO-style read of a plan, PRD, or proposal that pushes back on scope, ambition, and hidden assumptions ("is this big enough?")
+- [`/v1-bare-bones`](./plugins/v1tamins/skills/v1-bare-bones/SKILL.md) — strip an overscoped plan down to the smallest useful version before it turns into implementation sprawl
+- [`/v1-shared-language`](./plugins/v1tamins/skills/v1-shared-language/SKILL.md) — extract a DDD-style glossary from the current conversation, flag ambiguous terms, and write `LANGUAGE.md`. Pays off session after session: variables, files, and prompts all start using one vocabulary
+- [`/v1-prd`](./plugins/v1tamins/skills/v1-prd/SKILL.md) — turn a Linear ticket or feature request into a real PRD
 
 </details>
 
@@ -97,10 +97,10 @@ Aligned and confident. You hit run. It crashes. The agent's first instinct is to
 > [!TIP]
 > Yours should be a failing test that pins the symptom. Short feedback loops beat long debugging sessions — failing tests, real reproductions, instrumentation before guesses.
 
-- [`/debug`](./.agents/skills/debug/SKILL.md) — disciplined diagnosis loop: reproduce → minimise → hypothesise → instrument → fix → regression-test. The skill to reach for first when something is broken or flaky
-- [`/fix-tests`](./.agents/skills/fix-tests/SKILL.md) — systematic loop that fixes failing tests until the suite is green, with feedback at every step
-- [`/write-tests`](./.agents/skills/write-tests/SKILL.md) — generate unit tests for new functionality with sensible coverage and meaningful assertions
-- [`/e2e-testing`](./.agents/skills/e2e-testing/SKILL.md) — Playwright-based browser tests, including a playbook for de-flaking
+- [`/v1-debug`](./plugins/v1tamins/skills/v1-debug/SKILL.md) — disciplined diagnosis loop: reproduce → minimise → hypothesise → instrument → fix → regression-test. The skill to reach for first when something is broken or flaky
+- [`/v1-fix-tests`](./plugins/v1tamins/skills/v1-fix-tests/SKILL.md) — systematic loop that fixes failing tests until the suite is green, with feedback at every step
+- [`/v1-write-tests`](./plugins/v1tamins/skills/v1-write-tests/SKILL.md) — generate unit tests for new functionality with sensible coverage and meaningful assertions
+- [`/v1-e2e-testing`](./plugins/v1tamins/skills/v1-e2e-testing/SKILL.md) — Playwright-based browser tests, including a playbook for de-flaking
 
 </details>
 
@@ -114,11 +114,11 @@ Agents over-build. Extra try/except. Unused helpers. Premature abstractions. Def
 > [!IMPORTANT]
 > Ship that diff once and the next change inherits its shape. Run a quality pass *before* marking work as done.
 
-- [`/simplify`](./.agents/skills/simplify/SKILL.md) — review recent changes for reuse, unnecessary complexity, and efficiency before considering the work shippable
-- [`/deslop`](./.agents/skills/deslop/SKILL.md) — strip AI-generated boilerplate, defensive checks, and verbose comments that add nothing
-- [`/refactor`](./.agents/skills/refactor/SKILL.md) — apply KISS / DRY / SOLID / YAGNI to a working diff
-- [`/complexity`](./.agents/skills/complexity/SKILL.md) — flatten nested code and reduce cognitive complexity in specific functions
-- [`/hindsight-refactor`](./.agents/skills/hindsight-refactor/SKILL.md) — when the first-pass fix is exploratory or overbuilt, delete it and reimplement a clean version using what the first pass taught you
+- [`/v1-simplify`](./plugins/v1tamins/skills/v1-simplify/SKILL.md) — review recent changes for reuse, unnecessary complexity, and efficiency before considering the work shippable
+- [`/v1-deslop`](./plugins/v1tamins/skills/v1-deslop/SKILL.md) — strip AI-generated boilerplate, defensive checks, and verbose comments that add nothing
+- [`/v1-refactor`](./plugins/v1tamins/skills/v1-refactor/SKILL.md) — apply KISS / DRY / SOLID / YAGNI to a working diff
+- [`/v1-complexity`](./plugins/v1tamins/skills/v1-complexity/SKILL.md) — flatten nested code and reduce cognitive complexity in specific functions
+- [`/v1-hindsight-refactor`](./plugins/v1tamins/skills/v1-hindsight-refactor/SKILL.md) — when the first-pass fix is exploratory or overbuilt, delete it and reimplement a clean version using what the first pass taught you
 
 </details>
 
@@ -131,15 +131,15 @@ Code's done. Now: title, body, screenshots, push, watch CI, fix the lint failure
 
 These skills compress the ship phase into one chained workflow.
 
-- [`/pr`](./.agents/skills/pr/SKILL.md) — turn local work into a draft PR with a sensible title and body
-- [`/pr-description`](./.agents/skills/pr-description/SKILL.md) — generate or refresh a PR title/body from metadata, diff, and validation evidence (use standalone or chained inside `/pr`)
-- [`/land-pr`](./.agents/skills/land-pr/SKILL.md) — the full hand-off: commit → push → open as draft → monitor `gh pr checks` → fix failed checks (up to 3 retries) → mark ready → move linked Linear ticket to Human Review
-- [`/code-review`](./.agents/skills/code-review/SKILL.md) — review the current branch or a specific PR with actionable, file-anchored feedback (also posts to GitHub)
-- [`/address-review`](./.agents/skills/address-review/SKILL.md) — work through unresolved review threads from Copilot, Code Factory, bots, or humans and reply with the right diff or context
-- [`/prove-work`](./.agents/skills/prove-work/SKILL.md) — record a browser GIF of the new behaviour to drop into the PR description
+- [`/v1-pr`](./plugins/v1tamins/skills/v1-pr/SKILL.md) — turn local work into a draft PR with a sensible title and body
+- [`/v1-pr-description`](./plugins/v1tamins/skills/v1-pr-description/SKILL.md) — generate or refresh a PR title/body from metadata, diff, and validation evidence (use standalone or chained inside `/v1-pr`)
+- [`/v1-land-pr`](./plugins/v1tamins/skills/v1-land-pr/SKILL.md) — the full hand-off: commit → push → open as draft → monitor `gh pr checks` → fix failed checks (up to 3 retries) → mark ready → move linked Linear ticket to Human Review
+- [`/v1-code-review`](./plugins/v1tamins/skills/v1-code-review/SKILL.md) — review the current branch or a specific PR with actionable, file-anchored feedback (also posts to GitHub)
+- [`/v1-address-review`](./plugins/v1tamins/skills/v1-address-review/SKILL.md) — work through unresolved review threads from Copilot, Code Factory, bots, or humans and reply with the right diff or context
+- [`/v1-prove-work`](./plugins/v1tamins/skills/v1-prove-work/SKILL.md) — record a browser GIF of the new behaviour to drop into the PR description
 
 > [!WARNING]
-> `/land-pr` will mark a PR ready for review and move a linked Linear ticket to Human Review. Don't run it on work that isn't actually done.
+> `/v1-land-pr` will mark a PR ready for review and move a linked Linear ticket to Human Review. Don't run it on work that isn't actually done.
 
 </details>
 
@@ -151,11 +151,11 @@ These skills compress the ship phase into one chained workflow.
 The pain you can't feel in the moment: solving the same problem twice. Six months from now, a teammate hits the bug you fixed last sprint and rediscovers your solution in three days, because nobody wrote down what worked.
 
 > [!NOTE]
-> Compounding requires fresh material. `/goldpan` pans for it across PRs and session logs. `/ce-compound` writes it up. Run weekly — your future self is on the team too.
+> Compounding requires fresh material. `/v1-goldpan` pans for it across PRs and session logs. `/ce-compound` writes it up. Run weekly — your future self is on the team too.
 
-- [`/goldpan`](./.agents/skills/goldpan/SKILL.md) — pan recent merged PRs and agent session logs (Claude Code + Codex + Cursor) for compound-worthy moments, present the candidates, then queue them through `/ce-compound` for documentation
-- [`/docs-freshness`](./.agents/skills/docs-freshness/SKILL.md) — sync READMEs and docs with what actually shipped (post-merge, post-release, or after a new skill lands)
-- [`/changelog`](./.agents/skills/changelog/SKILL.md) — generate release notes from recent merged PRs
+- [`/v1-goldpan`](./plugins/v1tamins/skills/v1-goldpan/SKILL.md) — pan recent merged PRs and agent session logs (Claude Code + Codex + Cursor) for compound-worthy moments, present the candidates, then queue them through `/ce-compound` for documentation
+- [`/v1-docs-freshness`](./plugins/v1tamins/skills/v1-docs-freshness/SKILL.md) — sync READMEs and docs with what actually shipped (post-merge, post-release, or after a new skill lands)
+- [`/v1-changelog`](./plugins/v1tamins/skills/v1-changelog/SKILL.md) — generate release notes from recent merged PRs
 
 </details>
 
@@ -167,74 +167,74 @@ Each skill does one thing. The leverage is the chain. These cycles are how Versi
 
 ```mermaid
 flowchart LR
-  A([/interview-me]) --> B([/strategy-review])
-  B --> C([/bare-bones])
-  C --> D([/prd])
+  A([/v1-interview-me]) --> B([/v1-strategy-review])
+  B --> C([/v1-bare-bones])
+  C --> D([/v1-prd])
   D --> E{{... build ...}}
-  E --> F([/simplify])
-  F --> G([/code-review])
-  G --> H([/pr])
-  H --> I([/prove-work])
-  I --> J([/land-pr])
-  J -.weekly.-> K([/goldpan])
+  E --> F([/v1-simplify])
+  F --> G([/v1-code-review])
+  G --> H([/v1-pr])
+  H --> I([/v1-prove-work])
+  I --> J([/v1-land-pr])
+  J -.weekly.-> K([/v1-goldpan])
   K -.feeds back.-> A
-  click A href "./.agents/skills/interview-me/SKILL.md"
-  click B href "./.agents/skills/strategy-review/SKILL.md"
-  click C href "./.agents/skills/bare-bones/SKILL.md"
-  click D href "./.agents/skills/prd/SKILL.md"
-  click F href "./.agents/skills/simplify/SKILL.md"
-  click G href "./.agents/skills/code-review/SKILL.md"
-  click H href "./.agents/skills/pr/SKILL.md"
-  click I href "./.agents/skills/prove-work/SKILL.md"
-  click J href "./.agents/skills/land-pr/SKILL.md"
-  click K href "./.agents/skills/goldpan/SKILL.md"
+  click A href "./plugins/v1tamins/skills/v1-interview-me/SKILL.md"
+  click B href "./plugins/v1tamins/skills/v1-strategy-review/SKILL.md"
+  click C href "./plugins/v1tamins/skills/v1-bare-bones/SKILL.md"
+  click D href "./plugins/v1tamins/skills/v1-prd/SKILL.md"
+  click F href "./plugins/v1tamins/skills/v1-simplify/SKILL.md"
+  click G href "./plugins/v1tamins/skills/v1-code-review/SKILL.md"
+  click H href "./plugins/v1tamins/skills/v1-pr/SKILL.md"
+  click I href "./plugins/v1tamins/skills/v1-prove-work/SKILL.md"
+  click J href "./plugins/v1tamins/skills/v1-land-pr/SKILL.md"
+  click K href "./plugins/v1tamins/skills/v1-goldpan/SKILL.md"
 ```
 
 ### Bug investigation
 
 ```mermaid
 flowchart LR
-  A([/debug]) --> B([/write-tests])
-  B --> C([/simplify])
-  C --> D([/land-pr])
-  click A href "./.agents/skills/debug/SKILL.md"
-  click B href "./.agents/skills/write-tests/SKILL.md"
-  click C href "./.agents/skills/simplify/SKILL.md"
-  click D href "./.agents/skills/land-pr/SKILL.md"
+  A([/v1-debug]) --> B([/v1-write-tests])
+  B --> C([/v1-simplify])
+  C --> D([/v1-land-pr])
+  click A href "./plugins/v1tamins/skills/v1-debug/SKILL.md"
+  click B href "./plugins/v1tamins/skills/v1-write-tests/SKILL.md"
+  click C href "./plugins/v1tamins/skills/v1-simplify/SKILL.md"
+  click D href "./plugins/v1tamins/skills/v1-land-pr/SKILL.md"
 ```
 
 ### PR review hand-off
 
 ```mermaid
 flowchart LR
-  A([/code-review]) --> B([/address-review])
-  B --> C([/land-pr])
-  click A href "./.agents/skills/code-review/SKILL.md"
-  click B href "./.agents/skills/address-review/SKILL.md"
-  click C href "./.agents/skills/land-pr/SKILL.md"
+  A([/v1-code-review]) --> B([/v1-address-review])
+  B --> C([/v1-land-pr])
+  click A href "./plugins/v1tamins/skills/v1-code-review/SKILL.md"
+  click B href "./plugins/v1tamins/skills/v1-address-review/SKILL.md"
+  click C href "./plugins/v1tamins/skills/v1-land-pr/SKILL.md"
 ```
 
 ### Weekly compounding
 
 ```mermaid
 flowchart LR
-  A([/goldpan 7d]) --> B([/ce-compound])
-  B --> C([/docs-freshness])
-  C --> D([/changelog])
-  click A href "./.agents/skills/goldpan/SKILL.md"
-  click C href "./.agents/skills/docs-freshness/SKILL.md"
-  click D href "./.agents/skills/changelog/SKILL.md"
+  A([/v1-goldpan 7d]) --> B([/ce-compound])
+  B --> C([/v1-docs-freshness])
+  C --> D([/v1-changelog])
+  click A href "./plugins/v1tamins/skills/v1-goldpan/SKILL.md"
+  click C href "./plugins/v1tamins/skills/v1-docs-freshness/SKILL.md"
+  click D href "./plugins/v1tamins/skills/v1-changelog/SKILL.md"
 ```
 
 ### Communication
 
 ```mermaid
 flowchart LR
-  A([/stickify]) -.-> B([/md2docs])
-  A -.-> C([/prove-work])
-  click A href "./.agents/skills/stickify/SKILL.md"
-  click B href "./.agents/skills/md2docs/SKILL.md"
-  click C href "./.agents/skills/prove-work/SKILL.md"
+  A([/v1-stickify]) -.-> B([/v1-md2docs])
+  A -.-> C([/v1-prove-work])
+  click A href "./plugins/v1tamins/skills/v1-stickify/SKILL.md"
+  click B href "./plugins/v1tamins/skills/v1-md2docs/SKILL.md"
+  click C href "./plugins/v1tamins/skills/v1-prove-work/SKILL.md"
 ```
 
 ## Skill reference
@@ -243,80 +243,77 @@ flowchart LR
 
 | Skill | When to use |
 |-------|-------------|
-| [`/interview-me`](./.agents/skills/interview-me/SKILL.md) | Fuzzy idea, ticket, or feature request needs to be fleshed out before any code is written |
-| [`/strategy-review`](./.agents/skills/strategy-review/SKILL.md) | Stress-test a plan, PRD, or product direction for scope, ambition, and hidden assumptions |
-| [`/bare-bones`](./.agents/skills/bare-bones/SKILL.md) | Strip an overscoped plan down to the smallest useful version |
-| [`/shared-language`](./.agents/skills/shared-language/SKILL.md) | Build a DDD glossary so devs and agents stop talking past each other |
-| [`/prd`](./.agents/skills/prd/SKILL.md) | Generate a PRD from a Linear ticket or feature request |
+| [`/v1-interview-me`](./plugins/v1tamins/skills/v1-interview-me/SKILL.md) | Fuzzy idea, ticket, or feature request needs to be fleshed out before any code is written |
+| [`/v1-strategy-review`](./plugins/v1tamins/skills/v1-strategy-review/SKILL.md) | Stress-test a plan, PRD, or product direction for scope, ambition, and hidden assumptions |
+| [`/v1-bare-bones`](./plugins/v1tamins/skills/v1-bare-bones/SKILL.md) | Strip an overscoped plan down to the smallest useful version |
+| [`/v1-shared-language`](./plugins/v1tamins/skills/v1-shared-language/SKILL.md) | Build a DDD glossary so devs and agents stop talking past each other |
+| [`/v1-prd`](./plugins/v1tamins/skills/v1-prd/SKILL.md) | Generate a PRD from a Linear ticket or feature request |
 
 ### Build & debug
 
 | Skill | When to use |
 |-------|-------------|
-| [`/debug`](./.agents/skills/debug/SKILL.md) | Disciplined diagnosis loop for hard bugs, flakes, and perf regressions |
-| [`/fix-tests`](./.agents/skills/fix-tests/SKILL.md) | Systematic loop until the test suite is green |
-| [`/write-tests`](./.agents/skills/write-tests/SKILL.md) | Generate meaningful unit tests for new code |
-| [`/e2e-testing`](./.agents/skills/e2e-testing/SKILL.md) | Playwright tests, including a de-flaking playbook |
+| [`/v1-debug`](./plugins/v1tamins/skills/v1-debug/SKILL.md) | Disciplined diagnosis loop for hard bugs, flakes, and perf regressions |
+| [`/v1-fix-tests`](./plugins/v1tamins/skills/v1-fix-tests/SKILL.md) | Systematic loop until the test suite is green |
+| [`/v1-write-tests`](./plugins/v1tamins/skills/v1-write-tests/SKILL.md) | Generate meaningful unit tests for new code |
+| [`/v1-e2e-testing`](./plugins/v1tamins/skills/v1-e2e-testing/SKILL.md) | Playwright tests, including a de-flaking playbook |
 
 ### Quality pass before merge
 
 | Skill | When to use |
 |-------|-------------|
-| [`/simplify`](./.agents/skills/simplify/SKILL.md) | Review recent changes for reuse, unnecessary complexity, and efficiency before declaring done |
-| [`/deslop`](./.agents/skills/deslop/SKILL.md) | Strip AI-generated boilerplate, defensive checks, and dead comments |
-| [`/refactor`](./.agents/skills/refactor/SKILL.md) | Apply KISS / DRY / SOLID / YAGNI to a working diff |
-| [`/complexity`](./.agents/skills/complexity/SKILL.md) | Reduce cognitive complexity in specific functions |
-| [`/hindsight-refactor`](./.agents/skills/hindsight-refactor/SKILL.md) | Throw away the messy first-pass fix and reimplement cleanly using what it taught you |
+| [`/v1-simplify`](./plugins/v1tamins/skills/v1-simplify/SKILL.md) | Review recent changes for reuse, unnecessary complexity, and efficiency before declaring done |
+| [`/v1-deslop`](./plugins/v1tamins/skills/v1-deslop/SKILL.md) | Strip AI-generated boilerplate, defensive checks, and dead comments |
+| [`/v1-refactor`](./plugins/v1tamins/skills/v1-refactor/SKILL.md) | Apply KISS / DRY / SOLID / YAGNI to a working diff |
+| [`/v1-complexity`](./plugins/v1tamins/skills/v1-complexity/SKILL.md) | Reduce cognitive complexity in specific functions |
+| [`/v1-hindsight-refactor`](./plugins/v1tamins/skills/v1-hindsight-refactor/SKILL.md) | Throw away the messy first-pass fix and reimplement cleanly using what it taught you |
 
 ### Ship
 
 | Skill | When to use |
 |-------|-------------|
-| [`/pr`](./.agents/skills/pr/SKILL.md) | Turn local work into a draft PR |
-| [`/pr-description`](./.agents/skills/pr-description/SKILL.md) | Generate or refresh a PR title and body from metadata, diff, and validation |
-| [`/land-pr`](./.agents/skills/land-pr/SKILL.md) | Full hand-off: commit → push → CI → fix → mark ready → update Linear |
-| [`/code-review`](./.agents/skills/code-review/SKILL.md) | Multi-angle review on the current branch or a specific PR, posted to GitHub |
-| [`/address-review`](./.agents/skills/address-review/SKILL.md) | Resolve unresolved threads from Copilot, Code Factory, bots, or humans |
-| [`/prove-work`](./.agents/skills/prove-work/SKILL.md) | Record a browser GIF for the PR description or Slack |
+| [`/v1-pr`](./plugins/v1tamins/skills/v1-pr/SKILL.md) | Turn local work into a draft PR |
+| [`/v1-pr-description`](./plugins/v1tamins/skills/v1-pr-description/SKILL.md) | Generate or refresh a PR title and body from metadata, diff, and validation |
+| [`/v1-land-pr`](./plugins/v1tamins/skills/v1-land-pr/SKILL.md) | Full hand-off: commit → push → CI → fix → mark ready → update Linear |
+| [`/v1-code-review`](./plugins/v1tamins/skills/v1-code-review/SKILL.md) | Multi-angle review on the current branch or a specific PR, posted to GitHub |
+| [`/v1-address-review`](./plugins/v1tamins/skills/v1-address-review/SKILL.md) | Resolve unresolved threads from Copilot, Code Factory, bots, or humans |
+| [`/v1-prove-work`](./plugins/v1tamins/skills/v1-prove-work/SKILL.md) | Record a browser GIF for the PR description or Slack |
 
 ### Compound the learning
 
 | Skill | When to use |
 |-------|-------------|
-| [`/goldpan`](./.agents/skills/goldpan/SKILL.md) | Pan recent merged PRs + agent session logs for compound-worthy moments and queue them through `/ce-compound` |
-| [`/docs-freshness`](./.agents/skills/docs-freshness/SKILL.md) | Sync READMEs and docs with what actually shipped |
-| [`/changelog`](./.agents/skills/changelog/SKILL.md) | Generate release notes from recent merged PRs |
+| [`/v1-goldpan`](./plugins/v1tamins/skills/v1-goldpan/SKILL.md) | Pan recent merged PRs + agent session logs for compound-worthy moments and queue them through `/ce-compound` |
+| [`/v1-docs-freshness`](./plugins/v1tamins/skills/v1-docs-freshness/SKILL.md) | Sync READMEs and docs with what actually shipped |
+| [`/v1-changelog`](./plugins/v1tamins/skills/v1-changelog/SKILL.md) | Generate release notes from recent merged PRs |
 
 ### Communication
 
 | Skill | When to use |
 |-------|-------------|
-| [`/stickify`](./.agents/skills/stickify/SKILL.md) | Make pitches, announcements, PR descriptions, or marketing copy memorable (Made-to-Stick framework) |
-| [`/md2docs`](./.agents/skills/md2docs/SKILL.md) | Publish a Markdown doc as a fully-formatted Google Doc |
+| [`/v1-stickify`](./plugins/v1tamins/skills/v1-stickify/SKILL.md) | Make pitches, announcements, PR descriptions, or marketing copy memorable (Made-to-Stick framework) |
+| [`/v1-md2docs`](./plugins/v1tamins/skills/v1-md2docs/SKILL.md) | Publish a Markdown doc as a fully-formatted Google Doc |
 
 ### Research
 
 | Skill | When to use |
 |-------|-------------|
-| [`/deep-research`](./.agents/skills/deep-research/SKILL.md) | Multi-source research with iterative refinement and structured synthesis. Not for simple lookups |
-| [`/autoresearch-skill`](./.agents/skills/autoresearch-skill/SKILL.md) | Autonomous optimization loop — point it at any measurable target and it iterates |
+| [`/v1-deep-research`](./plugins/v1tamins/skills/v1-deep-research/SKILL.md) | Multi-source research with iterative refinement and structured synthesis. Not for simple lookups |
+| [`/v1-autoresearch-skill`](./plugins/v1tamins/skills/v1-autoresearch-skill/SKILL.md) | Autonomous optimization loop — point it at any measurable target and it iterates |
 
 ### Meta — write the tools
 
 | Skill | When to use |
 |-------|-------------|
-| [`/skilling-it`](./.agents/skills/skilling-it/SKILL.md) | Create or improve a shared agent skill (this repo's own toolchain) |
-| [`/prompt-engineering`](./.agents/skills/prompt-engineering/SKILL.md) | Write or improve prompts, system prompts, hooks, or sub-agent briefs |
-| [`/prompt-engineering-v1tamins`](./.agents/skills/prompt-engineering-v1tamins/SKILL.md) | Same, specialised for GPT-5.5 / OpenAI Responses API / OpenRouter migrations |
+| [`/v1-skilling-it`](./plugins/v1tamins/skills/v1-skilling-it/SKILL.md) | Create or improve a shared agent skill (this repo's own toolchain) |
+| [`/v1-prompt-engineering`](./plugins/v1tamins/skills/v1-prompt-engineering/SKILL.md) | Write or improve prompts, system prompts, hooks, or sub-agent briefs |
+| [`/v1-prompt-engineering-v1tamins`](./plugins/v1tamins/skills/v1-prompt-engineering-v1tamins/SKILL.md) | Same, specialised for GPT-5.5 / OpenAI Responses API / OpenRouter migrations |
 
 ---
 
 ## Install
 
 v1tamins ships as a plugin for Claude Code and Codex. One shared `skills/` directory under `plugins/v1tamins/` serves both runtimes through sibling per-runtime manifests. Plugin-distributed skills carry a `v1-` prefix (`v1-pr`, `v1-debug`, `v1-goldpan`) to avoid colliding with other public or personal skills.
-
-> [!NOTE]
-> Skills prefixed with `_` in `.agents/skills/` are gitignored. Build your own private skills the same way — they'll never end up in a PR.
 
 **Claude Code**
 
@@ -345,8 +342,8 @@ Updates flow through the runtime's marketplace refresh — there's nothing to re
 
 A few v1tamins skills compose directly with [Every's compound-engineering plugin](https://github.com/EveryInc/compound-engineering-plugin):
 
-- `/goldpan` queues approved candidates through `/ce-compound` to write durable solution docs
-- `/pr` chains into `/ce-code-review` for multi-agent review before merge
+- `/v1-goldpan` queues approved candidates through `/ce-compound` to write durable solution docs
+- `/v1-pr` chains into `/ce-code-review` for multi-agent review before merge
 
 Install it alongside v1tamins:
 
@@ -361,20 +358,19 @@ codex plugin marketplace add EveryInc/compound-engineering-plugin
 ```
 
 > [!NOTE]
-> v1tamins works without it — only `/goldpan` will fail noisily if compound-engineering isn't installed. Everything else degrades gracefully.
+> v1tamins works without it — only `/v1-goldpan` will fail noisily if compound-engineering isn't installed. Everything else degrades gracefully.
 
 ## Repo layout
 
 ```text
 v1tamins/
-├── .agents/skills/          # Canonical shared skills (source of truth)
 ├── .agents/plugins/         # Codex marketplace manifest
 ├── .claude-plugin/          # Claude Code marketplace manifest
-├── plugins/v1tamins/        # Plugin package — generated v1-* mirrors of every skill
+├── plugins/v1tamins/        # Plugin package and canonical skill source
 │   ├── .claude-plugin/      #   Claude Code plugin manifest
 │   ├── .codex-plugin/       #   Codex plugin manifest
-│   └── skills/              #   Shared skills consumed by both runtimes
-└── scripts/                 # Validation + sync scripts
+│   └── skills/              #   Canonical v1-* skills consumed by both runtimes
+└── scripts/                 # Validation scripts
 ```
 
 ## Contributing
@@ -384,10 +380,9 @@ v1tamins/
    git remote add upstream git@github.com:v1-io/v1tamins.git
    ```
 2. Create a branch.
-3. Edit the canonical skill at `.agents/skills/<skill-name>/SKILL.md`. Each `SKILL.md` needs YAML frontmatter with `name` and `description`. `allowed-tools` is recommended for skills that need tool restrictions; see [skilling-it](./.agents/skills/skilling-it/SKILL.md) for the full schema. Add an `agents/openai.yaml` when the skill should appear cleanly in Codex's skill list.
-4. After creating, renaming, or changing a skill, regenerate plugin mirrors:
+3. Edit the canonical skill at `plugins/v1tamins/skills/v1-<skill-name>/SKILL.md`. Each `SKILL.md` needs YAML frontmatter with a `v1-*` `name` matching the directory and a `description`. `allowed-tools` is recommended for skills that need tool restrictions; see [v1-skilling-it](./plugins/v1tamins/skills/v1-skilling-it/SKILL.md) for the full schema. Add an `agents/openai.yaml` when the skill should appear cleanly in Codex's skill list.
+4. Validate plugin manifests and skill frontmatter:
    ```bash
-   scripts/sync-skill-hosts.sh --write
    scripts/sync-skill-hosts.sh
    ```
 5. Test the skill in a real project before committing.
@@ -398,11 +393,11 @@ v1tamins/
 
 ```bash
 scripts/sync-skill-hosts.sh           # check
-scripts/sync-skill-hosts.sh --write   # repair plugin mirrors
+scripts/sync-skill-hosts.sh --write   # compatibility no-op plus check
 scripts/sync-skill-hosts.sh --verbose # per-file trace
 ```
 
-The check validates `SKILL.md` frontmatter, optional `agents/openai.yaml` metadata, the generated `plugins/v1tamins/skills/v1-*` plugin mirrors, both runtime plugin manifests (`plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`), and both marketplace manifests (`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`).
+The check validates `SKILL.md` frontmatter, optional `agents/openai.yaml` metadata, the canonical `plugins/v1tamins/skills/v1-*` skills, both runtime plugin manifests (`plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`), both marketplace manifests (`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`), and the absence of a tracked `.agents/skills` mirror.
 
 ## Requirements
 
