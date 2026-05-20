@@ -88,7 +88,7 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ROUTE
 ```
 
 If the server is not running (connection refused), tell the user:
-> "Dev server is not running on localhost:3000. Start it and run the `prove-work` skill again."
+> "Dev server is not running on localhost:3000. Start it and run the `v1-prove-work` skill again."
 
 ### Step 3: Generate Interaction Script
 
@@ -185,7 +185,7 @@ python3 "$SKILL_DIR/scripts/video_to_gif.py" \
 
 ```
 GIF saved to: /tmp/prove-work/demo.gif
-No open PR found for this branch. Run the `prove-work` skill again with `--pr NUMBER` after creating a PR, or use `--no-upload` to keep the GIF local.
+No open PR found for this branch. Run the `v1-prove-work` skill again with `--pr NUMBER` after creating a PR, or use `--no-upload` to keep the GIF local.
 ```
 
 ### Step 7: Report Result

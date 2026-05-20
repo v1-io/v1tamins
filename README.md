@@ -134,7 +134,7 @@ These skills compress the ship phase into one chained workflow.
 - [`/v1-pr`](./plugins/v1tamins/skills/v1-pr/SKILL.md) — turn local work into a draft PR with a sensible title and body
 - [`/v1-pr-description`](./plugins/v1tamins/skills/v1-pr-description/SKILL.md) — generate or refresh a PR title/body from metadata, diff, and validation evidence (use standalone or chained inside `/v1-pr`)
 - [`/v1-land-pr`](./plugins/v1tamins/skills/v1-land-pr/SKILL.md) — the full hand-off: commit → push → open as draft → monitor `gh pr checks` → fix failed checks (up to 3 retries) → mark ready → move linked Linear ticket to Human Review
-- [`/v1-code-review`](./plugins/v1tamins/skills/v1-code-review/SKILL.md) — review the current branch or a specific PR with actionable, file-anchored feedback (also posts to GitHub)
+- [`/v1-code-review`](./plugins/v1tamins/skills/v1-code-review/SKILL.md) — review the current branch or a specific PR with actionable, file-anchored feedback; posts to GitHub only when requested
 - [`/v1-address-review`](./plugins/v1tamins/skills/v1-address-review/SKILL.md) — work through unresolved review threads from Copilot, Code Factory, bots, or humans and reply with the right diff or context
 - [`/v1-prove-work`](./plugins/v1tamins/skills/v1-prove-work/SKILL.md) — record a browser GIF of the new behaviour to drop into the PR description
 
@@ -275,7 +275,7 @@ flowchart LR
 | [`/v1-pr`](./plugins/v1tamins/skills/v1-pr/SKILL.md) | Turn local work into a draft PR |
 | [`/v1-pr-description`](./plugins/v1tamins/skills/v1-pr-description/SKILL.md) | Generate or refresh a PR title and body from metadata, diff, and validation |
 | [`/v1-land-pr`](./plugins/v1tamins/skills/v1-land-pr/SKILL.md) | Full hand-off: commit → push → CI → fix → mark ready → update Linear |
-| [`/v1-code-review`](./plugins/v1tamins/skills/v1-code-review/SKILL.md) | Multi-angle review on the current branch or a specific PR, posted to GitHub |
+| [`/v1-code-review`](./plugins/v1tamins/skills/v1-code-review/SKILL.md) | Multi-angle review on the current branch or a specific PR; use `--post` or ask explicitly to post to GitHub |
 | [`/v1-address-review`](./plugins/v1tamins/skills/v1-address-review/SKILL.md) | Resolve unresolved threads from Copilot, Code Factory, bots, or humans |
 | [`/v1-prove-work`](./plugins/v1tamins/skills/v1-prove-work/SKILL.md) | Record a browser GIF for the PR description or Slack |
 
@@ -373,6 +373,12 @@ v1tamins/
 └── scripts/                 # Validation scripts
 ```
 
+## Migration Note
+
+This package is moving to a plugin-native source layout. The committed skill source is now `plugins/v1tamins/skills/v1-<skill-name>/`; the old `.agents/skills/<skill-name>/` mirror is no longer tracked. Direct checkout consumers should update symlinks, scripts, and docs to point at the `plugins/v1tamins/skills/v1-*` paths and use the installed `v1-*` skill names.
+
+Marketplace/plugin consumers already invoking `/v1-*` skills should not need to change anything.
+
 ## Contributing
 
 1. Fork and clone, add upstream:
@@ -397,7 +403,7 @@ scripts/sync-skill-hosts.sh --write   # compatibility no-op plus check
 scripts/sync-skill-hosts.sh --verbose # per-file trace
 ```
 
-The check validates `SKILL.md` frontmatter, optional `agents/openai.yaml` metadata, the canonical `plugins/v1tamins/skills/v1-*` skills, both runtime plugin manifests (`plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`), both marketplace manifests (`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`), and the absence of a tracked `.agents/skills` mirror.
+The check validates `SKILL.md` frontmatter, optional `agents/openai.yaml` metadata, the canonical `plugins/v1tamins/skills/v1-*` skills, local skill asset links, references to known v1tamins skills, both runtime plugin manifests (`plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`), both marketplace manifests (`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`), and the absence of a tracked `.agents/skills` mirror.
 
 ## Requirements
 

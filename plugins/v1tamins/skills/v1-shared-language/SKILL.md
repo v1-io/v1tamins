@@ -1,7 +1,6 @@
 ---
 name: v1-shared-language
 description: Extract a DDD-style language glossary from the current conversation, flagging ambiguities and proposing canonical terms. Saves to LANGUAGE.md. Use when user wants to define domain terms, build a glossary, harden terminology, create a ubiquitous language, or mentions "domain model" or "DDD".
-disable-model-invocation: true
 ---
 # Ubiquitous Language
 

@@ -193,7 +193,7 @@ Apply AUTO-FIX items directly with `Edit`, then report:
 
 Batch ASK items in one concise question with recommended choices. Do not commit, push, or create PRs from this skill.
 
-If tests are already failing, invoke or recommend `fix-tests` instead of trying to fold a full test repair loop into the review. If the issue is missing coverage, invoke or recommend `write-tests` after the user approves adding tests.
+If tests are already failing, invoke or recommend `v1-fix-tests` instead of trying to fold a full test repair loop into the review. If the issue is missing coverage, invoke or recommend `v1-write-tests` after the user approves adding tests.
 
 ### 8. Output
 

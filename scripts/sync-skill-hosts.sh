@@ -14,6 +14,8 @@ Checks:
   - each skill frontmatter name matches its v1-* directory
   - optional agents/openai.yaml files parse as YAML
   - plugin-distributed skills use the v1- prefix
+  - plugin skills do not reference known v1tamins skills by legacy bare names
+  - root SKILL.md local links and required bundled asset references resolve
   - legacy tracked .agents/skills mirrors are absent
 
 Options:
@@ -225,10 +227,150 @@ validate_marketplace_manifest() {
 }
 
 validate_no_legacy_agent_skills() {
-  if [ -d "$legacy_agent_skills_dir" ]; then
-    fail "legacy tracked skill mirror exists: $(relpath "$legacy_agent_skills_dir")"
+  local tracked_legacy
+
+  tracked_legacy="$(git -C "$repo_root" ls-files -- .agents/skills 2>/dev/null || true)"
+  if [ -n "$tracked_legacy" ]; then
+    fail "legacy tracked skill mirror exists under $(relpath "$legacy_agent_skills_dir")"
   else
-    ok "legacy .agents/skills mirror absent"
+    ok "legacy tracked .agents/skills mirror absent"
+  fi
+}
+
+validate_skill_references() {
+  if ! command -v ruby >/dev/null 2>&1; then
+    fail "ruby is required to validate skill references"
+    return 1
+  fi
+
+  if ruby - "$plugin_skills_dir" "$repo_root" <<'RUBY'
+skills_dir = ARGV.fetch(0)
+repo_root = ARGV.fetch(1)
+skill_names = Dir.glob(File.join(skills_dir, "v1-*"))
+  .select { |path| File.directory?(path) }
+  .map { |path| File.basename(path).delete_prefix("v1-") }
+  .reject { |name| name.start_with?("_") }
+  .sort_by { |name| -name.length }
+
+name_pattern = Regexp.union(skill_names)
+failures = []
+
+def rel(path, root)
+  path.delete_prefix("#{root}/")
+end
+
+Dir.glob(File.join(skills_dir, "v1-*", "**", "*.{md,yaml}")).sort.each do |path|
+  next unless File.file?(path)
+  next if path.split(File::SEPARATOR).any? { |part| part.start_with?("v1-_") }
+
+  File.readlines(path).each_with_index do |line, index|
+    line_no = index + 1
+
+    line.scan(%r{(?<![\w/-])/(#{name_pattern})(?![\w/-])}) do |match|
+      bare_name = match.fetch(0)
+      failures << "#{rel(path, repo_root)}:#{line_no}: use /v1-#{bare_name} instead of /#{bare_name}"
+    end
+
+    line.scan(/(?<![\w-])\$(#{name_pattern})(?![\w-])/) do |match|
+      bare_name = match.fetch(0)
+      failures << "#{rel(path, repo_root)}:#{line_no}: use $v1-#{bare_name} instead of $#{bare_name}"
+    end
+
+    next unless line.match?(/\b(invoke|recommend|recommended|fall back|fallback|chains? to|run|use|using)\b/i)
+
+    line.scan(/`(#{name_pattern})`/) do |match|
+      bare_name = match.fetch(0)
+      failures << "#{rel(path, repo_root)}:#{line_no}: use `v1-#{bare_name}` instead of `#{bare_name}`"
+    end
+  end
+end
+
+if failures.any?
+  warn failures.join("\n")
+  exit 1
+end
+RUBY
+  then
+    ok "plugin skill references"
+  else
+    fail "plugin skill reference validation failed"
+  fi
+}
+
+validate_skill_assets() {
+  if ! command -v ruby >/dev/null 2>&1; then
+    fail "ruby is required to validate skill asset references"
+    return 1
+  fi
+
+  if ruby - "$plugin_skills_dir" "$repo_root" <<'RUBY'
+skills_dir = ARGV.fetch(0)
+repo_root = ARGV.fetch(1)
+failures = []
+
+def rel(path, root)
+  path.delete_prefix("#{root}/")
+end
+
+def existing_path?(skill_dir, repo_root, target)
+  return true if target.empty? || target.start_with?("#")
+  return true if target.match?(%r{\A[a-z][a-z0-9+.-]*:}i)
+
+  [File.expand_path(target, skill_dir), File.expand_path(target, repo_root)].any? do |candidate|
+    File.exist?(candidate)
+  end
+end
+
+Dir.glob(File.join(skills_dir, "v1-*", "SKILL.md")).sort.each do |path|
+  next if path.split(File::SEPARATOR).any? { |part| part.start_with?("v1-_") }
+
+  skill_dir = File.dirname(path)
+  in_fence = false
+
+  File.readlines(path).each_with_index do |line, index|
+    line_no = index + 1
+
+    if line.start_with?("```")
+      in_fence = !in_fence
+      next
+    end
+
+    unless in_fence
+      line.scan(/\[[^\]]+\]\(([^)]+)\)/) do |match|
+        target = match.fetch(0).split("#", 2).first
+        unless existing_path?(skill_dir, repo_root, target)
+          failures << "#{rel(path, repo_root)}:#{line_no}: missing linked asset #{target}"
+        end
+      end
+
+      if line.match?(/\b(read|run|use|follow|following|helper|starting point)\b/i)
+        line.scan(/`((?:references?|scripts)\/[^`\s]+)`/) do |match|
+          target = match.fetch(0)
+          unless existing_path?(skill_dir, repo_root, target)
+            failures << "#{rel(path, repo_root)}:#{line_no}: missing referenced asset #{target}"
+          end
+        end
+      end
+    end
+
+    line.scan(%r{\$SKILL_(?:ROOT|DIR)/((?:references?|scripts)/[A-Za-z0-9._/-]+)}) do |match|
+      target = match.fetch(0)
+      unless existing_path?(skill_dir, repo_root, target)
+        failures << "#{rel(path, repo_root)}:#{line_no}: missing bundled asset #{target}"
+      end
+    end
+  end
+end
+
+if failures.any?
+  warn failures.join("\n")
+  exit 1
+end
+RUBY
+  then
+    ok "plugin skill asset references"
+  else
+    fail "plugin skill asset validation failed"
   fi
 }
 
@@ -264,7 +406,7 @@ validate_plugin_skills() {
     if [ -f "$openai_yaml" ]; then
       validate_yaml_file "$openai_yaml"
     fi
-  done < <(find "$plugin_skills_dir" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -print 2>/dev/null | sort)
+  done < <(find "$plugin_skills_dir" -mindepth 1 -maxdepth 1 -type d ! -name '.*' ! -name 'v1-_*' -print 2>/dev/null | sort)
 
   if [ "$found" = false ]; then
     fail "no plugin skills found in $(relpath "$plugin_skills_dir")"
@@ -289,6 +431,8 @@ main() {
 
   validate_no_legacy_agent_skills
   validate_plugin_skills
+  validate_skill_references
+  validate_skill_assets
 
   if [ "$failures" -ne 0 ]; then
     print_failure_summary

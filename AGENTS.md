@@ -57,6 +57,10 @@ Skill names use the `v1-` prefix in both directory names and frontmatter names (
 
 Private plugin skill directories named `v1-_*` are gitignored — they can exist locally but are not distributed.
 
+## Migration Note
+
+The canonical source moved from `.agents/skills/<skill-name>/` to `plugins/v1tamins/skills/v1-<skill-name>/`. Direct checkout consumers should update symlinks, scripts, and docs to use the plugin path and installed `v1-*` names. Marketplace/plugin consumers already using `/v1-*` skill names should not need to change anything.
+
 ## Contributing Skills
 
 1. Create `plugins/v1tamins/skills/v1-<skill-name>/SKILL.md`
