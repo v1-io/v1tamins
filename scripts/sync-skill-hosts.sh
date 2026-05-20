@@ -16,6 +16,7 @@ Checks:
   - plugin-distributed skills use the v1- prefix
   - plugin skills do not reference known v1tamins skills by legacy bare names
   - root SKILL.md local links and required bundled asset references resolve
+  - distributed helper snippets avoid checkout-only executable paths and host-specific plugin cache paths
   - legacy tracked .agents/skills mirrors are absent
 
 Options:
@@ -374,6 +375,61 @@ RUBY
   fi
 }
 
+validate_portable_host_paths() {
+  if ! command -v ruby >/dev/null 2>&1; then
+    fail "ruby is required to validate portable host paths"
+    return 1
+  fi
+
+  if ruby - "$plugin_skills_dir" "$repo_root" <<'RUBY'
+skills_dir = ARGV.fetch(0)
+repo_root = ARGV.fetch(1)
+failures = []
+
+def rel(path, root)
+  path.delete_prefix("#{root}/")
+end
+
+patterns = [
+  [
+    /\A\s*plugins\/v1tamins\/skills\/v1-[^\s`]+\/[^\s`]+\.(?:sh|py)(?:\s|$)/,
+    "resolve skill helper paths from the current skill directory instead of hardcoding a repo-relative executable path"
+  ],
+  [
+    /(?:\$HOME|~)\/\.claude\/plugins\/marketplaces\/every-marketplace\/plugins\/compound-engineering/,
+    "resolve compound-engineering plugin helpers dynamically instead of hardcoding the Claude marketplace cache"
+  ],
+  [
+    /\.claude\/session-notes/,
+    "write reusable skill artifacts to a host-neutral project path instead of .claude/session-notes"
+  ]
+]
+
+Dir.glob(File.join(skills_dir, "v1-*", "**", "*.{md,yaml,yml,sh,py}")).sort.each do |path|
+  next unless File.file?(path)
+  next if path.split(File::SEPARATOR).any? { |part| part.start_with?("v1-_") }
+
+  File.readlines(path).each_with_index do |line, index|
+    patterns.each do |pattern, message|
+      next unless line.match?(pattern)
+
+      failures << "#{rel(path, repo_root)}:#{index + 1}: #{message}"
+    end
+  end
+end
+
+if failures.any?
+  warn failures.join("\n")
+  exit 1
+end
+RUBY
+  then
+    ok "portable host paths"
+  else
+    fail "portable host path validation failed"
+  fi
+}
+
 validate_plugin_skills() {
   local skill_dir
   local skill_name
@@ -433,6 +489,7 @@ main() {
   validate_plugin_skills
   validate_skill_references
   validate_skill_assets
+  validate_portable_host_paths
 
   if [ "$failures" -ne 0 ]; then
     print_failure_summary

@@ -74,7 +74,23 @@ COMPOUND_SIGNAL_KEYWORDS="AIDEV-NOTE,Root Cause,that worked,<your project's extr
 For each shortlisted session, pull a filtered skeleton via `ce-session-extract` rather than reading raw JSONL:
 
 ```bash
-EXT="$HOME/.claude/plugins/marketplaces/every-marketplace/plugins/compound-engineering/skills/ce-session-extract"
+CE_SKILLS_DIR="${CE_SKILLS_DIR:-}"
+if [ -z "$CE_SKILLS_DIR" ]; then
+  for dir in \
+    "$HOME/.codex/plugins/cache/compound-engineering-plugin/compound-engineering"/*/skills; do
+    [ -d "$dir/ce-session-extract/scripts" ] && CE_SKILLS_DIR="$dir" && break
+  done
+fi
+if [ -z "$CE_SKILLS_DIR" ] && [ -d "$HOME/.claude/plugins" ]; then
+  scripts_dir="$(find "$HOME/.claude/plugins" -path '*/compound-engineering/skills/ce-session-extract/scripts' -type d 2>/dev/null | sort | head -1)"
+  [ -n "$scripts_dir" ] && CE_SKILLS_DIR="${scripts_dir%/ce-session-extract/scripts}"
+fi
+if [ -z "$CE_SKILLS_DIR" ]; then
+  echo "ERROR: Could not find ce-session-extract" >&2
+  exit 1
+fi
+
+EXT="$CE_SKILLS_DIR/ce-session-extract"
 
 # Skeleton: user/assistant text + collapsed tool calls. Cap to last 200 lines.
 cat <session-file> | python3 "$EXT/scripts/extract-skeleton.py" | tail -n 200

@@ -12,16 +12,16 @@ This rubric defers to `/ce-compound`'s own schema rather than reinventing one. P
 
 ## The authoritative definition
 
-A candidate is compound-worthy **iff** it can populate `/ce-compound`'s schema with real, specific values — not hand-waved ones. The schema lives at:
+A candidate is compound-worthy **iff** it can populate `/ce-compound`'s schema with real, specific values — not hand-waved ones. Resolve the installed compound-engineering skills directory first; the schema lives at:
 
 ```
-~/.claude/plugins/marketplaces/every-marketplace/plugins/compound-engineering/skills/ce-compound/references/schema.yaml
+<compound-engineering-skills-dir>/ce-compound/references/schema.yaml
 ```
 
 and the section structure lives at:
 
 ```
-~/.claude/plugins/marketplaces/every-marketplace/plugins/compound-engineering/skills/ce-compound/assets/resolution-template.md
+<compound-engineering-skills-dir>/ce-compound/assets/resolution-template.md
 ```
 
 Open both before scoring borderline candidates. The enums there are not suggestions — they are the contract every solution doc must satisfy.

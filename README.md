@@ -403,7 +403,7 @@ scripts/sync-skill-hosts.sh --write   # compatibility no-op plus check
 scripts/sync-skill-hosts.sh --verbose # per-file trace
 ```
 
-The check validates `SKILL.md` frontmatter, optional `agents/openai.yaml` metadata, the canonical `plugins/v1tamins/skills/v1-*` skills, local skill asset links, references to known v1tamins skills, both runtime plugin manifests (`plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`), both marketplace manifests (`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`), and the absence of a tracked `.agents/skills` mirror.
+The check validates `SKILL.md` frontmatter, optional `agents/openai.yaml` metadata, the canonical `plugins/v1tamins/skills/v1-*` skills, local skill asset links, references to known v1tamins skills, portable helper paths, both runtime plugin manifests (`plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`), both marketplace manifests (`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`), and the absence of a tracked `.agents/skills` mirror.
 
 ## Requirements
 
