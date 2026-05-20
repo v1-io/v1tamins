@@ -1,0 +1,7 @@
+interface:
+  display_name: "Bare Bones"
+  short_description: "Strip overscoped plans down to the smallest useful version."
+  default_prompt: "Use $bare-bones to reduce this plan to its bare-bones version."
+
+policy:
+  allow_implicit_invocation: true

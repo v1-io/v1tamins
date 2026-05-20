@@ -21,6 +21,7 @@ mindmap
     Plan
       ("interview-me")
       ("strategy-review")
+      ("bare-bones")
       ("shared-language")
       (prd)
     Build
@@ -80,6 +81,7 @@ You describe a feature. The agent writes 800 lines. About 60% solves a different
 
 - [`/interview-me`](./.agents/skills/interview-me/SKILL.md) — office-hours-style questioning that takes a fuzzy idea ("what if we did X") and walks every branch of the decision tree until you can describe what you actually want
 - [`/strategy-review`](./.agents/skills/strategy-review/SKILL.md) — a CEO-style read of a plan, PRD, or proposal that pushes back on scope, ambition, and hidden assumptions ("is this big enough?")
+- [`/bare-bones`](./.agents/skills/bare-bones/SKILL.md) — strip an overscoped plan down to the smallest useful version before it turns into implementation sprawl
 - [`/shared-language`](./.agents/skills/shared-language/SKILL.md) — extract a DDD-style glossary from the current conversation, flag ambiguous terms, and write `LANGUAGE.md`. Pays off session after session: variables, files, and prompts all start using one vocabulary
 - [`/prd`](./.agents/skills/prd/SKILL.md) — turn a Linear ticket or feature request into a real PRD
 
@@ -166,24 +168,26 @@ Each skill does one thing. The leverage is the chain. These cycles are how Versi
 ```mermaid
 flowchart LR
   A([/interview-me]) --> B([/strategy-review])
-  B --> C([/prd])
-  C --> D{{... build ...}}
-  D --> E([/simplify])
-  E --> F([/code-review])
-  F --> G([/pr])
-  G --> H([/prove-work])
-  H --> I([/land-pr])
-  I -.weekly.-> J([/goldpan])
-  J -.feeds back.-> A
+  B --> C([/bare-bones])
+  C --> D([/prd])
+  D --> E{{... build ...}}
+  E --> F([/simplify])
+  F --> G([/code-review])
+  G --> H([/pr])
+  H --> I([/prove-work])
+  I --> J([/land-pr])
+  J -.weekly.-> K([/goldpan])
+  K -.feeds back.-> A
   click A href "./.agents/skills/interview-me/SKILL.md"
   click B href "./.agents/skills/strategy-review/SKILL.md"
-  click C href "./.agents/skills/prd/SKILL.md"
+  click C href "./.agents/skills/bare-bones/SKILL.md"
+  click D href "./.agents/skills/prd/SKILL.md"
   click E href "./.agents/skills/simplify/SKILL.md"
   click F href "./.agents/skills/code-review/SKILL.md"
   click G href "./.agents/skills/pr/SKILL.md"
   click H href "./.agents/skills/prove-work/SKILL.md"
   click I href "./.agents/skills/land-pr/SKILL.md"
-  click J href "./.agents/skills/goldpan/SKILL.md"
+  click K href "./.agents/skills/goldpan/SKILL.md"
 ```
 
 ### Bug investigation
@@ -241,6 +245,7 @@ flowchart LR
 |-------|-------------|
 | [`/interview-me`](./.agents/skills/interview-me/SKILL.md) | Fuzzy idea, ticket, or feature request needs to be fleshed out before any code is written |
 | [`/strategy-review`](./.agents/skills/strategy-review/SKILL.md) | Stress-test a plan, PRD, or product direction for scope, ambition, and hidden assumptions |
+| [`/bare-bones`](./.agents/skills/bare-bones/SKILL.md) | Strip an overscoped plan down to the smallest useful version |
 | [`/shared-language`](./.agents/skills/shared-language/SKILL.md) | Build a DDD glossary so devs and agents stop talking past each other |
 | [`/prd`](./.agents/skills/prd/SKILL.md) | Generate a PRD from a Linear ticket or feature request |
 
