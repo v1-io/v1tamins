@@ -375,7 +375,7 @@ v1tamins/
 
 ## Migration Note
 
-This package is moving to a plugin-native source layout. The committed skill source is now `plugins/v1tamins/skills/v1-<skill-name>/`; the old `.agents/skills/<skill-name>/` mirror is no longer tracked. Direct checkout consumers should update symlinks, scripts, and docs to point at the `plugins/v1tamins/skills/v1-*` paths and use the installed `v1-*` skill names.
+This package uses a plugin-native source layout. The committed skill source is `plugins/v1tamins/skills/v1-<skill-name>/`; the old `.agents/skills/<skill-name>/` mirror is no longer tracked. Direct checkout consumers should update symlinks, scripts, and docs to point at the `plugins/v1tamins/skills/v1-*` paths and use the installed `v1-*` skill names.
 
 Marketplace/plugin consumers already invoking `/v1-*` skills should not need to change anything.
 
@@ -389,7 +389,7 @@ Marketplace/plugin consumers already invoking `/v1-*` skills should not need to 
 3. Edit the canonical skill at `plugins/v1tamins/skills/v1-<skill-name>/SKILL.md`. Each `SKILL.md` needs YAML frontmatter with a `v1-*` `name` matching the directory and a `description`. `allowed-tools` is recommended for skills that need tool restrictions; see [v1-skilling-it](./plugins/v1tamins/skills/v1-skilling-it/SKILL.md) for the full schema. Add an `agents/openai.yaml` when the skill should appear cleanly in Codex's skill list.
 4. Validate plugin manifests and skill frontmatter:
    ```bash
-   scripts/sync-skill-hosts.sh
+   scripts/validate-plugin.sh
    ```
 5. Test the skill in a real project before committing.
 6. Run a privacy and portability scan over your changes — no secrets, internal URLs, customer names, or absolute local paths.
@@ -398,15 +398,14 @@ Marketplace/plugin consumers already invoking `/v1-*` skills should not need to 
 ## Validation
 
 ```bash
-scripts/sync-skill-hosts.sh           # check
-scripts/sync-skill-hosts.sh --write   # compatibility no-op plus check
-scripts/sync-skill-hosts.sh --verbose # per-file trace
+scripts/validate-plugin.sh           # check
+scripts/validate-plugin.sh --verbose # per-file trace
 ```
 
-The check validates `SKILL.md` frontmatter, optional `agents/openai.yaml` metadata, the canonical `plugins/v1tamins/skills/v1-*` skills, local skill asset links, references to known v1tamins skills, portable helper paths, both runtime plugin manifests (`plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`), both marketplace manifests (`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`), and the absence of a tracked `.agents/skills` mirror.
+The check validates `SKILL.md` frontmatter, optional `agents/openai.yaml` metadata, the canonical `plugins/v1tamins/skills/v1-*` skills, local skill asset links, references to known v1tamins skills, portable helper paths, both runtime plugin manifests (`plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`), both marketplace manifests (`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`), and the absence of a tracked `.agents/skills` mirror. `scripts/sync-skill-hosts.sh` remains as a legacy wrapper for old local instructions; new docs should use `scripts/validate-plugin.sh`.
 
 ## Requirements
 
 - [Claude Code](https://claude.ai/code) and/or [Codex](https://openai.com/codex/)
 - Ruby (for skill frontmatter validation; no gems required)
-- `jq` (for JSON manifest validation in `scripts/sync-skill-hosts.sh`)
+- `jq` (for JSON manifest validation in `scripts/validate-plugin.sh`)

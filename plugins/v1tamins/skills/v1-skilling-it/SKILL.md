@@ -74,10 +74,10 @@ Treat `plugins/v1tamins/skills/v1-<skill-name>/SKILL.md` as the canonical source
 After creating or renaming a skill, run:
 
 ```bash
-scripts/sync-skill-hosts.sh
+scripts/validate-plugin.sh
 ```
 
-This verifies frontmatter, plugin skills, and manifest metadata. `--write` is accepted only as a compatibility no-op because plugin skills are canonical now.
+This verifies frontmatter, plugin skills, manifest metadata, bundled asset references, known skill references, and portable helper paths. `scripts/sync-skill-hosts.sh` remains only as a legacy compatibility wrapper.
 
 ### Progressive Disclosure
 
@@ -398,7 +398,7 @@ Files used in output (not loaded into context).
 - [ ] Instructions are clear and actionable
 - [ ] Referenced files exist
 - [ ] Tested with real usage scenarios (see [references/iterative-development.md](references/iterative-development.md))
-- [ ] `scripts/sync-skill-hosts.sh` passes
+- [ ] `scripts/validate-plugin.sh` passes
 
 ## Anti-Patterns
 
