@@ -57,6 +57,7 @@ The user can invoke this command without arguments from the repository containin
    - Inspect the failing check details before changing code. Prefer `gh run view --log-failed` or the failing job logs when available.
    - Inspect review feedback and comments from human and bot reviewers.
    - Use subagents to identify root cause(s), fix them locally with the narrowest possible changes, and push the fix.
+   - Reply to comments and close those that are resolved by the fix.
    - Repeat the monitoring loop. Use the **v1-address-review** and **v1-debug** skills as needed.
    - Stop after three remediation pushes if CI is still failing. Report the failing checks, what was attempted, and the latest PR URL.
 
@@ -81,6 +82,12 @@ while remediation_pushes <= 3:
 ```
 
 Do not make speculative fixes without reading the failing check output. If the failure is unrelated to the branch, flaky, or infrastructure-owned, rerun the failed job once if appropriate and report the evidence instead of churning code.
+
+## Definition of Done
+- All required checks passed OR 3 remediation pushes were used
+- All code review comments addressed
+- All code review comments replied to
+- All code review comments that led to a code change were resolved
 
 ## Output
 
