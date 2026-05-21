@@ -27,12 +27,10 @@ Optional arguments after the file path:
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 for dir in \
-  "$REPO_ROOT/.agents/skills/md2docs" \
-  "$REPO_ROOT/claude/skills/md2docs" \
+  "$REPO_ROOT/plugins/v1tamins/skills/v1-md2docs" \
   "${CLAUDE_PLUGIN_ROOT:-}" \
-  "$HOME/.agents/skills/md2docs" \
-  "$HOME/.codex/skills/md2docs" \
-  "$HOME/.claude/skills/md2docs"; do
+  "$HOME/.codex/skills/v1-md2docs" \
+  "$HOME/.claude/skills/v1-md2docs"; do
   [ -n "$dir" ] && [ -f "$dir/scripts/md2docs.py" ] && SKILL_ROOT="$dir" && break
 done
 

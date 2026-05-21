@@ -1,7 +1,0 @@
-interface:
-  display_name: "Markdown to Docs"
-  short_description: "Convert Markdown files into Google Docs"
-  default_prompt: "Use $md2docs to convert this Markdown file into a formatted Google Doc."
-
-policy:
-  allow_implicit_invocation: true

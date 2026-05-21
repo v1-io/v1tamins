@@ -1,7 +1,0 @@
-interface:
-  display_name: "Interview Me"
-  short_description: "Refine an idea through structured questioning"
-  default_prompt: "Use $interview-me to turn this rough idea into a clearer specification."
-
-policy:
-  allow_implicit_invocation: true

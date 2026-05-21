@@ -86,9 +86,8 @@ Rules:
 Before finishing, check for contradictions:
 - README feature list vs. `CLAUDE.md` or `AGENTS.md`
 - Architecture docs vs. actual folders and scripts
-- Skill lists vs. `.agents/skills`
-- Cursor command lists vs. `cursor/commands`
-- Setup docs vs. `install.sh`
+- Skill lists vs. `plugins/v1tamins/skills`
+- Setup docs vs. the install path the project actually uses
 
 Also check discoverability. Important docs should be reachable from `README.md`, `CLAUDE.md`, or a docs index.
 

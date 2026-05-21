@@ -60,12 +60,10 @@ User request
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 for dir in \
-  "$REPO_ROOT/.agents/skills/deep-research" \
-  "$REPO_ROOT/claude/skills/deep-research" \
+  "$REPO_ROOT/plugins/v1tamins/skills/v1-deep-research" \
   "${CLAUDE_PLUGIN_ROOT:-}" \
-  "$HOME/.agents/skills/deep-research" \
-  "$HOME/.codex/skills/deep-research" \
-  "$HOME/.claude/skills/deep-research"; do
+  "$HOME/.codex/skills/v1-deep-research" \
+  "$HOME/.claude/skills/v1-deep-research"; do
   [ -n "$dir" ] && [ -f "$dir/scripts/validate_report.py" ] && SKILL_ROOT="$dir" && break
 done
 

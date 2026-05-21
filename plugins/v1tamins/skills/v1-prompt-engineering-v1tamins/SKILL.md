@@ -4,7 +4,7 @@ description: Use when writing, migrating, or reviewing prompts, system prompts, 
 ---
 # Prompt Engineering V1tamins
 
-GPT-5.5-first fork of the original `prompt-engineering` skill for assistants, agents, coding workflows, and structured outputs.
+GPT-5.5-first fork of the original `v1-prompt-engineering` skill for assistants, agents, coding workflows, and structured outputs.
 
 Default assumption: the host uses GPT-5.5, but the host API must be identified before applying API-specific advice. Use Responses API guidance when the host supports it; use OpenRouter `chat/completions` guidance when that is the runtime.
 
@@ -23,7 +23,7 @@ Default assumption: the host uses GPT-5.5, but the host API must be identified b
 6. Use the reference files:
    - `references/gpt-5-5-patterns.md` - ready-to-paste GPT-5.5 blocks, migration defaults, runtime notes
    - `references/gpt-5-4-patterns.md` - compatibility guidance for older GPT-5.4 workflows
-   - `references/advanced.md` - carry-forward patterns from the original `prompt-engineering` skill
+   - `references/advanced.md` - carry-forward patterns from the original `v1-prompt-engineering` skill
 
 ## Instructions
 
@@ -236,4 +236,4 @@ Before finalizing:
 
 - `references/gpt-5-5-patterns.md` - ready-to-paste GPT-5.5 blocks, OpenAI Responses API notes, OpenRouter chat-completions notes, migration defaults
 - `references/gpt-5-4-patterns.md` - compatibility blocks for older GPT-5.4 workflows
-- `references/advanced.md` - carry-forward agent prompting and persuasion patterns from the original `prompt-engineering` skill
+- `references/advanced.md` - carry-forward agent prompting and persuasion patterns from the original `v1-prompt-engineering` skill

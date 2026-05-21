@@ -13,7 +13,7 @@ allowed-tools:
 
 Review a plan like a founder who cares whether the work creates real user value, not just whether it is internally consistent.
 
-Use after `interview-me` when the idea is still fluid. Use before implementation when the plan already exists but scope, ambition, or user value are questionable.
+Use after `v1-interview-me` when the idea is still fluid. Use before implementation when the plan already exists but scope, ambition, or user value are questionable.
 
 ## Workflow
 

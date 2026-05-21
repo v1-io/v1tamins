@@ -119,7 +119,7 @@ Capture the PR number and URL for subsequent steps.
 
 ### Step 6: Generate PR Description
 
-Invoke the **pr-description** skill to generate a grounded title and description based on the actual diff and commit history.
+Invoke the **v1-pr-description** skill to generate a grounded title and description based on the actual diff and commit history.
 
 Typical invocation:
 - Claude Code: `/v1-pr-description <PR_NUMBER>`
@@ -164,11 +164,11 @@ Invoke the **compound-engineering workflows:review** skill, or the equivalent pl
 
 This runs parallel review agents covering architecture, security, performance, patterns, and more.
 
-If that workflow is not available, fall back to the shared `code-review` skill instead. Do not block on failure -- inform the user and continue.
+If that workflow is not available, fall back to the shared `v1-code-review` skill instead. Do not block on failure -- inform the user and continue.
 
 ### Step 10: Prove Work (Optional)
 
-If the PR includes frontend or visual changes (`.tsx`, `.jsx`, `.vue`, `.html`, `.css`, template files), offer to run the **prove-work** skill to generate a demo GIF:
+If the PR includes frontend or visual changes (`.tsx`, `.jsx`, `.vue`, `.html`, `.css`, template files), offer to run the **v1-prove-work** skill to generate a demo GIF:
 
 Typical invocation:
 - Claude Code: `/v1-prove-work --pr <PR_NUMBER>`

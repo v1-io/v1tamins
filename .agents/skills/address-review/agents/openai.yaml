@@ -1,7 +1,0 @@
-interface:
-  display_name: "Address Review"
-  short_description: "Address and resolve actionable PR review feedback"
-  default_prompt: "Use $address-review to inspect this PR's review feedback, fix valid issues, reply, and resolve warranted threads."
-
-policy:
-  allow_implicit_invocation: true

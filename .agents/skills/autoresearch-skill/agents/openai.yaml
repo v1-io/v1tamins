@@ -1,7 +1,0 @@
-interface:
-  display_name: "AutoResearch"
-  short_description: "Run a measured optimize-and-verify loop"
-  default_prompt: "Use $autoresearch-skill to run an iterative optimization loop against this target."
-
-policy:
-  allow_implicit_invocation: true

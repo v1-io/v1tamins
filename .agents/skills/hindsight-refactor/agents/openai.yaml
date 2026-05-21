@@ -1,7 +1,0 @@
-interface:
-  display_name: "Hindsight Refactor"
-  short_description: "Use the first pass as reconnaissance, then reimplement cleanly"
-  default_prompt: "Use $hindsight-refactor to replace an exploratory first-pass fix with a cleaner implementation that preserves the learned constraints."
-
-policy:
-  allow_implicit_invocation: true
