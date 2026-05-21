@@ -13,6 +13,55 @@
 
 Daily supplements for healthy code, from the Version1 team. Plugin install for Claude Code and Codex. Skills compose into the workflows you actually use — idea → ship, bug → fix, weekly compounding. Mix and match.
 
+## Install
+
+v1tamins ships as a plugin for Claude Code and Codex. One shared `skills/` directory under `plugins/v1tamins/` serves both runtimes through sibling per-runtime manifests. Plugin-distributed skills carry a `v1-` prefix (`v1-pr`, `v1-debug`, `v1-goldpan`) to avoid colliding with other public or personal skills.
+
+**Claude Code**
+
+```text
+/plugin marketplace add v1-io/v1tamins
+/plugin install v1tamins@v1tamins
+```
+
+For local development against a checkout, point the marketplace at the path:
+
+```text
+/plugin marketplace add ~/v1tamins
+```
+
+**Codex**
+
+```bash
+codex plugin marketplace add v1-io/v1tamins
+```
+
+Then install or enable the `v1tamins` plugin from Codex's plugin UI. For local development use `~/v1tamins` in place of `v1-io/v1tamins`.
+
+Updates flow through the runtime's marketplace refresh — there's nothing to rerun.
+
+### Recommended companion: compound-engineering
+
+A few v1tamins skills compose directly with [Every's compound-engineering plugin](https://github.com/EveryInc/compound-engineering-plugin):
+
+- `/v1-goldpan` queues approved candidates through `/ce-compound` to write durable solution docs
+- `/v1-pr` chains into `/ce-code-review` for multi-agent review before merge
+
+Install it alongside v1tamins:
+
+```text
+# Claude Code
+/plugin marketplace add EveryInc/compound-engineering-plugin
+/plugin install compound-engineering@compound-engineering-plugin
+
+# Codex
+codex plugin marketplace add EveryInc/compound-engineering-plugin
+# then install compound-engineering from Codex's plugin UI
+```
+
+> [!NOTE]
+> v1tamins works without it — only `/v1-goldpan` will fail noisily if compound-engineering isn't installed. Everything else degrades gracefully.
+
 ## The skill universe
 
 ```mermaid
@@ -310,55 +359,6 @@ flowchart LR
 | [`/v1-prompt-engineering-v1tamins`](./plugins/v1tamins/skills/v1-prompt-engineering-v1tamins/SKILL.md) | Same, specialised for GPT-5.5 / OpenAI Responses API / OpenRouter migrations |
 
 ---
-
-## Install
-
-v1tamins ships as a plugin for Claude Code and Codex. One shared `skills/` directory under `plugins/v1tamins/` serves both runtimes through sibling per-runtime manifests. Plugin-distributed skills carry a `v1-` prefix (`v1-pr`, `v1-debug`, `v1-goldpan`) to avoid colliding with other public or personal skills.
-
-**Claude Code**
-
-```text
-/plugin marketplace add v1-io/v1tamins
-/plugin install v1tamins@v1tamins
-```
-
-For local development against a checkout, point the marketplace at the path:
-
-```text
-/plugin marketplace add ~/v1tamins
-```
-
-**Codex**
-
-```bash
-codex plugin marketplace add v1-io/v1tamins
-```
-
-Then install or enable the `v1tamins` plugin from Codex's plugin UI. For local development use `~/v1tamins` in place of `v1-io/v1tamins`.
-
-Updates flow through the runtime's marketplace refresh — there's nothing to rerun.
-
-### Recommended companion: compound-engineering
-
-A few v1tamins skills compose directly with [Every's compound-engineering plugin](https://github.com/EveryInc/compound-engineering-plugin):
-
-- `/v1-goldpan` queues approved candidates through `/ce-compound` to write durable solution docs
-- `/v1-pr` chains into `/ce-code-review` for multi-agent review before merge
-
-Install it alongside v1tamins:
-
-```text
-# Claude Code
-/plugin marketplace add EveryInc/compound-engineering-plugin
-/plugin install compound-engineering@compound-engineering-plugin
-
-# Codex
-codex plugin marketplace add EveryInc/compound-engineering-plugin
-# then install compound-engineering from Codex's plugin UI
-```
-
-> [!NOTE]
-> v1tamins works without it — only `/v1-goldpan` will fail noisily if compound-engineering isn't installed. Everything else degrades gracefully.
 
 ## Repo layout
 
