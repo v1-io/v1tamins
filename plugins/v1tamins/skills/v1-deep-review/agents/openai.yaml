@@ -1,0 +1,7 @@
+interface:
+  display_name: "Deep Review"
+  short_description: "Perform a deep, strict code review"
+  default_prompt: "Use $v1-deep-review to do a strict, in depth, and opinionated code review"
+
+policy:
+  allow_implicit_invocation: true
