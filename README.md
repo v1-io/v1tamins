@@ -84,6 +84,7 @@ mindmap
       ("v1-refactor")
       ("v1-complexity")
       ("v1-hindsight-refactor")
+      ("v1-deep-review")
     Ship
       ("v1-pr")
       ("v1-pr-description")
@@ -168,6 +169,7 @@ Agents over-build. Extra try/except. Unused helpers. Premature abstractions. Def
 - [`/v1-refactor`](./plugins/v1tamins/skills/v1-refactor/SKILL.md) — apply KISS / DRY / SOLID / YAGNI to a working diff
 - [`/v1-complexity`](./plugins/v1tamins/skills/v1-complexity/SKILL.md) — flatten nested code and reduce cognitive complexity in specific functions
 - [`/v1-hindsight-refactor`](./plugins/v1tamins/skills/v1-hindsight-refactor/SKILL.md) — when the first-pass fix is exploratory or overbuilt, delete it and reimplement a clean version using what the first pass taught you
+- [`/v1-deep-review`](./plugins/v1tamins/skills/v1-deep-review/SKILL.md) — unusually strict maintainability audit: abstraction quality, file-size boundaries, spaghetti branching, and ambitious structural simplification before merge
 
 </details>
 
@@ -316,6 +318,7 @@ flowchart LR
 | [`/v1-refactor`](./plugins/v1tamins/skills/v1-refactor/SKILL.md) | Apply KISS / DRY / SOLID / YAGNI to a working diff |
 | [`/v1-complexity`](./plugins/v1tamins/skills/v1-complexity/SKILL.md) | Reduce cognitive complexity in specific functions |
 | [`/v1-hindsight-refactor`](./plugins/v1tamins/skills/v1-hindsight-refactor/SKILL.md) | Throw away the messy first-pass fix and reimplement cleanly using what it taught you |
+| [`/v1-deep-review`](./plugins/v1tamins/skills/v1-deep-review/SKILL.md) | Harsh maintainability and structure audit on a large PR, new feature, or architecture change |
 
 ### Ship
 

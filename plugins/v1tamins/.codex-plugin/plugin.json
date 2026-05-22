@@ -35,6 +35,7 @@
     "defaultPrompt": [
       "/v1-pr prepare this branch",
       "/v1-code-review review this PR",
+      "/v1-deep-review audit this branch for maintainability",
       "/v1-address-review address PR feedback"
     ],
     "screenshots": []

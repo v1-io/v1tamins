@@ -13,6 +13,8 @@ allowed-tools:
 
 Perform a staff-level code review using repo context, stated intent, and the actual diff. Prioritize bugs, regressions, missing requirements, security risks, data issues, and test gaps.
 
+For a harsh maintainability and structure audit (abstraction quality, file-size growth, spaghetti branching, ambitious simplification), recommend **v1-deep-review** instead of stretching this skill into that mode.
+
 Default mode is review-only. Apply fixes only when the user explicitly asks for "review and fix", "fix review findings", or a shipping workflow clearly requested code changes.
 
 ## Usage
