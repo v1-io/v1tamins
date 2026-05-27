@@ -27,7 +27,13 @@ The user can invoke this command without arguments from the repository containin
 
 1. **Inspect Repository State**
    - Run `git status --short --branch`.
-   - Identify the current branch, base branch, and changed files.
+   - Identify the current branch, changed files, and intended PR base branch.
+   - Resolve the PR base branch in this order:
+     1. Reuse the base branch from an existing PR for the current branch.
+     2. Honor an explicit base branch requested by the user.
+     3. Detect the repository default branch with `gh repo view --json defaultBranchRef` or `git remote show origin`.
+     4. Fall back to a local `main` or `master` only when remote/default metadata is unavailable.
+   - Do not assume a staging, release, or environment-specific branch exists. If the base branch cannot be determined, or branch choice has release-routing implications, ask the user before creating the PR.
    - If the branch is `main` or another protected base branch, create a feature branch before committing.
    - Do not revert unrelated user changes. Leave unrelated changes unstaged unless the user clearly wants them included.
 
@@ -41,6 +47,7 @@ The user can invoke this command without arguments from the repository containin
 3. **Open a PR**
    - Reuse an existing PR for the branch when one exists.
    - Otherwise create one with `gh pr create`.
+   - Pass the resolved base branch explicitly when creating a new PR.
    - Include a PR body with summary, a walkthrough of the changes, and validation steps taken. Where possible, invoke the **v1-pr-description** skill to generate the PR body.
    - Capture the PR number or URL with `gh pr view --json number,url,headRefName,baseRefName`.
 
