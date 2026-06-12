@@ -1,6 +1,6 @@
 {
   "name": "v1tamins",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Reusable AI development skills and workflow guidance from Version1.",
   "author": {
     "name": "Version1",
@@ -17,13 +17,16 @@
     "code-review",
     "pull-requests",
     "testing",
-    "documentation"
+    "documentation",
+    "product-discovery",
+    "skill-development",
+    "html-artifacts"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "v1tamins",
     "shortDescription": "Reusable AI development skills and workflow guidance.",
-    "longDescription": "v1tamins packages reusable AI development skills for reviewing code, writing tests, preparing PRs, improving documentation, debugging failures, and keeping agent workflows consistent across projects. Plugin-distributed skills use a v1- prefix to avoid collisions with other public skills.",
+    "longDescription": "v1tamins packages reusable AI development skills for reviewing code, writing tests, preparing PRs, improving documentation, debugging failures, testing product prototypes, extracting reusable skills from source material, creating polished HTML artifacts, and keeping agent workflows consistent across projects. Plugin-distributed skills use a v1- prefix to avoid collisions with other public skills.",
     "developerName": "Version1",
     "category": "Coding",
     "capabilities": [
@@ -36,7 +39,10 @@
       "/v1-pr prepare this branch",
       "/v1-code-review review this PR",
       "/v1-deep-review audit this branch for maintainability",
-      "/v1-address-review address PR feedback"
+      "/v1-address-review address PR feedback",
+      "/v1-canon2skill find skill ideas in this source",
+      "/v1-testing-prototypes create a user test plan",
+      "/v1-html-it make a self-contained HTML page"
     ],
     "screenshots": []
   }

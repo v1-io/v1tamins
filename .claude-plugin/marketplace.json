@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Plugin marketplace for v1tamins shared AI development skills.",
-    "version": "0.2.0"
+    "version": "0.3.0"
   },
   "plugins": [
     {
@@ -24,7 +24,10 @@
         "pull-requests",
         "workflow-automation",
         "testing",
-        "documentation"
+        "documentation",
+        "product-discovery",
+        "skill-development",
+        "html-artifacts"
       ],
       "source": "./plugins/v1tamins"
     }

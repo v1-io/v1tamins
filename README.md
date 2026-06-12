@@ -73,6 +73,7 @@ mindmap
       ("v1-bare-bones")
       ("v1-shared-language")
       ("v1-prd")
+      ("v1-testing-prototypes")
     Build
       ("v1-debug")
       ("v1-fix-tests")
@@ -99,9 +100,11 @@ mindmap
     Communicate
       ("v1-stickify")
       ("v1-md2docs")
+      ("v1-html-it")
     Research
       ("v1-deep-research")
       ("v1-autoresearch-skill")
+      ("v1-canon2skill")
     Meta
       ("v1-skilling-it")
       ("v1-prompt-engineering")
@@ -134,6 +137,7 @@ You describe a feature. The agent writes 800 lines. About 60% solves a different
 - [`/v1-bare-bones`](./plugins/v1tamins/skills/v1-bare-bones/SKILL.md) — strip an overscoped plan down to the smallest useful version before it turns into implementation sprawl
 - [`/v1-shared-language`](./plugins/v1tamins/skills/v1-shared-language/SKILL.md) — extract a DDD-style glossary from the current conversation, flag ambiguous terms, and write `LANGUAGE.md`. Pays off session after session: variables, files, and prompts all start using one vocabulary
 - [`/v1-prd`](./plugins/v1tamins/skills/v1-prd/SKILL.md) — turn a Linear ticket or feature request into a real PRD
+- [`/v1-testing-prototypes`](./plugins/v1tamins/skills/v1-testing-prototypes/SKILL.md) — plan or synthesize prototype tests that separate value, usability, and feasibility evidence before engineering commits
 
 </details>
 
@@ -207,6 +211,7 @@ The pain you can't feel in the moment: solving the same problem twice. Six month
 - [`/v1-goldpan`](./plugins/v1tamins/skills/v1-goldpan/SKILL.md) — pan recent merged PRs and agent session logs (Claude Code + Codex + Cursor) for compound-worthy moments, present the candidates, then queue them through `/ce-compound` for documentation
 - [`/v1-docs-freshness`](./plugins/v1tamins/skills/v1-docs-freshness/SKILL.md) — sync READMEs and docs with what actually shipped (post-merge, post-release, or after a new skill lands)
 - [`/v1-changelog`](./plugins/v1tamins/skills/v1-changelog/SKILL.md) — generate release notes from recent merged PRs
+- [`/v1-canon2skill`](./plugins/v1tamins/skills/v1-canon2skill/SKILL.md) — turn books, PDFs, articles, courses, and notes into evidence-backed recommendations for new or improved reusable skills
 
 </details>
 
@@ -299,6 +304,7 @@ flowchart LR
 | [`/v1-bare-bones`](./plugins/v1tamins/skills/v1-bare-bones/SKILL.md) | Strip an overscoped plan down to the smallest useful version |
 | [`/v1-shared-language`](./plugins/v1tamins/skills/v1-shared-language/SKILL.md) | Build a DDD glossary so devs and agents stop talking past each other |
 | [`/v1-prd`](./plugins/v1tamins/skills/v1-prd/SKILL.md) | Generate a PRD from a Linear ticket or feature request |
+| [`/v1-testing-prototypes`](./plugins/v1tamins/skills/v1-testing-prototypes/SKILL.md) | Plan and synthesize prototype tests before build decisions |
 
 ### Build & debug
 
@@ -345,6 +351,7 @@ flowchart LR
 |-------|-------------|
 | [`/v1-stickify`](./plugins/v1tamins/skills/v1-stickify/SKILL.md) | Make pitches, announcements, PR descriptions, or marketing copy memorable (Made-to-Stick framework) |
 | [`/v1-md2docs`](./plugins/v1tamins/skills/v1-md2docs/SKILL.md) | Publish a Markdown doc as a fully-formatted Google Doc |
+| [`/v1-html-it`](./plugins/v1tamins/skills/v1-html-it/SKILL.md) | Create polished self-contained HTML artifacts for reviews, explainers, reports, prototypes, or custom editors |
 
 ### Research
 
@@ -352,6 +359,7 @@ flowchart LR
 |-------|-------------|
 | [`/v1-deep-research`](./plugins/v1tamins/skills/v1-deep-research/SKILL.md) | Multi-source research with iterative refinement and structured synthesis. Not for simple lookups |
 | [`/v1-autoresearch-skill`](./plugins/v1tamins/skills/v1-autoresearch-skill/SKILL.md) | Autonomous optimization loop — point it at any measurable target and it iterates |
+| [`/v1-canon2skill`](./plugins/v1tamins/skills/v1-canon2skill/SKILL.md) | Extract reusable skill ideas from source material, including PDFs that need OCR |
 
 ### Meta — write the tools
 
@@ -390,13 +398,14 @@ Marketplace/plugin consumers already invoking `/v1-*` skills should not need to 
    ```
 2. Create a branch.
 3. Edit the canonical skill at `plugins/v1tamins/skills/v1-<skill-name>/SKILL.md`. Each `SKILL.md` needs YAML frontmatter with a `v1-*` `name` matching the directory and a `description`. `allowed-tools` is recommended for skills that need tool restrictions; see [v1-skilling-it](./plugins/v1tamins/skills/v1-skilling-it/SKILL.md) for the full schema. Add an `agents/openai.yaml` when the skill should appear cleanly in Codex's skill list.
-4. Validate plugin manifests and skill frontmatter:
+4. Bump both runtime plugin manifest versions when runtime plugin content changes: `plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`. Keep `.claude-plugin/marketplace.json` metadata in sync.
+5. Validate plugin manifests and skill frontmatter:
    ```bash
    scripts/validate-plugin.sh
    ```
-5. Test the skill in a real project before committing.
-6. Run a privacy and portability scan over your changes — no secrets, internal URLs, customer names, or absolute local paths.
-7. Open a PR.
+6. Test the skill in a real project before committing.
+7. Run a privacy and portability scan over your changes — no secrets, internal URLs, customer names, or absolute local paths.
+8. Open a PR.
 
 ## Validation
 
@@ -405,7 +414,7 @@ scripts/validate-plugin.sh           # check
 scripts/validate-plugin.sh --verbose # per-file trace
 ```
 
-The check validates `SKILL.md` frontmatter, optional `agents/openai.yaml` metadata, the canonical `plugins/v1tamins/skills/v1-*` skills, local skill asset links, references to known v1tamins skills, portable helper paths, both runtime plugin manifests (`plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`), both marketplace manifests (`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`), and the absence of a tracked `.agents/skills` mirror. `scripts/sync-skill-hosts.sh` remains as a legacy wrapper for old local instructions; new docs should use `scripts/validate-plugin.sh`.
+The check validates `SKILL.md` frontmatter, optional `agents/openai.yaml` metadata, the canonical `plugins/v1tamins/skills/v1-*` skills, local skill asset links, references to known v1tamins skills, portable helper paths, both runtime plugin manifests (`plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`), both marketplace manifests (`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`), plugin version bumps when runtime content changes, and the absence of a tracked `.agents/skills` mirror. `scripts/sync-skill-hosts.sh` remains as a legacy wrapper for old local instructions; new docs should use `scripts/validate-plugin.sh`.
 
 ## Requirements
 
