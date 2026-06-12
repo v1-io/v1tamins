@@ -398,7 +398,7 @@ Marketplace/plugin consumers already invoking `/v1-*` skills should not need to 
    ```
 2. Create a branch.
 3. Edit the canonical skill at `plugins/v1tamins/skills/v1-<skill-name>/SKILL.md`. Each `SKILL.md` needs YAML frontmatter with a `v1-*` `name` matching the directory and a `description`. `allowed-tools` is recommended for skills that need tool restrictions; see [v1-skilling-it](./plugins/v1tamins/skills/v1-skilling-it/SKILL.md) for the full schema. Add an `agents/openai.yaml` when the skill should appear cleanly in Codex's skill list.
-4. Bump both runtime plugin manifest versions when runtime plugin content changes: `plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`. Keep `.claude-plugin/marketplace.json` metadata in sync.
+4. Bump both runtime plugin manifest versions when runtime plugin content changes: `plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`.
 5. Validate plugin manifests and skill frontmatter:
    ```bash
    scripts/validate-plugin.sh

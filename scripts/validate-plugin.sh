@@ -270,7 +270,7 @@ resolve_version_base() {
 
 validate_plugin_version_bump() {
   local base_ref diff_base changed_files runtime_changed=0
-  local current_codex current_claude current_marketplace
+  local current_codex current_claude
   local base_codex base_claude changed_file
 
   if ! git -C "$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -303,15 +303,9 @@ validate_plugin_version_bump() {
 
   current_codex="$(jq -r '.version' "$plugin_manifest")"
   current_claude="$(jq -r '.version' "$claude_plugin_manifest")"
-  current_marketplace="$(jq -r '.metadata.version // empty' "$claude_marketplace_manifest")"
 
   if [ "$current_codex" != "$current_claude" ]; then
     fail "runtime plugin versions must match: $current_codex != $current_claude"
-    return 0
-  fi
-
-  if [ -n "$current_marketplace" ] && [ "$current_marketplace" != "$current_codex" ]; then
-    fail "$(relpath "$claude_marketplace_manifest") metadata.version must match runtime plugin version $current_codex"
     return 0
   fi
 

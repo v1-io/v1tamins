@@ -5,8 +5,7 @@
     "url": "https://github.com/v1-io"
   },
   "metadata": {
-    "description": "Plugin marketplace for v1tamins shared AI development skills.",
-    "version": "0.3.0"
+    "description": "Plugin marketplace for v1tamins shared AI development skills."
   },
   "plugins": [
     {
