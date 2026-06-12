@@ -68,9 +68,10 @@ The canonical source moved from `.agents/skills/<skill-name>/` to `plugins/v1tam
 2. Add `agents/openai.yaml` when the skill should appear cleanly in Codex skill lists
 3. Add YAML frontmatter with `name` and `description`; `name` must match the `v1-*` directory. `allowed-tools` is recommended when the skill needs tool restrictions
 4. Document usage, workflow steps, and examples
-5. Run `scripts/validate-plugin.sh` before committing
-6. Test in a project before committing
-7. Push to share with team
+5. Bump both runtime plugin manifest versions when runtime plugin content changes: `plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`.
+6. Run `scripts/validate-plugin.sh` before committing
+7. Test in a project before committing
+8. Push to share with team
 
 When updating shared docs, keep `AGENTS.md`, `CLAUDE.md`, and `README.md` aligned.
 

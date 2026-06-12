@@ -1,0 +1,7 @@
+interface:
+  display_name: "Testing Prototypes"
+  short_description: "Plan and synthesize user tests for prototypes"
+  default_prompt: "Use $v1-testing-prototypes to create a user test plan for this prototype."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,7 @@
+interface:
+  display_name: "HTML It"
+  short_description: "Create polished self-contained HTML artifacts"
+  default_prompt: "Use $v1-html-it to create a self-contained HTML page for this work."
+
+policy:
+  allow_implicit_invocation: true
