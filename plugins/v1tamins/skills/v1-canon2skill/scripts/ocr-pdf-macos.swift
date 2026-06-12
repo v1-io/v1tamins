@@ -52,7 +52,7 @@ func render(_ page: CGPDFPage) -> CGImage? {
         return nil
     }
 
-    NSColor.white.setFill()
+    context.setFillColor(NSColor.white.cgColor)
     context.fill(CGRect(x: 0, y: 0, width: width, height: height))
     context.saveGState()
     context.scaleBy(x: scale, y: scale)
