@@ -171,6 +171,20 @@ Confidence: N/5
 
 If evidence is weak, label the diagnosis as a hypothesis and propose the smallest data collection that would confirm or falsify it.
 
+## Chaining
+
+- Use `v1-interview-me` first when the user needs a guided conversation to define the system boundary, goal, or symptom.
+- Use `v1-strategy-review` after the constraint diagnosis raises broader product, market, roadmap, or business-model tradeoffs.
+- Use `v1-debug` when the apparent constraint is a reproducible software failure, performance regression, flaky process, or production bug.
+- Use `v1-prd` when the diagnosis produces concrete product or process requirements that need implementation-ready specification.
+
+## When Not To Use This Skill
+
+- Do not use for general feature fleshing or office-hours questioning; use `v1-interview-me`.
+- Do not use for root-cause debugging of a specific software failure; use `v1-debug`.
+- Do not use for customer-demand discovery or JTBD synthesis; use `v1-learning-from-customers`.
+- Do not use for broad strategy review unless the immediate task is to identify the system constraint.
+
 ## Examples
 
 **Software delivery**

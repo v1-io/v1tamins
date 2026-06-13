@@ -53,64 +53,21 @@ If the task is unclear, mark that as a finding before discussing layout, copy, o
 
 ### 2. Action-Cycle Walkthrough
 
-Walk the interaction from the user's point of view:
-
-| Stage | Review Question |
-| --- | --- |
-| Goal | Is the user's goal supported by this surface? |
-| Plan | Can the user tell which path or control might achieve the goal? |
-| Specify | Can the user determine the exact action, input, or sequence? |
-| Perform | Can the user execute the action with the available controls? |
-| Perceive | Does the system make the result visible quickly enough? |
-| Interpret | Can the user understand what the result means? |
-| Compare | Can the user compare the result to the original goal and decide what to do next? |
-
-Find the gulf of execution when the user cannot tell what to do. Find the gulf of evaluation when the user cannot tell what happened or whether it worked.
+Walk the interaction from the user's point of view using the shared [interaction review taxonomy](references/interaction-review-taxonomy.md). Use its action-cycle stages to find gulfs of execution and evaluation.
 
 ### 3. Discoverability Pass
 
-Check whether the surface teaches its own use:
+Use the taxonomy's discoverability mechanisms to name the exact failure: affordance, signifier, mapping, feedback, constraint, conceptual model, or knowledge-in-the-world gap.
 
-- **Affordances:** Does the object make possible actions physically, visually, or conventionally apparent?
-- **Signifiers:** Are actionable elements and unavailable actions clearly signaled?
-- **Mappings:** Do controls, labels, spatial layout, and outcomes correspond naturally?
-- **Feedback:** Does every meaningful action produce timely, perceivable, interpretable feedback?
-- **Constraints:** Are invalid, dangerous, or impossible actions prevented or made obviously unavailable?
-- **Conceptual model:** Does the surface reveal the objects, relationships, and state model users need?
-- **Knowledge in the world:** Are needed cues visible at the moment of use instead of relying on memory?
-
-Do not stop at "the button should be clearer." Name which discoverability mechanism failed and why the user would mispredict the outcome.
+Do not stop at "the button should be clearer." Explain why the user would mispredict the outcome.
 
 ### 4. Error-Design Pass
 
-Treat user mistakes as design evidence before treating them as user failure.
-
-Check for:
-
-- Slips: the user has the right goal but performs the wrong action, selects the wrong item, mistypes, forgets a step, or acts in the wrong mode.
-- Mistakes: the user has the wrong goal, wrong rule, wrong mental model, or wrong interpretation of system state.
-- Mode errors: the same action means different things in different states without strong state visibility.
-- Memory burdens: the user must remember invisible IDs, prior choices, field meanings, keyboard shortcuts, or cross-screen state.
-- Irreversible actions: destructive or costly actions lack confirmation, preview, undo, delay, or recovery.
-- Automation surprises: the system acts on the user's behalf without showing intent, limits, or handoff points.
-- Extreme inputs: forms accept nonsensical values without range checks, units, preview, or plausibility warnings.
-
-Prefer fixes that prevent the error, make the right action easier, or make recovery obvious. Warnings are a weak substitute when the interaction still invites the mistake.
+Treat user mistakes as design evidence before treating them as user failure. Use the taxonomy's error modes and fix priority to separate slips, mistakes, mode errors, memory burdens, irreversible actions, automation surprises, and extreme-input failures.
 
 ### 5. Redesign Recommendations
 
 For each actionable issue, propose the smallest change that fixes the user-task failure.
-
-Good redesign actions:
-
-- Add or strengthen signifiers on actionable controls.
-- Change labels to match the user's goal and object model.
-- Move controls so spatial mapping matches the thing being controlled.
-- Add immediate feedback for async, destructive, or state-changing actions.
-- Make current state, selected object, mode, permissions, and scope visible.
-- Replace memorized steps with visible cues, defaults, previews, or inline examples.
-- Add constraints, disabled states, sensible defaults, undo, confirmation, or plausibility checks.
-- Standardize an interaction when custom design creates avoidable learning cost.
 
 Avoid generic advice such as "make it intuitive" or "improve UX." Tie every fix to the user's goal, predicted action, observed confusion, or failure mode.
 
@@ -173,6 +130,13 @@ Before finalizing, ask:
 - Use `v1-reviewing-data-graphics` for charts, quantitative dashboards, and metric displays.
 - Use `v1-debug` when the confusing interaction has already produced a production failure, support incident, or reproducible bug.
 - Use `v1-prd` after the review reveals requirements, states, or edge cases that must be specified.
+
+## When Not To Use This Skill
+
+- Do not use for live prototype-test planning or synthesis; use `v1-testing-prototypes`.
+- Do not use for chart or metrics truthfulness reviews unless the main issue is interaction; use `v1-reviewing-data-graphics`.
+- Do not use for production bug root-cause work; use `v1-debug`.
+- Do not use for broad product viability or customer-demand questions; use `v1-learning-from-customers` or `v1-strategy-review`.
 
 ## Examples
 

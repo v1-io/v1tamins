@@ -39,7 +39,7 @@ In Codex, the slash examples below map directly to `$v1-prd ...`.
 - Extracts customer evidence when available: current workaround, triggering circumstance, desired progress, competing solutions, adoption obstacles, and buying/approval path
 - Identifies the user-facing conceptual model: core objects, states, relationships, actions, permissions, and feedback the product must make visible
 - Flags hidden state, mode switches, ambiguous object ownership, destructive actions, or memory burdens that need explicit requirements
-- Adds a Jobs-to-Be-Done job spec when the request is driven by customer discovery, market validation, or a new product wedge
+- Adds a compact customer-job section when the request is driven by customer discovery, market validation, or a new product wedge. Use the full Job Spec template in [v1-learning-from-customers](../v1-learning-from-customers/SKILL.md) when detail is needed.
 
 ### 3. Write PRD
 
@@ -52,15 +52,7 @@ Creates a Product Requirements Document with these sections:
 [Clear summary of what we're building and why]
 
 ## Customer Job
-- Customer slice: [specific role/context, not a broad market]
-- Triggering circumstance: [when the need appears]
-- Desired progress: [what the customer is trying to accomplish]
-- Current workaround / competitors: [what must be beaten or fired]
-- Functional dimensions: [practical requirements of the job]
-- Emotional dimensions: [anxieties, confidence, trust, urgency]
-- Social dimensions: [approval, status, collaboration, accountability]
-- Obstacles and anxieties: [what blocks adoption or switching]
-- Success signals: [Little Hire/use signals and outcome metrics]
+[When customer evidence exists: summarize the customer slice, triggering circumstance, desired progress, current workaround, adoption obstacle, and success signal. Use the full Job Spec template in `v1-learning-from-customers` when the PRD needs deeper JTBD detail.]
 
 ## Features
 - Feature 1

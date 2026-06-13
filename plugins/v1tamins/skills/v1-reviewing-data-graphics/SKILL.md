@@ -52,64 +52,19 @@ If the display has no clear job, mark that as a finding before discussing style.
 
 ### 2. Integrity Pass
 
-Check whether the graphic tells the truth about the data.
+Read and apply the canonical [visual evidence checklist](../v1-html-it/references/visual-evidence-checklist.md), especially its integrity, comparison, data-ink, density, labeling, interaction, and validation sections.
 
-- Verify that physical measures on the screen are proportional to the quantities represented.
-- Check for truncated axes, inconsistent scales, hidden denominators, missing zero baselines where length or area implies magnitude, and area/volume encodings used for one-dimensional values.
-- Check whether the display omits the surrounding context needed for the claim: prior periods, peer groups, population size, seasonality, target, or uncertainty.
-- Prefer data variation over design variation. Repeated color, size, shape, and perspective changes should encode real variables, not decoration.
-- Confirm that labels, units, dates, filters, and source notes defeat ambiguity.
-- For money over time, look for nominal-vs-real confusion, currency changes, and missing normalization.
-- Ensure the number of visual dimensions does not exceed the number of data dimensions.
+Keep this skill focused on the data-graphics review: identify the display's job, inspect the visual surface, map checklist failures to severity, and propose redesigns tied to the viewer's decision. Do not maintain a parallel copy of the checklist here.
 
-Use a lie-factor style check when the graphic visually exaggerates or understates change:
+### 3. Classify Findings
 
-```text
-visual effect shown / data effect represented
-```
+For each actionable issue, classify:
 
-Do not over-formalize the ratio when the display is not geometrically measurable. The useful question is whether the visual effect materially matches the data effect.
-
-### 3. Reasoning Pass
-
-Check whether the display helps the viewer reason.
-
-- Does it show the data, or mostly show apparatus around the data?
-- Does it make comparisons easy across time, groups, cohorts, geography, or scenarios?
-- Does it reveal both overview and fine structure?
-- Does it present enough numbers in the available space, or is it data-thin?
-- Are words, numbers, and graphics integrated, or is the reader forced to jump between legend, caption, table, and chart?
-- Are annotations attached to the data events they explain?
-- Does the display invite the viewer to think about the substance instead of the production technique?
-
-### 4. Design Pass
-
-Check whether visual choices carry information.
-
-- Identify non-data ink: frames, heavy grids, redundant ticks, decorative backgrounds, shadows, excessive borders, and ornamental icons.
-- Identify redundant data ink: the same value encoded multiple ways without improving interpretation.
-- Remove or reduce non-data ink only when doing so preserves orientation, legibility, and meaning.
-- Prefer direct labels over legends when the series count and layout make it practical.
-- Treat dense displays as good when they preserve clear comparison paths. Treat dense displays as bad when they become decoding puzzles.
-- Prefer small multiples when repeated comparable views would reveal changes across an index variable.
-- Use color for meaning, not decoration. Avoid forcing users to decode many colors through a distant legend.
-- Avoid fake perspective, 3D effects, moire patterns, and overactive grids.
-- Favor thin, calm reference marks that support reading without competing with the data.
-
-### 5. Redesign Recommendations
-
-For each actionable issue, propose the smallest redesign that fixes the decision problem.
-
-Good redesign actions:
-
-- Add missing context, denominator, baseline, or comparison cohort.
-- Replace area, volume, or perspective encodings with position or length.
-- Convert a legend-heavy chart to direct labels.
-- Remove heavy grids, chart frames, shadows, and repeated labels that do not carry data.
-- Split an overloaded chart into small multiples.
-- Combine a table and chart when exact values and pattern recognition are both needed.
-- Add annotations to explain events, thresholds, or regime changes.
-- Normalize units or show both absolute and rate views when each answers a different question.
+- The viewer decision or claim at risk.
+- The checklist category involved.
+- The evidence visible on the rendered display.
+- The likely misleading conclusion or interpretation cost.
+- The smallest redesign that fixes the decision problem.
 
 Avoid generic advice such as "make it cleaner" or "use better colors." Tie every redesign to the claim, data, or viewer task.
 
@@ -159,6 +114,18 @@ Before finalizing, ask:
 - What data is missing because it would weaken or complicate the claim?
 - Would a table, small multiples, direct labels, or annotations make the display more truthful?
 - Did the review inspect the rendered display, not just the implementation?
+
+## Chaining
+
+- Use `v1-html-it` when the user asks to implement or package a self-contained visual artifact after the review.
+- Use `v1-reviewing-usability` when the main risk is interaction, task completion, state visibility, or recovery rather than quantitative representation.
+- Use `v1-prd` when the review reveals requirements, data contracts, states, or validation criteria that must be specified.
+
+## When Not To Use This Skill
+
+- Do not use for general UI reviews without a quantitative display; use `v1-reviewing-usability`.
+- Do not use for creating a polished HTML artifact from scratch; use `v1-html-it`.
+- Do not use for broad product strategy or market evidence; use `v1-strategy-review` or `v1-learning-from-customers`.
 
 ## Examples
 

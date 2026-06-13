@@ -43,8 +43,7 @@ For user-facing, operational, or admin-tool failures, capture the interaction ev
 - What the user was trying to accomplish, not just what they clicked
 - The visible state, selected object, mode, permissions, filters, and scope at the moment of failure
 - What feedback the system gave before and after the action
-- Whether the user made a slip (right goal, wrong action) or a mistake (wrong goal, wrong rule, wrong mental model)
-- Whether the interface relied on memory, ambiguous labels, hidden state, missing constraints, or weak feedback
+- The likely interaction mechanism involved, using the [interaction review taxonomy](../v1-reviewing-usability/references/interaction-review-taxonomy.md) when the failure may be a design problem
 
 ### 3. Rank Hypotheses
 - Generate 3-5 ranked, falsifiable hypotheses before instrumenting or patching
@@ -52,16 +51,7 @@ For user-facing, operational, or admin-tool failures, capture the interaction ev
 - Prefer hypotheses tied to observed evidence, recent changes, boundaries between modules, data-shape assumptions, and environment differences
 - Share the ranked list when user domain knowledge could cheaply re-rank it, but continue with the best current ranking if the user is unavailable
 
-When a report sounds like "user error," include design hypotheses before blame hypotheses:
-
-| Hypothesis Type | Prediction |
-| --- | --- |
-| Discoverability failure | Users cannot tell which control or path serves their goal. |
-| Feedback failure | Users repeat, abandon, or misinterpret actions because state changes are invisible or delayed. |
-| Mapping failure | Users choose the wrong control because layout, labels, or grouping imply the wrong relationship. |
-| Mode/state failure | The same action behaves differently while the relevant mode, scope, or selection is hard to see. |
-| Constraint failure | The system accepts impossible, dangerous, stale, or nonsensical input that could have been prevented. |
-| Automation surprise | Background automation acts without clear preview, handoff, status, or reversal path. |
+When a report sounds like "user error," include design hypotheses before blame hypotheses. Use the interaction review taxonomy for mechanism labels and falsifiable predictions.
 
 ### 4. Instrument and Trace Root Cause
 - Walks call stack upward until finding first invalid state/data
@@ -98,12 +88,7 @@ Use a unique `[DEBUG-<id>]` prefix for every temporary probe so cleanup is a sin
 - Adds defense-in-depth: validates inputs at boundaries, fails fast
 - Keeps changes scoped to the proven root cause
 
-For user-error and operator-error root causes, prefer fixes in this order:
-1. Prevent the invalid action with constraints, disabled states, range checks, ownership checks, or precondition checks.
-2. Make the correct action easier to discover through labels, grouping, mapping, defaults, or visible state.
-3. Add timely feedback so users can perceive, interpret, and compare the result against their goal.
-4. Add recovery through undo, idempotency, confirmation at the destructive boundary, or safe retry.
-5. Add warnings or documentation only when the interaction cannot reasonably prevent or recover from the error.
+For user-error and operator-error root causes, apply the taxonomy's fix priority before reaching for warnings or documentation.
 
 ### 7. Add the Right Regression Test
 - Convert the minimized repro into a failing regression test before the fix when there is a correct seam

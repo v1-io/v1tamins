@@ -126,6 +126,18 @@ You've felt all five of these:
 
 Each v1tamin is the smallest sharp tool we could build for one of those failures. None of them try to be the whole process.
 
+### Choose the right planning or review skill
+
+| Need | Use | Not |
+| --- | --- | --- |
+| Flesh out an idea through questions | `v1-interview-me` | Customer discovery plan, prototype test, or PRD |
+| Plan/audit/synthesize customer conversations | `v1-learning-from-customers` | General feature spec or prototype usability test |
+| Plan or synthesize observed prototype sessions | `v1-testing-prototypes` | Customer interviews before a prototype exists |
+| Review UI task completion and error risk | `v1-reviewing-usability` | Chart truthfulness or metric-dashboard integrity |
+| Review charts, dashboards, or quantitative displays | `v1-reviewing-data-graphics` | General app usability review |
+| Diagnose a stuck process, queue, funnel, or roadmap | `v1-diagnosing-constraints` | Specific software bug reproduction |
+| Debug a reproducible failure or flaky behavior | `v1-debug` | Broad operational constraint diagnosis |
+
 <details>
 <summary><b>#1 &mdash; The plan is wrong before a line of code is written</b></summary>
 

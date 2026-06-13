@@ -260,6 +260,13 @@ Evidence strength:
 - Use `v1-prd` after customer evidence is strong enough to write build requirements.
 - Use `v1-strategy-review` when customer learning changes the wedge, scope, or product direction.
 
+## When Not To Use This Skill
+
+- Do not use for general feature specification once demand is already clear; use `v1-prd`.
+- Do not use for live prototype-test planning or synthesis; use `v1-testing-prototypes`.
+- Do not use for broad strategy critique unless the immediate question is customer evidence quality; use `v1-strategy-review`.
+- Do not use for operational bottleneck or throughput diagnosis; use `v1-diagnosing-constraints`.
+
 ## Examples
 
 **Bad question rewrite**
