@@ -104,8 +104,11 @@ Tasks should put users in use mode:
 - Start with the user's current mental model when possible.
 - Keep the most important tasks first.
 - Include success signals and failure signals for each task.
+- Capture the action cycle for important tasks using the shared [interaction review taxonomy](../v1-reviewing-usability/references/interaction-review-taxonomy.md).
 
 Avoid questions like "What would you change?" until after observed use. Design suggestions are secondary to evidence of comprehension, value, and behavior.
+
+For each primary task, add one taxonomy-backed usability observation row so the note-taker watches for goal cues, expected first action, feedback needed, and likely failure mechanism.
 
 ### 6. Facilitate Without Leading
 
@@ -117,7 +120,9 @@ Use these rules during sessions:
 - Do not rescue the participant unless the session is no longer producing useful evidence.
 - Reflect questions back instead of answering them.
 - Ask what the participant expected when they click into a dead end.
+- Ask what they expected to happen after meaningful actions, especially submits, saves, deletes, automation triggers, or mode switches.
 - Capture body language, hesitation, confusion, workarounds, and moments of excitement.
+- Capture the failed mechanism from the interaction review taxonomy when confusion appears.
 - Have one facilitator and one note taker when possible.
 
 ### 7. Ask Value Questions After Use
@@ -154,6 +159,8 @@ Separate:
 - Participant explanation.
 - Facilitator inference.
 - Team opinion.
+
+For usability findings, include the failed mechanism when it is clear. Use the interaction review taxonomy instead of inventing new labels per test.
 
 ### 9. Decide What Happens Next
 

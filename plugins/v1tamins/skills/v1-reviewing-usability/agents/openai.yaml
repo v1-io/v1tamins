@@ -1,0 +1,7 @@
+interface:
+  display_name: "Reviewing Usability"
+  short_description: "Review product interactions for discoverability and error risk"
+  default_prompt: "Use $v1-reviewing-usability to review this UI, flow, or interaction."
+
+policy:
+  allow_implicit_invocation: true

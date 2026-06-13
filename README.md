@@ -73,7 +73,9 @@ mindmap
       ("v1-bare-bones")
       ("v1-shared-language")
       ("v1-prd")
+      ("v1-learning-from-customers")
       ("v1-testing-prototypes")
+      ("v1-reviewing-usability")
     Build
       ("v1-debug")
       ("v1-fix-tests")
@@ -86,6 +88,7 @@ mindmap
       ("v1-complexity")
       ("v1-hindsight-refactor")
       ("v1-deep-review")
+      ("v1-diagnosing-constraints")
     Ship
       ("v1-pr")
       ("v1-pr-description")
@@ -101,6 +104,7 @@ mindmap
       ("v1-stickify")
       ("v1-md2docs")
       ("v1-html-it")
+      ("v1-reviewing-data-graphics")
     Research
       ("v1-deep-research")
       ("v1-autoresearch-skill")
@@ -122,6 +126,18 @@ You've felt all five of these:
 
 Each v1tamin is the smallest sharp tool we could build for one of those failures. None of them try to be the whole process.
 
+### Choose the right planning or review skill
+
+| Need | Use | Not |
+| --- | --- | --- |
+| Flesh out an idea through questions | `v1-interview-me` | Customer discovery plan, prototype test, or PRD |
+| Plan/audit/synthesize customer conversations | `v1-learning-from-customers` | General feature spec or prototype usability test |
+| Plan or synthesize observed prototype sessions | `v1-testing-prototypes` | Customer interviews before a prototype exists |
+| Review UI task completion and error risk | `v1-reviewing-usability` | Chart truthfulness or metric-dashboard integrity |
+| Review charts, dashboards, or quantitative displays | `v1-reviewing-data-graphics` | General app usability review |
+| Diagnose a stuck process, queue, funnel, or roadmap | `v1-diagnosing-constraints` | Specific software bug reproduction |
+| Debug a reproducible failure or flaky behavior | `v1-debug` | Broad operational constraint diagnosis |
+
 <details>
 <summary><b>#1 &mdash; The plan is wrong before a line of code is written</b></summary>
 
@@ -137,7 +153,9 @@ You describe a feature. The agent writes 800 lines. About 60% solves a different
 - [`/v1-bare-bones`](./plugins/v1tamins/skills/v1-bare-bones/SKILL.md) — strip an overscoped plan down to the smallest useful version before it turns into implementation sprawl
 - [`/v1-shared-language`](./plugins/v1tamins/skills/v1-shared-language/SKILL.md) — extract a DDD-style glossary from the current conversation, flag ambiguous terms, and write `LANGUAGE.md`. Pays off session after session: variables, files, and prompts all start using one vocabulary
 - [`/v1-prd`](./plugins/v1tamins/skills/v1-prd/SKILL.md) — turn a Linear ticket or feature request into a real PRD
+- [`/v1-learning-from-customers`](./plugins/v1tamins/skills/v1-learning-from-customers/SKILL.md) — plan, audit, and synthesize customer discovery so demand evidence comes from behavior, context, and commitments rather than compliments or hypotheticals
 - [`/v1-testing-prototypes`](./plugins/v1tamins/skills/v1-testing-prototypes/SKILL.md) — plan or synthesize prototype tests that separate value, usability, and feasibility evidence before engineering commits
+- [`/v1-reviewing-usability`](./plugins/v1tamins/skills/v1-reviewing-usability/SKILL.md) — review a UI, prototype, flow, form, or admin surface for discoverability, feedback, mapping, conceptual-model clarity, and user-error risk
 
 </details>
 
@@ -225,25 +243,27 @@ Each skill does one thing. The leverage is the chain. These cycles are how Versi
 flowchart LR
   A([/v1-interview-me]) --> B([/v1-strategy-review])
   B --> C([/v1-bare-bones])
-  C --> D([/v1-prd])
-  D --> E{{... build ...}}
-  E --> F([/v1-simplify])
-  F --> G([/v1-code-review])
-  G --> H([/v1-pr])
-  H --> I([/v1-prove-work])
-  I --> J([/v1-land-pr])
-  J -.weekly.-> K([/v1-goldpan])
-  K -.feeds back.-> A
+  C --> D([/v1-learning-from-customers])
+  D --> E([/v1-prd])
+  E --> F{{... build ...}}
+  F --> G([/v1-simplify])
+  G --> H([/v1-code-review])
+  H --> I([/v1-pr])
+  I --> J([/v1-prove-work])
+  J --> K([/v1-land-pr])
+  K -.weekly.-> L([/v1-goldpan])
+  L -.feeds back.-> A
   click A href "./plugins/v1tamins/skills/v1-interview-me/SKILL.md"
   click B href "./plugins/v1tamins/skills/v1-strategy-review/SKILL.md"
   click C href "./plugins/v1tamins/skills/v1-bare-bones/SKILL.md"
-  click D href "./plugins/v1tamins/skills/v1-prd/SKILL.md"
-  click F href "./plugins/v1tamins/skills/v1-simplify/SKILL.md"
-  click G href "./plugins/v1tamins/skills/v1-code-review/SKILL.md"
-  click H href "./plugins/v1tamins/skills/v1-pr/SKILL.md"
-  click I href "./plugins/v1tamins/skills/v1-prove-work/SKILL.md"
-  click J href "./plugins/v1tamins/skills/v1-land-pr/SKILL.md"
-  click K href "./plugins/v1tamins/skills/v1-goldpan/SKILL.md"
+  click D href "./plugins/v1tamins/skills/v1-learning-from-customers/SKILL.md"
+  click E href "./plugins/v1tamins/skills/v1-prd/SKILL.md"
+  click G href "./plugins/v1tamins/skills/v1-simplify/SKILL.md"
+  click H href "./plugins/v1tamins/skills/v1-code-review/SKILL.md"
+  click I href "./plugins/v1tamins/skills/v1-pr/SKILL.md"
+  click J href "./plugins/v1tamins/skills/v1-prove-work/SKILL.md"
+  click K href "./plugins/v1tamins/skills/v1-land-pr/SKILL.md"
+  click L href "./plugins/v1tamins/skills/v1-goldpan/SKILL.md"
 ```
 
 ### Bug investigation
@@ -304,7 +324,9 @@ flowchart LR
 | [`/v1-bare-bones`](./plugins/v1tamins/skills/v1-bare-bones/SKILL.md) | Strip an overscoped plan down to the smallest useful version |
 | [`/v1-shared-language`](./plugins/v1tamins/skills/v1-shared-language/SKILL.md) | Build a DDD glossary so devs and agents stop talking past each other |
 | [`/v1-prd`](./plugins/v1tamins/skills/v1-prd/SKILL.md) | Generate a PRD from a Linear ticket or feature request |
+| [`/v1-learning-from-customers`](./plugins/v1tamins/skills/v1-learning-from-customers/SKILL.md) | Plan, audit, and synthesize customer discovery without false-positive demand evidence |
 | [`/v1-testing-prototypes`](./plugins/v1tamins/skills/v1-testing-prototypes/SKILL.md) | Plan and synthesize prototype tests before build decisions |
+| [`/v1-reviewing-usability`](./plugins/v1tamins/skills/v1-reviewing-usability/SKILL.md) | Review product interactions for discoverability, feedback, conceptual-model clarity, and user-error risk |
 
 ### Build & debug
 
@@ -325,6 +347,7 @@ flowchart LR
 | [`/v1-complexity`](./plugins/v1tamins/skills/v1-complexity/SKILL.md) | Reduce cognitive complexity in specific functions |
 | [`/v1-hindsight-refactor`](./plugins/v1tamins/skills/v1-hindsight-refactor/SKILL.md) | Throw away the messy first-pass fix and reimplement cleanly using what it taught you |
 | [`/v1-deep-review`](./plugins/v1tamins/skills/v1-deep-review/SKILL.md) | Harsh maintainability and structure audit on a large PR, new feature, or architecture change |
+| [`/v1-diagnosing-constraints`](./plugins/v1tamins/skills/v1-diagnosing-constraints/SKILL.md) | Find the bottleneck or constraint governing throughput in a stuck process, team, queue, or roadmap |
 
 ### Ship
 
@@ -352,6 +375,7 @@ flowchart LR
 | [`/v1-stickify`](./plugins/v1tamins/skills/v1-stickify/SKILL.md) | Make pitches, announcements, PR descriptions, or marketing copy memorable (Made-to-Stick framework) |
 | [`/v1-md2docs`](./plugins/v1tamins/skills/v1-md2docs/SKILL.md) | Publish a Markdown doc as a fully-formatted Google Doc |
 | [`/v1-html-it`](./plugins/v1tamins/skills/v1-html-it/SKILL.md) | Create polished self-contained HTML artifacts for reviews, explainers, reports, prototypes, or custom editors |
+| [`/v1-reviewing-data-graphics`](./plugins/v1tamins/skills/v1-reviewing-data-graphics/SKILL.md) | Review charts, dashboards, metric tables, and quantitative visual reports for integrity and clarity |
 
 ### Research
 

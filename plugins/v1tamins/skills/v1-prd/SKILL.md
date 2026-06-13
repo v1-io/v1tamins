@@ -36,6 +36,10 @@ In Codex, the slash examples below map directly to `$v1-prd ...`.
 - Reads the ticket title and description (may be high-level)
 - Examines codebase for existing relevant code and features
 - Understands technical context and constraints
+- Extracts customer evidence when available: current workaround, triggering circumstance, desired progress, competing solutions, adoption obstacles, and buying/approval path
+- Identifies the user-facing conceptual model: core objects, states, relationships, actions, permissions, and feedback the product must make visible
+- Flags hidden state, mode switches, ambiguous object ownership, destructive actions, or memory burdens that need explicit requirements
+- Adds a compact customer-job section when the request is driven by customer discovery, market validation, or a new product wedge. Use the full Job Spec template in [v1-learning-from-customers](../v1-learning-from-customers/SKILL.md) when detail is needed.
 
 ### 3. Write PRD
 
@@ -46,6 +50,9 @@ Creates a Product Requirements Document with these sections:
 
 ## Description
 [Clear summary of what we're building and why]
+
+## Customer Job
+[When customer evidence exists: summarize the customer slice, triggering circumstance, desired progress, current workaround, adoption obstacle, and success signal. Use the full Job Spec template in `v1-learning-from-customers` when the PRD needs deeper JTBD detail.]
 
 ## Features
 - Feature 1
@@ -59,6 +66,13 @@ Creates a Product Requirements Document with these sections:
 - Backend: [specifics]
 - Frontend: [specifics]
 - Database: [specifics]
+
+## Conceptual Model
+- Objects: [entities the user must understand]
+- States: [visible states, pending states, success/failure states]
+- Actions: [what the user can do to each object]
+- Feedback: [how the user knows an action succeeded, failed, or is pending]
+- Constraints: [invalid, dangerous, or impossible actions the product prevents]
 
 ## UI/UX Requirements
 - [Design specifications]
@@ -87,6 +101,9 @@ Creates a Product Requirements Document with these sections:
 - **Complete**: Covers edge cases and error conditions
 - **Actionable**: Technical requirements are specific
 - **Handoff-ready**: Developer can start work immediately
+- **Customer-grounded**: The PRD connects scope to a specific customer job, current workaround, switching obstacle, and success signal when customer evidence exists
+- **Conceptually clear**: The PRD names the objects, states, actions, feedback, and constraints the UI must expose
+- **Error-aware**: Requirements cover likely slips, mistakes, invalid inputs, destructive actions, and recovery paths
 
 ## Notes
 
@@ -94,3 +111,4 @@ Creates a Product Requirements Document with these sections:
 - Converts ambiguous language into testable statements
 - Prefers bullets over prose
 - Includes existing images with descriptive captions
+- Use `v1-learning-from-customers` first when the ticket lacks concrete customer evidence or needs a customer-discovery plan before becoming a PRD

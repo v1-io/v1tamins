@@ -55,21 +55,14 @@ Classify the session before asking the first question:
 
 | Posture | Use When | Interview Bias |
 |---------|----------|----------------|
-| **Startup diagnostic** | Customer, revenue, fundraising, market, internal sponsor, adoption, or "worth building" language appears | Demand evidence, status quo, narrow wedge, observation, future fit |
+| **Startup diagnostic** | Customer, revenue, fundraising, market, internal sponsor, adoption, or "worth building" language appears | Clarify the learning decision; switch to `v1-learning-from-customers` for discovery planning, question audits, notes synthesis, or demand review |
 | **Builder exploration** | Side project, learning, hackathon, open source, creative tool, or "cool thing" language appears | Delight, fastest demo, who to show, surprising combinations, next build step |
 | **Implementation spec** | User already knows this should be built | Decisions, constraints, edge cases, integration, validation |
+| **Socratic operational diagnostic** | Bottleneck, queue, WIP, throughput, "everything is urgent", process failure, handoff delay, or stuck team language appears | Clarify the system boundary; switch to `v1-diagnosing-constraints` for constraint diagnosis |
 
 Default to **Startup diagnostic** when the user asks whether something is worth building. Default to **Builder exploration** when the user wants to riff before committing. Switch postures mid-interview if the user's answers reveal a different job.
 
-**Startup diagnostic forcing questions:**
-- What's the strongest evidence someone actually wants this, not just finds it interesting?
-- What are people doing right now instead, and what does that workaround cost?
-- Who needs this most? Name the role, trigger, and consequence.
-- What's the smallest version someone would pay for or adopt this week?
-- Have you watched someone try to solve this without guiding them? What surprised you?
-- If the world changes over the next 3 years, does this become more necessary or less?
-
-Ask these one at a time only when the answer is not already clear. Push vague answers once with a concrete follow-up, then record the gap and move on.
+For startup-diagnostic sessions, ask only enough to identify the learning decision, target customer slice, and current evidence gap. If the user wants a discovery plan, question audit, interview synthesis, demand assessment, or JTBD job spec, switch to `v1-learning-from-customers`.
 
 **Builder exploration prompts:**
 - What's the version you would be excited to show someone this week?
@@ -77,6 +70,8 @@ Ask these one at a time only when the answer is not already clear. Push vague an
 - What's the fastest path to something usable?
 - What existing thing is closest, and what should be different?
 - What would the 10x version include if time were free?
+
+For operational-diagnostic sessions, ask only enough to identify the system goal, boundary, and visible symptom. If the user wants the diagnosis rather than interview notes, switch to `v1-diagnosing-constraints`.
 
 End every posture with one concrete assignment: the next thing the user or agent should do.
 
@@ -106,6 +101,7 @@ The first question shapes the entire interview. Choose based on what the user pr
 | Feature request with some detail | "What workaround are people using today, and what breaks about it?" |
 | Linear ticket / spec | "What's the most uncertain part of this spec?" |
 | Technical concept | "What's the simplest version of this that would be useful?" |
+| Operational bottleneck or process failure | "Where does work pile up or wait before the outcome is delivered?" |
 
 Avoid generic openers like "tell me more" or "what's the goal." The first question should demonstrate you understood the input and are already thinking ahead.
 
@@ -179,7 +175,8 @@ Don't silently drift. Explicitly acknowledge the pivot so the user can agree or 
 | Category | Focus | Example Non-Obvious Questions |
 |----------|-------|------------------------------|
 | **Current State** | What exists today | "What workaround exists now?" / "How is this problem currently handled?" |
-| **Demand & Wedge** | Whether the idea has real pull and a narrow entry point | "Who would be upset if this disappeared?" / "What's the smallest version worth adopting this week?" |
+| **Demand & Wedge** | Whether the idea has real pull and a narrow entry point | "What evidence do we already have?" / "Which uncertainty should customer learning resolve next?" |
+| **Throughput & Constraint** | Whether this should become a constraint diagnosis | "What system is stuck?" / "What symptom makes you suspect a bottleneck?" |
 | **Constraints** | What limits the solution space | "What's the recovery story if this fails mid-operation?" / "What existing system invariants must we preserve?" |
 | **Users & Actors** | Who interacts and how | "Who has to clean up when this goes wrong?" / "What's the worst thing a confused user could do here?" |
 | **State & Data** | What changes and persists | "What happens to in-flight data if this is deployed mid-operation?" / "What's the source of truth when systems disagree?" |
@@ -193,6 +190,7 @@ Don't silently drift. Explicitly acknowledge the pivot so the user can agree or 
 **Category Coverage Tracker:**
 - [ ] Current State
 - [ ] Demand & Wedge
+- [ ] Throughput & Constraint
 - [ ] Constraints
 - [ ] Users & Actors
 - [ ] State & Data
@@ -203,7 +201,7 @@ Don't silently drift. Explicitly acknowledge the pivot so the user can agree or 
 - [ ] Evolution
 - [ ] Integration
 
-Not all categories apply -- depth calibration from step 4 determines which matter. For analysis scope, focus on Current State, Constraints, Risk & Priority. For full design, cover all relevant categories.
+Not all categories apply -- depth calibration from step 4 determines which matter. For analysis scope, focus on Current State, Constraints, Risk & Priority. For full design, cover all relevant categories. When the interview turns into customer discovery, prototype testing, constraint diagnosis, or PRD writing, switch skills instead of embedding that specialist workflow here.
 
 ### 6. Avoid These Question Patterns
 
@@ -249,6 +247,7 @@ Select based on context:
 | User needs implementation-ready spec | **Standalone specification** | Use spec template in step 10 |
 | Idea is early-stage or exploratory | **Summary for discussion** | Synthesize key insights, list open questions, skip formal structure |
 | User asked "is this worth building" | **Diagnostic memo** | Lead with demand evidence, status quo, narrow wedge, risks, and assignment |
+| User is diagnosing a stuck operation, queue, or bottleneck | **Constraint interview notes** | Summarize system goal, suspected constraint, evidence, local-optimum traps, next measurement, and assignment |
 | User says "this is helpful" / "that's enough" | **No output needed** | The interview itself achieved the goal |
 
 ### 10. Produce the Specification (when appropriate)

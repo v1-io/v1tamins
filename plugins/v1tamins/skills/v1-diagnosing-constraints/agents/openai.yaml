@@ -1,0 +1,7 @@
+interface:
+  display_name: "Diagnosing Constraints"
+  short_description: "Find the bottleneck governing system throughput"
+  default_prompt: "Use $v1-diagnosing-constraints to find the constraint in this stuck process."
+
+policy:
+  allow_implicit_invocation: true

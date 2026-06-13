@@ -1,0 +1,7 @@
+interface:
+  display_name: "Learning From Customers"
+  short_description: "Plan and synthesize customer discovery without false positives"
+  default_prompt: "Use $v1-learning-from-customers to plan, audit, or synthesize customer discovery."
+
+policy:
+  allow_implicit_invocation: true
