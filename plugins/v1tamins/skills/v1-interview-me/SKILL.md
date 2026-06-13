@@ -58,6 +58,7 @@ Classify the session before asking the first question:
 | **Startup diagnostic** | Customer, revenue, fundraising, market, internal sponsor, adoption, or "worth building" language appears | Demand evidence, status quo, narrow wedge, observation, future fit |
 | **Builder exploration** | Side project, learning, hackathon, open source, creative tool, or "cool thing" language appears | Delight, fastest demo, who to show, surprising combinations, next build step |
 | **Implementation spec** | User already knows this should be built | Decisions, constraints, edge cases, integration, validation |
+| **Socratic operational diagnostic** | Bottleneck, queue, WIP, throughput, "everything is urgent", process failure, handoff delay, or stuck team language appears | Ask targeted questions that expose the system goal, dependent flow, constraint, local-optimum trap, and next measurement |
 
 Default to **Startup diagnostic** when the user asks whether something is worth building. Default to **Builder exploration** when the user wants to riff before committing. Switch postures mid-interview if the user's answers reveal a different job.
 
@@ -77,6 +78,17 @@ Ask these one at a time only when the answer is not already clear. Push vague an
 - What's the fastest path to something usable?
 - What existing thing is closest, and what should be different?
 - What would the 10x version include if time were free?
+
+**Socratic operational diagnostic prompts:**
+- What is the system trying to produce, and where is that outcome realized?
+- Where does work pile up, wait, get expedited, or come back as rework?
+- Which step starves downstream work when it is late, wrong, or overloaded?
+- What local metric looks good while the whole system still misses the goal?
+- What work is being started earlier or faster than the constraint can consume it?
+- What policy, incentive, approval, or definition of done might be creating the apparent bottleneck?
+- If the current constraint moved tomorrow, what old rule would become harmful inertia?
+
+Use this posture Socratically: ask one sharp question at a time, make the user reason from observable symptoms, and avoid presenting a finished diagnosis before the flow and evidence are clear. If the user wants the diagnosis rather than an interview, switch to `v1-diagnosing-constraints`.
 
 End every posture with one concrete assignment: the next thing the user or agent should do.
 
@@ -106,6 +118,7 @@ The first question shapes the entire interview. Choose based on what the user pr
 | Feature request with some detail | "What workaround are people using today, and what breaks about it?" |
 | Linear ticket / spec | "What's the most uncertain part of this spec?" |
 | Technical concept | "What's the simplest version of this that would be useful?" |
+| Operational bottleneck or process failure | "Where does work pile up or wait before the outcome is delivered?" |
 
 Avoid generic openers like "tell me more" or "what's the goal." The first question should demonstrate you understood the input and are already thinking ahead.
 
@@ -180,6 +193,7 @@ Don't silently drift. Explicitly acknowledge the pivot so the user can agree or 
 |----------|-------|------------------------------|
 | **Current State** | What exists today | "What workaround exists now?" / "How is this problem currently handled?" |
 | **Demand & Wedge** | Whether the idea has real pull and a narrow entry point | "Who would be upset if this disappeared?" / "What's the smallest version worth adopting this week?" |
+| **Throughput & Constraint** | What governs the rate of finished outcomes | "Which step controls the pace of the whole system?" / "What gets worse when every local team optimizes itself?" |
 | **Constraints** | What limits the solution space | "What's the recovery story if this fails mid-operation?" / "What existing system invariants must we preserve?" |
 | **Users & Actors** | Who interacts and how | "Who has to clean up when this goes wrong?" / "What's the worst thing a confused user could do here?" |
 | **State & Data** | What changes and persists | "What happens to in-flight data if this is deployed mid-operation?" / "What's the source of truth when systems disagree?" |
@@ -193,6 +207,7 @@ Don't silently drift. Explicitly acknowledge the pivot so the user can agree or 
 **Category Coverage Tracker:**
 - [ ] Current State
 - [ ] Demand & Wedge
+- [ ] Throughput & Constraint
 - [ ] Constraints
 - [ ] Users & Actors
 - [ ] State & Data
@@ -249,6 +264,7 @@ Select based on context:
 | User needs implementation-ready spec | **Standalone specification** | Use spec template in step 10 |
 | Idea is early-stage or exploratory | **Summary for discussion** | Synthesize key insights, list open questions, skip formal structure |
 | User asked "is this worth building" | **Diagnostic memo** | Lead with demand evidence, status quo, narrow wedge, risks, and assignment |
+| User is diagnosing a stuck operation, queue, or bottleneck | **Constraint interview notes** | Summarize system goal, suspected constraint, evidence, local-optimum traps, next measurement, and assignment |
 | User says "this is helpful" / "that's enough" | **No output needed** | The interview itself achieved the goal |
 
 ### 10. Produce the Specification (when appropriate)

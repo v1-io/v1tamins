@@ -20,6 +20,7 @@ Use HTML when the output benefits from at least one of these:
 
 - **Spatial comparison:** alternatives, tradeoffs, diffs, timelines, flowcharts, module maps, or side-by-side options.
 - **Visual density:** tables, cards, callouts, color, charts, SVG diagrams, annotated snippets, or status summaries.
+- **Quantitative evidence:** charts, dashboards, metric tables, scorecards, small multiples, or visual data reports.
 - **Interaction:** tabs, collapsible sections, filters, sliders, toggles, drag/drop, copy buttons, or lightweight editing.
 - **Presentation:** a page, deck, explainer, status report, research brief, incident timeline, PR writeup, or review artifact someone else should read.
 - **Two-way loop:** the user should manipulate the artifact and export JSON, Markdown, a prompt, a diff, or selected choices back to the agent.
@@ -92,6 +93,9 @@ Use the available repo, files, conversation, web pages, or command output. Keep 
 
 Do not invent data to make the page look complete. Mark unknowns visibly.
 
+If the artifact contains charts, dashboards, metric tables, or quantitative displays, read
+[references/visual-evidence-checklist.md](references/visual-evidence-checklist.md) before designing the page.
+
 ### 3. Design for Reading First
 
 Make the first viewport useful:
@@ -103,6 +107,7 @@ Make the first viewport useful:
 - Keep typography restrained and readable.
 - Use whitespace and alignment to reveal structure.
 - Prefer real diagrams/charts over ASCII.
+- For quantitative displays, make the main comparison, units, filters, source notes, and date range visible near the data.
 
 ### 4. Add Interaction Only When It Tightens the Loop
 
@@ -183,7 +188,12 @@ Before finishing, check:
 - All interactive controls have labels and obvious state.
 - Copy/export buttons produce useful text.
 - The artifact states what is sourced, inferred, or missing.
+- Quantitative displays pass the visual evidence checklist when applicable.
 - Private information is not written into a repo-tracked artifact unless the user explicitly wants that.
+
+## Reference Files
+
+- **[references/visual-evidence-checklist.md](references/visual-evidence-checklist.md)** - Quality checks for charts, dashboards, metric tables, and quantitative visual reports.
 
 ## Response Back
 

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Reviewing Data Graphics"
+  short_description: "Review charts and dashboards for integrity and clarity"
+  default_prompt: "Use $v1-reviewing-data-graphics to review this chart, dashboard, or quantitative display."
+
+policy:
+  allow_implicit_invocation: true

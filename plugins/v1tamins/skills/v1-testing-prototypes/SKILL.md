@@ -104,8 +104,15 @@ Tasks should put users in use mode:
 - Start with the user's current mental model when possible.
 - Keep the most important tasks first.
 - Include success signals and failure signals for each task.
+- Capture the action cycle for important tasks: what goal the user forms, how they plan, which action they specify, what they do, what feedback they perceive, how they interpret it, and whether they can tell they are done.
 
 Avoid questions like "What would you change?" until after observed use. Design suggestions are secondary to evidence of comprehension, value, and behavior.
+
+For each primary task, add one usability observation row:
+
+| Task | Goal Cue | Expected First Action | Feedback Needed | Watch For |
+| --- | --- | --- | --- | --- |
+| [User goal] | [What tells them where to start] | [Likely action] | [How success/failure/pending should be visible] | [Execution gulf, evaluation gulf, slips, mode errors] |
 
 ### 6. Facilitate Without Leading
 
@@ -117,7 +124,9 @@ Use these rules during sessions:
 - Do not rescue the participant unless the session is no longer producing useful evidence.
 - Reflect questions back instead of answering them.
 - Ask what the participant expected when they click into a dead end.
+- Ask what they expected to happen after meaningful actions, especially submits, saves, deletes, automation triggers, or mode switches.
 - Capture body language, hesitation, confusion, workarounds, and moments of excitement.
+- Capture whether confusion came from missing signifiers, poor mapping, weak feedback, hidden state, memory burden, or a wrong conceptual model.
 - Have one facilitator and one note taker when possible.
 
 ### 7. Ask Value Questions After Use
@@ -154,6 +163,15 @@ Separate:
 - Participant explanation.
 - Facilitator inference.
 - Team opinion.
+
+For usability findings, include the failed mechanism when it is clear:
+
+- Discoverability: the participant could not tell what actions were possible.
+- Signifier: the participant missed or misread a cue.
+- Mapping: the participant expected a control to affect a different object or outcome.
+- Feedback: the participant could not tell whether the action worked, failed, or was pending.
+- Constraint: the prototype allowed an impossible, dangerous, or nonsensical path.
+- Conceptual model: the participant's model of the objects, states, or relationships did not match the product.
 
 ### 9. Decide What Happens Next
 
