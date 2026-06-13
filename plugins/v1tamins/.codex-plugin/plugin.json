@@ -1,6 +1,6 @@
 {
   "name": "v1tamins",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "Reusable AI development skills and workflow guidance from Version1.",
   "author": {
     "name": "Version1",
@@ -48,6 +48,7 @@
       "/v1-deep-review audit this branch for maintainability",
       "/v1-address-review address PR feedback",
       "/v1-canon2skill find skill ideas in this source",
+      "/v1-loop-engineering turn this task into a bounded loop",
       "/v1-learning-from-customers plan customer discovery",
       "/v1-testing-prototypes create a user test plan",
       "/v1-reviewing-usability review this product flow",

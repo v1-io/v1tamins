@@ -110,6 +110,7 @@ mindmap
       ("v1-autoresearch-skill")
       ("v1-canon2skill")
     Meta
+      ("v1-loop-engineering")
       ("v1-skilling-it")
       ("v1-prompt-engineering")
 ```
@@ -151,6 +152,7 @@ You describe a feature. The agent writes 800 lines. About 60% solves a different
 - [`/v1-interview-me`](./plugins/v1tamins/skills/v1-interview-me/SKILL.md) — office-hours-style questioning that takes a fuzzy idea ("what if we did X") and walks every branch of the decision tree until you can describe what you actually want
 - [`/v1-strategy-review`](./plugins/v1tamins/skills/v1-strategy-review/SKILL.md) — a CEO-style read of a plan, PRD, or proposal that pushes back on scope, ambition, and hidden assumptions ("is this big enough?")
 - [`/v1-bare-bones`](./plugins/v1tamins/skills/v1-bare-bones/SKILL.md) — strip an overscoped plan down to the smallest useful version before it turns into implementation sprawl
+- [`/v1-loop-engineering`](./plugins/v1tamins/skills/v1-loop-engineering/SKILL.md) — turn an implementation idea into a bounded inspect -> change -> verify -> decide loop with stop rules before an agent starts iterating
 - [`/v1-shared-language`](./plugins/v1tamins/skills/v1-shared-language/SKILL.md) — extract a DDD-style glossary from the current conversation, flag ambiguous terms, and write `LANGUAGE.md`. Pays off session after session: variables, files, and prompts all start using one vocabulary
 - [`/v1-prd`](./plugins/v1tamins/skills/v1-prd/SKILL.md) — turn a Linear ticket or feature request into a real PRD
 - [`/v1-learning-from-customers`](./plugins/v1tamins/skills/v1-learning-from-customers/SKILL.md) — plan, audit, and synthesize customer discovery so demand evidence comes from behavior, context, and commitments rather than compliments or hypotheticals
@@ -389,6 +391,7 @@ flowchart LR
 
 | Skill | When to use |
 |-------|-------------|
+| [`/v1-loop-engineering`](./plugins/v1tamins/skills/v1-loop-engineering/SKILL.md) | Turn an implementation idea into a bounded goal-verification loop with stop rules |
 | [`/v1-skilling-it`](./plugins/v1tamins/skills/v1-skilling-it/SKILL.md) | Create or improve a shared agent skill (this repo's own toolchain) |
 | [`/v1-prompt-engineering`](./plugins/v1tamins/skills/v1-prompt-engineering/SKILL.md) | Write or improve prompts, system prompts, hooks, or sub-agent briefs |
 | [`/v1-prompt-engineering-v1tamins`](./plugins/v1tamins/skills/v1-prompt-engineering-v1tamins/SKILL.md) | Same, specialised for GPT-5.5 / OpenAI Responses API / OpenRouter migrations |
