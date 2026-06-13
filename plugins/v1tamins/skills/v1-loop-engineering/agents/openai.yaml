@@ -1,0 +1,7 @@
+interface:
+  display_name: "Loop Engineering"
+  short_description: "Design bounded agent implementation loops"
+  default_prompt: "Use $v1-loop-engineering to turn this task into a bounded implementation loop."
+
+policy:
+  allow_implicit_invocation: true
