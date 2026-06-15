@@ -112,6 +112,28 @@ Format responses as:
 4. Trade-offs
 ```
 
+### 6. Teach-Mode Prompting
+
+Turn explanations into a short practice loop when the model needs to help someone learn a skill, not just answer a question. Ask for the learner's target outcome, current level, and constraints when they are missing. Then move one concept at a time: explain briefly, show a tiny worked example, give the learner an exercise, diagnose the answer, and choose the next variation. Avoid dumping a full syllabus unless requested.
+
+**Example:**
+
+```markdown
+Teach me the core idea of [topic] so I can [outcome].
+
+First ask at most 3 questions if needed:
+- my current level
+- what I want to do with the skill
+- constraints on practice time or tools
+
+Then run this loop:
+1. Explain one concept in plain language.
+2. Show a tiny worked example.
+3. Give me one exercise I can answer in this chat.
+4. Diagnose my answer, correct misconceptions, and choose the next exercise.
+5. Stop after three exercises with a compact practice plan.
+```
+
 ## Key Patterns
 
 ### Progressive Disclosure
