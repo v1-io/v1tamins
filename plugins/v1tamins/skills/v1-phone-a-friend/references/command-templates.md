@@ -256,9 +256,51 @@ Preflight:
 
 ```bash
 command -v oracle >/dev/null 2>&1 && oracle --help
+oracle --help --verbose 2>/dev/null | rg -n -- "browser-model-strategy|browser-thinking-time|browser-archive|copy-profile|dry-run|files-report" || true
 ```
 
-If the local `oracle --help` documents file input, model selection, and output capture, use those documented flags. Do not invent `--file`, `--model`, or `--output` flags unless local help confirms them.
+For ChatGPT Pro browser consults, do not rely on Oracle defaults. Preview the exact browser route first:
+
+```bash
+oracle \
+  --engine browser \
+  --model gpt-5.5-pro \
+  --browser-model-strategy select \
+  --browser-thinking-time extended \
+  --browser-archive never \
+  --copy-profile "<signed-in Chrome user data dir when needed>" \
+  --dry-run summary \
+  --files-report \
+  --slug "<three-to-five-word-slug>" \
+  -p "$(cat <<'PROMPT'
+External consult. Do not ask for credentials, private data, or broad source access.
+
+Problem:
+<one-paragraph problem statement>
+
+Context:
+<small sanitized file list, diff summary, screenshot, or artifact>
+
+Question:
+<specific question for critique, risks, hypotheses, or alternatives>
+
+Return:
+- Recommendation
+- Evidence or assumptions
+- Risks and missing checks
+- Local verification steps
+PROMPT
+)" \
+  --file <small-sanitized-file-or-diff>
+```
+
+Remove `--dry-run summary` only after the preview resolves to `browser mode (gpt-5.5-pro)` and the files report shows a bounded, sanitized bundle. If the preview selects API mode, the current model, a non-Pro model, or an oversized file bundle, fix the flags or context package before running the consult.
+
+Use `--browser-model-strategy select` for Pro consults. Do not use `current` unless the user explicitly wants the currently selected browser model and accepts the risk of consulting the wrong model.
+
+Use `--copy-profile` only when needed to copy a signed-in Chrome profile into Oracle's throwaway browser profile; keep the path local and out of committed files. For long or recoverable browser runs, prefer a persistent signed-in Oracle browser profile or documented session reuse path over manual paste, and set a memorable `--slug` so `oracle status` and `oracle session <id>` can reattach.
+
+If the installed Oracle version rejects a flag, run `oracle --help --verbose`, adapt to the documented equivalent, and state which flags were used. Do not invent `--file`, `--model`, `--output`, browser model, or profile flags unless local help or a successful dry-run confirms them.
 
 Manual packet:
 

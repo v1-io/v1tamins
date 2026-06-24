@@ -119,6 +119,7 @@ Rules before using a template:
 - Use read-only templates for `consult`, `steelman`, and most `research` requests.
 - Use full-permission templates only for `verify` or `delegate` in a trusted or isolated worktree.
 - Prefer Claude or Codex for enforced read-only consults. Local Cursor Agent `--print` exposes write and shell tools, so use Cursor for `verify`/`delegate` or run it in an isolated worktree with a post-run diff check.
+- For Oracle Pro browser consults, force browser engine, Pro model selection, and a dry-run preview before spending the consult.
 - Treat Oracle and browser ChatGPT Pro as external/manual unless a local Oracle workflow exposes documented non-mutating command-line flags. Do not invent flags from memory.
 - Ask every peer to return assumptions, commands run, files changed, final dirty state, and local verification steps when it can touch the worktree.
 
