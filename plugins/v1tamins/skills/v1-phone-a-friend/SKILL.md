@@ -21,8 +21,9 @@ Coordinate another agent or model for counterpart review, steelmanning, delegati
    - Running in Cursor -> consult Claude Code or Codex first, based on availability.
    - Unknown host -> use the best authenticated coding peer that is not the current runtime.
 3. Override the counterpart default only when the task has a specialist fit, such as ChatGPT Pro Deep Research, Gemini long-context review, Cursor Agent, or Oracle/browser-mode review.
-4. Pick the permission mode for the job: `consult`, `verify`, or `delegate`.
-5. Package tight context, run the peer, and locally verify anything that influences the final decision.
+4. Choose one work type: `consult`, `verify`, `steelman`, `delegate`, or `research`.
+5. Choose one permission mode: `consult`, `verify`, `delegate`, or `external`.
+6. Package tight context, run the peer, and locally verify anything that influences the final decision.
 
 ## When To Use
 
@@ -68,6 +69,8 @@ Use the audit to report:
 
 Do not claim the user has a specific subscription tier unless the tool explicitly reports it or a safe probe succeeds. A local CLI can be installed without the relevant account being authenticated or subscribed.
 
+Treat command presence as `installed`, not authenticated. If a peer has no safe status command, report `auth: not checked`. Do not spend tokens, make network calls, or start a model run just to prove auth unless the user asked for a live probe.
+
 ## Routing Rules
 
 Prefer the counterpart default first. Treat specialty tools as overrides, not generic lanes.
@@ -105,195 +108,19 @@ Use the narrowest mode that fits the work, but do not make review agents toothle
 | `delegate` | implementation, broad code cleanup, async agent work | Full permissions only in an isolated worktree, disposable environment, or explicitly trusted workspace. |
 | `external` | browser ChatGPT Pro, Oracle, pasted/uploaded packet | No secrets, no credentials, no broad source dump, no write access. |
 
-Permission bypass flags are powerful. Use them deliberately for trusted local coding agents, not for external web sessions or untrusted workspaces.
+Permission bypass flags are powerful. Use them deliberately for trusted local coding agents, not for external web sessions or untrusted workspaces. Before any `verify` or `delegate` run with full permissions, record the starting dirty state and require the peer to report final `git status`, files changed, commands run, and validation results.
 
 ## Command Templates
 
-Adapt exact flags to the installed CLI version. Prefer `stream-json` or JSON output when the parent agent needs progress events or machine-readable parsing.
+Keep this file focused on routing and verification. Read [references/command-templates.md](references/command-templates.md) only after selecting a peer and permission mode.
 
-### Claude Code Counterpart
+Rules before using a template:
 
-```bash
-claude -p \
-  --permission-mode bypassPermissions \
-  --output-format stream-json \
-  --model <model-or-alias> \
-  --effort high \
-  "$(cat <<'PROMPT'
-Act as an independent counterpart reviewer. You may inspect the repo and run validation commands.
-Do not commit, push, publish, send messages, or mutate external services.
-
-Problem:
-<one-paragraph problem statement>
-
-Context files:
-- <path>
-- <path>
-
-Question:
-<specific question for critique, risks, hypotheses, or alternatives>
-
-Return:
-- Recommendation
-- Evidence or assumptions
-- Commands run and results
-- Risks, missing checks, and local verification steps
-PROMPT
-)"
-```
-
-For a read-only consult, replace the permission mode with allowed/disallowed tools:
-
-```bash
-claude -p \
-  --allowedTools "Read,Grep,Glob" \
-  --disallowedTools "Edit,Write,Bash" \
-  "<bounded consult prompt>"
-```
-
-### Codex Counterpart
-
-```bash
-codex exec \
-  --dangerously-bypass-approvals-and-sandbox \
-  --cd <repo> \
-  --json \
-  --model <model> \
-  "$(cat <<'PROMPT'
-Act as an independent counterpart reviewer. You may inspect the repo and run validation commands.
-Do not commit, push, publish, send messages, or mutate external services.
-
-Problem:
-<one-paragraph problem statement>
-
-Context files:
-- <path>
-- <path>
-
-Question:
-<specific question for critique, risks, hypotheses, or alternatives>
-
-Return:
-- Recommendation
-- Evidence or assumptions
-- Commands run and results
-- Risks, missing checks, and local verification steps
-PROMPT
-)"
-```
-
-For a read-only consult, use `--sandbox read-only` and ask the peer not to edit or create files.
-
-### Cursor Agent
-
-Use Cursor when the user wants to leverage a Cursor subscription, when Cursor Agent is available, or when the current host is not Cursor and Cursor is the best authenticated peer.
-
-```bash
-cursor-agent -p \
-  --output-format stream-json \
-  --model <model-or-auto> \
-  --force \
-  "$(cat <<'PROMPT'
-Act as an independent counterpart reviewer. You may inspect the repo and run validation commands.
-Do not commit, push, publish, send messages, or mutate external services.
-
-Problem:
-<one-paragraph problem statement>
-
-Context files:
-- <path>
-- <path>
-
-Question:
-<specific review, steelman, verification, or delegation request>
-
-Return:
-- Recommendation
-- Evidence or assumptions
-- Commands run and results
-- Risks, missing checks, and local verification steps
-PROMPT
-)"
-```
-
-For a consult-only Cursor call, omit `--force` and explicitly ask for no edits or commands. For async implementation, use Cursor Cloud Agent only when it is configured and the task is safe to run in its remote environment.
-
-### Gemini CLI
-
-Use Gemini when installed and authenticated, especially for large-context, multimodal, or Google-grounded packets. Check `gemini --help` locally before relying on exact flags.
-
-```bash
-gemini \
-  --model <model> \
-  --output-format stream-json \
-  -p "$(cat <<'PROMPT'
-Act as an independent counterpart reviewer.
-
-Problem:
-<one-paragraph problem statement>
-
-Context:
-<bounded file list, diff excerpt, artifact, screenshot description, or research packet>
-
-Question:
-<specific review, synthesis, or long-context request>
-
-Return:
-- Recommendation
-- Evidence or assumptions
-- Risks, missing checks, and local verification steps
-PROMPT
-)"
-```
-
-### Oracle / Browser-Mode Strong Review
-
-Use the local Oracle command if one exists, or paste the same packet into browser-mode ChatGPT Pro / GPT Pro. Keep the packet sanitized and bounded.
-
-```text
-External consult. Do not ask for credentials, private data, or broad source access.
-
-Problem:
-<one-paragraph problem statement>
-
-Context:
-<small sanitized excerpt, file list, diff summary, screenshot, or artifact>
-
-Question:
-<specific question for critique, risks, hypotheses, or alternatives>
-
-Return:
-- Recommendation
-- Evidence or assumptions
-- Risks and missing checks
-- Local verification steps
-```
-
-### ChatGPT Pro Deep Research
-
-Prefer ChatGPT Pro Deep Research for serious external research when it is available. Prepare a packet instead of asking a coding agent to improvise broad web research.
-
-```text
-Deep research request:
-
-Question:
-<research question>
-
-Scope:
-- Include:
-- Exclude:
-- Time range or geography:
-
-Context:
-<sanitized background, decision being informed, and any uploaded files>
-
-Output:
-- Executive summary
-- Evidence-backed findings with sources
-- Contradictions or uncertainty
-- Practical implications for <decision>
-- Limitations
-```
+- Use read-only templates for `consult`, `steelman`, and most `research` requests.
+- Use full-permission templates only for `verify` or `delegate` in a trusted or isolated worktree.
+- Prefer Claude or Codex for enforced read-only consults. Local Cursor Agent `--print` exposes write and shell tools, so use Cursor for `verify`/`delegate` or run it in an isolated worktree with a post-run diff check.
+- Treat Oracle and browser ChatGPT Pro as external/manual unless a local Oracle workflow exposes documented non-mutating command-line flags. Do not invent flags from memory.
+- Ask every peer to return assumptions, commands run, files changed, final dirty state, and local verification steps when it can touch the worktree.
 
 ## Context Packaging Rules
 
