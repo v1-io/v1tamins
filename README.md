@@ -138,6 +138,7 @@ Each v1tamin is the smallest sharp tool we could build for one of those failures
 | Review charts, dashboards, or quantitative displays | `v1-reviewing-data-graphics` | General app usability review |
 | Diagnose a stuck process, queue, funnel, or roadmap | `v1-diagnosing-constraints` | Specific software bug reproduction |
 | Debug a reproducible failure or flaky behavior | `v1-debug` | Broad operational constraint diagnosis |
+| Get an independent second model/runtime opinion | `v1-phone-a-friend` | First-pass in-agent review or research |
 
 <details>
 <summary><b>#1 &mdash; The plan is wrong before a line of code is written</b></summary>

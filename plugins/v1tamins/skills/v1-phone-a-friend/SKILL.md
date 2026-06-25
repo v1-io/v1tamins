@@ -12,6 +12,19 @@ allowed-tools:
 
 Coordinate another agent or model for counterpart review, steelmanning, delegation, deep research, or verification, then validate the result locally.
 
+## Usage
+
+Typical invocations:
+- Claude Code: `/v1-phone-a-friend`
+- Codex: invoke `v1-phone-a-friend` from the skills menu or use `$v1-phone-a-friend`
+
+Examples:
+```bash
+/v1-phone-a-friend ask Claude to review this PR
+/v1-phone-a-friend steelman this migration plan
+/v1-phone-a-friend use Oracle Pro browser mode for this research packet
+```
+
 ## Quick Start
 
 1. Inspect the local capability surface before choosing a peer.
@@ -22,7 +35,7 @@ Coordinate another agent or model for counterpart review, steelmanning, delegati
    - Unknown host -> use the best authenticated coding peer that is not the current runtime.
 3. Override the counterpart default only when the task has a specialist fit, such as ChatGPT Pro Deep Research, Gemini long-context review, Cursor Agent, or Oracle/browser-mode review.
 4. Choose one work type: `consult`, `verify`, `steelman`, `delegate`, or `research`.
-5. Choose one permission mode: `consult`, `verify`, `delegate`, or `external`.
+5. Choose one permission mode: `readonly`, `local-verify`, `isolated-delegate`, or `external`.
 6. Package tight context, run the peer, and locally verify anything that influences the final decision.
 
 ## When To Use
@@ -37,6 +50,7 @@ Coordinate another agent or model for counterpart review, steelmanning, delegati
 
 - Do not consult a peer before reading the relevant repo files, logs, tests, or docs locally.
 - Do not use a peer call to avoid making a grounded local decision.
+- Do not use this skill when an in-agent skill is the direct fit and independence is not needed: use `v1-code-review` for ordinary PR review, `v1-deep-review` for harsh maintainability review, and `v1-deep-research` for in-agent sourced research.
 - Do not send secrets, tokens, credentials, private keys, customer data, proprietary incident details, or broad repo dumps.
 - Do not grant broad filesystem, network, account, or permission bypass access to an untrusted workspace, browser session, or external upload.
 - Do not apply peer output directly without local verification.
@@ -55,6 +69,7 @@ for cmd in claude codex cursor-agent gemini oracle; do
   fi
 done
 
+claude doctor 2>/dev/null || true
 codex doctor --json 2>/dev/null || true
 cursor-agent status 2>/dev/null || true
 ```
@@ -69,7 +84,7 @@ Use the audit to report:
 
 Do not claim the user has a specific subscription tier unless the tool explicitly reports it or a safe probe succeeds. A local CLI can be installed without the relevant account being authenticated or subscribed.
 
-Treat command presence as `installed`, not authenticated. If a peer has no safe status command, report `auth: not checked`. Do not spend tokens, make network calls, or start a model run just to prove auth unless the user asked for a live probe.
+Treat command presence as `installed`, not authenticated. If a peer has no safe status command, report `auth: not checked` and lower confidence in that peer choice. If a one-shot run fails because an env API key overrides a local login, or because a browser/API-key login is required, report the auth blocker without printing secret values. Do not spend tokens, make network calls, or start a model run just to prove auth unless the user asked for a live probe.
 
 ## Routing Rules
 
@@ -87,6 +102,18 @@ Prefer the counterpart default first. Treat specialty tools as overrides, not ge
 | Cursor subscription should be used | Cursor Agent | Use `cursor-agent` for terminal automation, or Cursor Cloud Agent when the task should run asynchronously in Cursor's remote environment. |
 | Strong external/browser review | Oracle or browser-mode ChatGPT Pro / GPT Pro | Use when local CLIs cannot inspect the needed page, upload, or model surface. |
 
+## Decision Matrix
+
+| Need | Work Type | Permission Mode | Prefer |
+| --- | --- | --- | --- |
+| Independent PR/code review after local review | `consult` | `readonly` | Counterpart runtime: Claude from Codex, Codex from Claude. |
+| Harsh maintainability critique from the same runtime | Use `v1-deep-review` first | n/a | Phone a friend only when a second runtime is requested. |
+| Steelman a plan or decision | `steelman` | `readonly` | Counterpart runtime or browser strong model for product/strategy judgment. |
+| Reproduce a bug or verify tests | `verify` | `local-verify` | Coding peer in a trusted local worktree. |
+| Offload implementation or cleanup | `delegate` | `isolated-delegate` | Coding peer in a disposable or explicitly trusted worktree. |
+| True external deep research | `research` | `external` | ChatGPT Pro Deep Research first when available. |
+| Oracle Pro browser consult | `consult` or `research` | `external` | Oracle with explicit browser/Pro dry-run preview. |
+
 ## Work Types
 
 | Work Type | Goal | Peer Output |
@@ -103,12 +130,12 @@ Use the narrowest mode that fits the work, but do not make review agents toothle
 
 | Mode | Use For | Permission Shape |
 | --- | --- | --- |
-| `consult` | critique, steelman, architecture advice, product judgment | Read-only by default. |
-| `verify` | checking a local diff, reproducing a bug, running tests | Full command permissions in a trusted repo/worktree are acceptable. |
-| `delegate` | implementation, broad code cleanup, async agent work | Full permissions only in an isolated worktree, disposable environment, or explicitly trusted workspace. |
+| `readonly` | critique, steelman, architecture advice, product judgment | Read-only or plan/ask mode by default. |
+| `local-verify` | checking a local diff, reproducing a bug, running tests | Full command permissions in a trusted repo/worktree are acceptable. |
+| `isolated-delegate` | implementation, broad code cleanup, async agent work | Full permissions only in an isolated worktree, disposable environment, or explicitly trusted workspace. |
 | `external` | browser ChatGPT Pro, Oracle, pasted/uploaded packet | No secrets, no credentials, no broad source dump, no write access. |
 
-Permission bypass flags are powerful. Use them deliberately for trusted local coding agents, not for external web sessions or untrusted workspaces. Before any `verify` or `delegate` run with full permissions, record the starting dirty state and require the peer to report final `git status`, files changed, commands run, and validation results.
+Permission bypass flags are powerful. Use them deliberately for trusted local coding agents, not for external web sessions or untrusted workspaces. Before any `local-verify` or `isolated-delegate` run with full permissions, record the starting dirty state and require the peer to report final `git status`, files changed, commands run, and validation results.
 
 ## Command Templates
 
@@ -118,7 +145,7 @@ Rules before using a template:
 
 - Use read-only templates for `consult`, `steelman`, and most `research` requests.
 - Use full-permission templates only for `verify` or `delegate` in a trusted or isolated worktree.
-- Prefer Claude or Codex for enforced read-only consults. Local Cursor Agent `--print` exposes write and shell tools, so use Cursor for `verify`/`delegate` or run it in an isolated worktree with a post-run diff check.
+- Prefer enforced read-only modes for consults: Claude/Codex read-only templates, Cursor `--mode plan` or `--mode ask`, or external/manual packets.
 - For Oracle Pro browser consults, force browser engine, Pro model selection, and a dry-run preview before spending the consult.
 - Treat Oracle and browser ChatGPT Pro as external/manual unless a local Oracle workflow exposes documented non-mutating command-line flags. Do not invent flags from memory.
 - Ask every peer to return assumptions, commands run, files changed, final dirty state, and local verification steps when it can touch the worktree.
@@ -129,6 +156,7 @@ Rules before using a template:
 - Include the smallest useful file set, diff excerpt, logs, command output, screenshot, artifact, or research packet.
 - Prefer file paths plus short excerpts over whole files when the peer does not need full source.
 - Redact secrets, tokens, customer names, private URLs, account IDs, and proprietary incident details before sending context.
+- For external/browser packets, run a privacy scan over the selected excerpts before upload or paste when feasible.
 - Keep project-specific instructions out unless they directly change the answer.
 - Ask for JSON or another explicit schema when automation will consume the peer output.
 - Ask the peer to label assumptions and uncertainty instead of sounding decisive with thin evidence.
