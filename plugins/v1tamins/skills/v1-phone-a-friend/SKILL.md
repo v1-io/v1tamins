@@ -1,6 +1,6 @@
 ---
 name: v1-phone-a-friend
-description: Use when an agent needs counterpart review, another agent/model consult, steelmanning, delegated implementation, or external strong-model research. Triggers on "phone a friend", "second opinion", "ask another agent", "ask Claude", "ask Codex", "ask Cursor", "ask Oracle", "consult GPT Pro", "steelman this".
+description: Use when an agent needs counterpart review, another agent/model consult, steelmanning, delegated implementation, or external strong-model research. Triggers on "phone a friend", "second opinion", "ask another agent", "ask Claude", "ask Codex", "ask Cursor", "ask Oracle", "consult ChatGPT Pro", "steelman this".
 allowed-tools:
   - Bash
   - Read
@@ -100,7 +100,7 @@ Prefer the counterpart default first. Treat specialty tools as overrides, not ge
 | True deep web research | ChatGPT Pro Deep Research, then Gemini/Codex/Claude with web access | Specialized research products are better suited than a coding-agent consult. |
 | Large-context or multimodal packet | Gemini, then ChatGPT Pro/browser mode | Use the model/tool whose context and media handling match the packet. |
 | Cursor subscription should be used | Cursor Agent | Use `cursor-agent` for terminal automation, or Cursor Cloud Agent when the task should run asynchronously in Cursor's remote environment. |
-| Strong external/browser review | Oracle or browser-mode ChatGPT Pro / GPT Pro | Use when local CLIs cannot inspect the needed page, upload, or model surface. |
+| Strong external/browser review | Oracle or browser-mode ChatGPT Pro | Use when local CLIs cannot inspect the needed page, upload, or model surface. |
 
 ## Decision Matrix
 
@@ -175,6 +175,8 @@ Peer invocation is a child process or external workflow, not shared consciousnes
 ## Model And Effort Selection
 
 Choose the model and reasoning level from task risk, not habit.
+
+Do not hardcode concrete model names in reusable skill instructions. Resolve the current model from local CLI help, model lists, config, or the user's explicit request, then pass that model explicitly for serious work. If the peer does not reveal the actual model used, report `model: not reported`.
 
 | Task | Default |
 | --- | --- |

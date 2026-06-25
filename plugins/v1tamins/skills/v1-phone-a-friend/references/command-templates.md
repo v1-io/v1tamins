@@ -19,6 +19,7 @@ Ask every peer to return this shape:
 ```text
 Return:
 - Recommendation
+- Model requested and actual model used, if available
 - Evidence or assumptions
 - Commands run and results
 - Files changed
@@ -61,6 +62,7 @@ Question:
 
 Return:
 - Recommendation
+- Model requested and actual model used, if available
 - Evidence or assumptions
 - Commands run and results
 - Files changed
@@ -96,6 +98,7 @@ Question:
 
 Return:
 - Recommendation
+- Model requested and actual model used, if available
 - Evidence or assumptions
 - Commands run and results
 - Files changed
@@ -131,6 +134,7 @@ Question:
 
 Return:
 - Recommendation
+- Model requested and actual model used, if available
 - Evidence or assumptions
 - Commands run and results
 - Files changed
@@ -166,6 +170,7 @@ Question:
 
 Return:
 - Recommendation
+- Model requested and actual model used, if available
 - Evidence or assumptions
 - Commands run and results
 - Files changed
@@ -203,6 +208,7 @@ Question:
 
 Return:
 - Recommendation
+- Model requested and actual model used, if available
 - Evidence or assumptions
 - Commands run and results
 - Files changed
@@ -242,6 +248,7 @@ Question:
 
 Return:
 - Recommendation
+- Model requested and actual model used, if available
 - Evidence or assumptions
 - Commands run and results
 - Files changed
@@ -277,6 +284,7 @@ Question:
 
 Return:
 - Recommendation
+- Model requested and actual model used, if available
 - Evidence or assumptions
 - Commands run and results
 - Files changed
@@ -302,9 +310,11 @@ oracle --help --verbose 2>/dev/null | rg -n -- "browser-model-strategy|browser-t
 For ChatGPT Pro browser consults, do not rely on Oracle defaults. Preview the exact browser route first:
 
 ```bash
+SELECTED_MODEL="<current Pro browser model from oracle help or model list>"
+
 oracle \
   --engine browser \
-  --model gpt-5.5-pro \
+  --model "$SELECTED_MODEL" \
   --browser-model-strategy select \
   --browser-archive never \
   --copy-profile "<signed-in Chrome user data dir when needed>" \
@@ -325,6 +335,7 @@ Question:
 
 Return:
 - Recommendation
+- Model requested and actual model used, if available
 - Evidence or assumptions
 - Risks and missing checks
 - Local verification steps
@@ -333,7 +344,7 @@ PROMPT
   --file <small-sanitized-file-or-diff>
 ```
 
-Remove `--dry-run summary` only after the preview resolves to `browser mode (gpt-5.5-pro)` and the files report shows a bounded, sanitized bundle. If the preview selects API mode, the current model, a non-Pro model, or an oversized file bundle, fix the flags or context package before running the consult.
+Remove `--dry-run summary` only after the preview resolves to `browser mode ($SELECTED_MODEL)` or otherwise confirms the selected Pro browser model, and the files report shows a bounded, sanitized bundle. If the preview selects API mode, the current model, a non-Pro model, or an oversized file bundle, fix the flags or context package before running the consult.
 
 Use `--browser-model-strategy select` for Pro consults. Do not use `current` unless the user explicitly wants the currently selected browser model and accepts the risk of consulting the wrong model.
 
@@ -359,6 +370,7 @@ Question:
 
 Return:
 - Recommendation
+- Model requested and actual model used, if available
 - Evidence or assumptions
 - Risks and missing checks
 - Local verification steps
