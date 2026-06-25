@@ -1,0 +1,7 @@
+interface:
+  display_name: "Phone a Friend"
+  short_description: "Route work to another agent or model for counterpart review, delegation, or research."
+  default_prompt: "Use $v1-phone-a-friend to consult the best available counterpart on this work."
+
+policy:
+  allow_implicit_invocation: true
