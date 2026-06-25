@@ -28,15 +28,19 @@ Examples:
 ## Quick Start
 
 1. Inspect the local capability surface before choosing a peer.
-2. Default to the strongest available counterpart, not a generic "lane":
-   - Running in Codex -> consult Claude Code first.
-   - Running in Claude Code -> consult Codex first.
-   - Running in Cursor -> consult Claude Code or Codex first, based on availability.
-   - Unknown host -> use the best authenticated coding peer that is not the current runtime.
-3. Override the counterpart default only when the task has a specialist fit, such as ChatGPT Pro Deep Research, Gemini long-context review, Cursor Agent, or Oracle/browser-mode review.
-4. Choose one work type: `consult`, `verify`, `steelman`, `delegate`, or `research`.
-5. Choose one permission mode: `readonly`, `local-verify`, `isolated-delegate`, or `external`.
-6. Package tight context, run the peer, and locally verify anything that influences the final decision.
+2. Follow the decision path below to select the peer, work type, permission mode, and reference file.
+3. Package the smallest useful context and remove secrets, private URLs, customer data, tokens, account IDs, and proprietary incident details.
+4. Run the selected peer with the narrowest permission mode that fits the work.
+5. Treat the result as advice until verified with local evidence, tests, diffs, or source review.
+
+## Decision Path
+
+1. Use a direct in-agent skill instead when independence is not needed: `v1-code-review` for ordinary PR review, `v1-deep-review` for harsh maintainability review, and `v1-deep-research` for in-agent sourced research.
+2. Prefer a counterpart runtime by default: Codex -> Claude Code, Claude Code -> Codex, Cursor -> Claude Code or Codex, unknown host -> best authenticated coding peer not already in use.
+3. Override the counterpart default only for a named user preference or a real specialist fit: ChatGPT Pro Deep Research, Gemini long-context or multimodal review, Cursor Agent/Cloud Agent, or Oracle/browser-mode review.
+4. Use the decision matrix to pick one work type and one permission mode.
+5. Resolve the current model and effort from local CLI help, model lists, config, or the user's explicit request. Do not hardcode concrete model names.
+6. Load the relevant reference file and run one bounded template.
 
 ## When To Use
 
@@ -50,7 +54,6 @@ Examples:
 
 - Do not consult a peer before reading the relevant repo files, logs, tests, or docs locally.
 - Do not use a peer call to avoid making a grounded local decision.
-- Do not use this skill when an in-agent skill is the direct fit and independence is not needed: use `v1-code-review` for ordinary PR review, `v1-deep-review` for harsh maintainability review, and `v1-deep-research` for in-agent sourced research.
 - Do not send secrets, tokens, credentials, private keys, customer data, proprietary incident details, or broad repo dumps.
 - Do not grant broad filesystem, network, account, or permission bypass access to an untrusted workspace, browser session, or external upload.
 - Do not apply peer output directly without local verification.
@@ -74,33 +77,14 @@ codex doctor --json 2>/dev/null || true
 cursor-agent status 2>/dev/null || true
 ```
 
-Use the audit to report:
-
+Report:
 - **host:** current runtime when known, otherwise `unknown`
 - **installed peers:** `claude`, `codex`, `cursor-agent`, `gemini`, `oracle`
 - **auth:** `verified`, `unverified`, or `not checked`
 - **default peer:** selected counterpart and reason
 - **limits:** subscription tier, browser access, and cloud-agent access if not directly verified
 
-Do not claim the user has a specific subscription tier unless the tool explicitly reports it or a safe probe succeeds. A local CLI can be installed without the relevant account being authenticated or subscribed.
-
-Treat command presence as `installed`, not authenticated. If a peer has no safe status command, report `auth: not checked` and lower confidence in that peer choice. If a one-shot run fails because an env API key overrides a local login, or because a browser/API-key login is required, report the auth blocker without printing secret values. Do not spend tokens, make network calls, or start a model run just to prove auth unless the user asked for a live probe.
-
-## Routing Rules
-
-Prefer the counterpart default first. Treat specialty tools as overrides, not generic lanes.
-
-| Situation | Prefer | Why |
-| --- | --- | --- |
-| Running in Codex | Claude Code | Different model family/runtime gives better independent review of Codex work. |
-| Running in Claude Code | Codex | Different model family/runtime gives better independent review of Claude work. |
-| Running in Cursor | Claude Code, then Codex | Cursor already owns the current context; use another coding agent first. |
-| Host unknown | Best authenticated coding peer not already in use | Avoid self-review when another capable peer exists. |
-| User explicitly names a peer | Named peer | User intent overrides the default when the peer is available. |
-| True deep web research | ChatGPT Pro Deep Research, then Gemini/Codex/Claude with web access | Specialized research products are better suited than a coding-agent consult. |
-| Large-context or multimodal packet | Gemini, then ChatGPT Pro/browser mode | Use the model/tool whose context and media handling match the packet. |
-| Cursor subscription should be used | Cursor Agent | Use `cursor-agent` for terminal automation, or Cursor Cloud Agent when the task should run asynchronously in Cursor's remote environment. |
-| Strong external/browser review | Oracle or browser-mode ChatGPT Pro | Use when local CLIs cannot inspect the needed page, upload, or model surface. |
+Treat command presence as `installed`, not authenticated. Do not claim a specific subscription tier unless the tool explicitly reports it or a safe probe succeeds. If a peer has no safe status command, report `auth: not checked` and lower confidence in that peer choice. Do not spend tokens, make network calls, or start a model run just to prove auth unless the user asked for a live probe.
 
 ## Decision Matrix
 
@@ -112,9 +96,12 @@ Prefer the counterpart default first. Treat specialty tools as overrides, not ge
 | Reproduce a bug or verify tests | `verify` | `local-verify` | Coding peer in a trusted local worktree. |
 | Offload implementation or cleanup | `delegate` | `isolated-delegate` | Coding peer in a disposable or explicitly trusted worktree. |
 | True external deep research | `research` | `external` | ChatGPT Pro Deep Research first when available. |
+| Large-context or multimodal packet | `consult` or `research` | `readonly` or `external` | Gemini or browser-mode strong model when available. |
+| Cursor subscription should be used | `consult`, `verify`, or `delegate` | Match the work | Cursor Agent locally, or Cursor Cloud Agent for async remote work. |
 | Oracle Pro browser consult | `consult` or `research` | `external` | Oracle with explicit browser/Pro dry-run preview. |
+| User explicitly names a peer | Match the request | Match the work | Named peer if installed and authenticated. |
 
-## Work Types
+## Definitions
 
 | Work Type | Goal | Peer Output |
 | --- | --- | --- |
@@ -124,11 +111,7 @@ Prefer the counterpart default first. Treat specialty tools as overrides, not ge
 | `delegate` | Offload bounded implementation or research. | Diff, artifact, or report plus validation evidence. |
 | `research` | Gather and synthesize external evidence. | Sourced summary or research report with limitations. |
 
-## Permission Modes
-
-Use the narrowest mode that fits the work, but do not make review agents toothless when the user expects real verification.
-
-| Mode | Use For | Permission Shape |
+| Permission Mode | Use For | Permission Shape |
 | --- | --- | --- |
 | `readonly` | critique, steelman, architecture advice, product judgment | Read-only or plan/ask mode by default. |
 | `local-verify` | checking a local diff, reproducing a bug, running tests | Full command permissions in a trusted repo/worktree are acceptable. |
@@ -139,16 +122,11 @@ Permission bypass flags are powerful. Use them deliberately for trusted local co
 
 ## Command Templates
 
-Keep this file focused on routing and verification. Read [references/command-templates.md](references/command-templates.md) only after selecting a peer and permission mode.
+Keep this file focused on routing and verification. After selecting the peer and permission mode, read:
+- [references/command-templates.md](references/command-templates.md) for Claude Code, Codex, Cursor Agent, and Gemini CLI templates.
+- [references/oracle-browser.md](references/oracle-browser.md) for Oracle browser review and ChatGPT Pro Deep Research packets.
 
-Rules before using a template:
-
-- Use read-only templates for `consult`, `steelman`, and most `research` requests.
-- Use full-permission templates only for `verify` or `delegate` in a trusted or isolated worktree.
-- Prefer enforced read-only modes for consults: Claude/Codex read-only templates, Cursor `--mode plan` or `--mode ask`, or external/manual packets.
-- For Oracle Pro browser consults, force browser engine, Pro model selection, and a dry-run preview before spending the consult.
-- Treat Oracle and browser ChatGPT Pro as external/manual unless a local Oracle workflow exposes documented non-mutating command-line flags. Do not invent flags from memory.
-- Ask every peer to return assumptions, commands run, files changed, final dirty state, and local verification steps when it can touch the worktree.
+Invariant: ask every peer to return assumptions, model requested and actual model used when available, evidence, commands run, files changed, dirty state, risks, and local verification steps when the peer can touch the worktree.
 
 ## Context Packaging Rules
 
@@ -199,3 +177,8 @@ Before acting on advice:
 - Keep the fix scoped to locally verified facts.
 - Inspect any peer-made diff before keeping it.
 - Report which peer suggestions were used, ignored, or still unverified when the consult materially influenced the result.
+
+## Reference Files
+
+- **[references/command-templates.md](references/command-templates.md)** - Coding-agent prompt bodies and command wrappers for Claude Code, Codex, Cursor Agent, and Gemini CLI.
+- **[references/oracle-browser.md](references/oracle-browser.md)** - External Oracle/browser-mode consults, manual packets, and ChatGPT Pro Deep Research packet format.
