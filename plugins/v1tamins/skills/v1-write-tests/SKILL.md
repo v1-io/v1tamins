@@ -10,7 +10,7 @@ allowed-tools:
 ---
 # Write Unit Tests
 
-Create comprehensive unit tests with proper imports and setup according to project testing conventions.
+Add focused tests for changed behavior, bug seams, boundary cases, and regression risk using the project's existing test conventions.
 
 ## Usage
 
@@ -32,16 +32,16 @@ In Codex, the slash examples below map directly to `$v1-write-tests ...`.
 
 ## What It Does
 
-### 1. Test Coverage
-- Tests all public methods and functions
-- Covers edge cases and error conditions
-- Tests both positive and negative scenarios
-- Aims for high code coverage
-- For bug fixes, tests the real failure pattern at the narrowest correct seam rather than a shallow approximation
+### 1. Test Selection
+- Identify the changed public behavior from the diff, target file, or user request.
+- For bug fixes, reproduce the real failure pattern at the narrowest correct seam before asserting the fix.
+- Cover boundary and error paths that the changed behavior can realistically hit.
+- Add a test only when it can fail for a meaningful regression; skip coverage that only executes lines.
+- For each changed branch or state transition, prefer at least one assertion that would fail if that branch were removed, inverted, or bypassed.
 
 ### 2. Test Structure
 - Uses project's testing framework conventions
-- Writes clear, descriptive test names
+- Names each test after the behavior and condition under test
 - Follows Arrange-Act-Assert pattern
 - Groups related tests logically
 
@@ -54,9 +54,9 @@ In Codex, the slash examples below map directly to `$v1-write-tests ...`.
 ### 4. Test Quality
 - Tests are independent and isolated
 - Tests are deterministic and repeatable
-- Tests are simple and focused
-- Helpful assertion messages included
-- **No external dependencies** (database fixtures, files, APIs)
+- Each test has one primary reason to fail
+- Assertion messages or comments explain non-obvious invariants only
+- External APIs, wall-clock time, network calls, and shared mutable state are isolated behind fixtures, fakes, or test doubles unless the project explicitly uses integration tests for that layer
 
 ## Project-Specific Conventions
 
@@ -75,7 +75,7 @@ In Codex, the slash examples below map directly to `$v1-write-tests ...`.
 **Style:**
 - Arrange-Act-Assert pattern
 - Descriptive test names (test_method_condition_expected_result)
-- No testing for specific UI strings
+- Test user-visible UI text when it is the behavior; otherwise prefer roles, labels, states, and user outcomes over brittle copy assertions
 - Isolated and deterministic
 
 ## What NOT to Do (Anti-Patterns)
@@ -182,4 +182,4 @@ Before each mock, ask: "Do I understand what this test actually needs?"
 
 - Only write tests when explicitly requested
 - Always run tests after creating them to verify they pass
-- Use `pytest` for backend, `npm test` for frontend
+- Use the project-native test command. If no command is obvious, inspect package scripts, test config, Makefile, or repo docs before guessing.

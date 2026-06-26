@@ -1,7 +1,7 @@
 interface:
   display_name: "Prompt Engineering"
-  short_description: "Improve prompts, skills, and agent instructions"
-  default_prompt: "Use $v1-prompt-engineering to improve this prompt, skill, or agent instruction set."
+  short_description: "Review prompt contracts and failure modes"
+  default_prompt: "Use $v1-prompt-engineering to turn this prompt into an outcome, input, constraint, output, and done contract."
 
 policy:
   allow_implicit_invocation: true

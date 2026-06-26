@@ -9,13 +9,27 @@ allowed-tools:
 ---
 # Remove AI Code Slop
 
-Check the diff against main and remove all AI-generated slop introduced in this branch.
+Check the diff against main and remove branch-introduced code that adds no behavior, proof, or maintainability value.
+
+Use `v1-simplify` for broader reuse/quality/efficiency cleanup. Use this skill when the target is recognizable agent-generated residue: defensive wrappers, narration comments, casts, logging, or abstraction created without a concrete need.
 
 ## Usage
 
 Typical invocations:
 - Claude Code: `/v1-deslop`
 - Codex: invoke `v1-deslop` from the skills menu or use `$v1-deslop`
+
+## Removal Gate
+
+Remove a line, block, helper, or wrapper only when at least one condition is true:
+
+- It duplicates existing project behavior or adjacent patterns.
+- It handles a state already ruled out by validation, typing, or caller contract.
+- It narrates obvious code instead of documenting a hidden constraint.
+- It hides a type/design problem with `any`, broad casting, or catch-all fallback.
+- It adds logging, retries, configuration, or abstraction without a caller, failure mode, or test.
+
+Keep it when it protects a real trust boundary, documents a non-obvious invariant, preserves public API compatibility, or is needed by existing behavior.
 
 ## What It Removes
 
@@ -37,10 +51,11 @@ Typical invocations:
 
 ## Process
 
-1. Gets diff between current branch and main
-2. Reviews each changed file for AI slop patterns
-3. Removes slop while preserving intended changes
-4. Reports a 1-3 sentence summary of what was changed
+1. Get the diff between current branch and main.
+2. Review each changed file for the Removal Gate conditions.
+3. Remove only gated slop while preserving intended behavior.
+4. Run the smallest relevant formatter, typecheck, lint, or test command available.
+5. Report a 1-3 sentence summary of what changed and which check ran.
 
 ## Output
 
