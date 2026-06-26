@@ -24,7 +24,7 @@ Return:
 - Capability path actually used: verified named skill/plugin | verified CLI only | prompt-only fallback | unavailable
 - Model requested and actual model used, if available
 - Execution surface or resume handle, if available
-- Output/log path and exit code, if launched as a local process
+- Output/log path, if launched as a local process
 - Evidence or assumptions
 - Commands run and results
 - Files changed
@@ -91,7 +91,7 @@ Return:
 - Capability path actually used: verified named skill/plugin | verified CLI only | prompt-only fallback | unavailable
 - Model requested and actual model used, if available
 - Execution surface or resume handle, if available
-- Output/log path and exit code, if launched as a local process
+- Output/log path, if launched as a local process
 - Evidence or assumptions
 - Commands run and results
 - Files changed
@@ -111,7 +111,8 @@ When launching one or more peers as local processes, create a run directory and 
 
 ```bash
 PHONE_A_FRIEND_SLUG="<short-slug>"
-PHONE_A_FRIEND_RUN_DIR="${TMPDIR:-/tmp}/v1-phone-a-friend/$PHONE_A_FRIEND_SLUG"
+PHONE_A_FRIEND_SCRATCH_ROOT="<host-scratch-dir>"
+PHONE_A_FRIEND_RUN_DIR="$PHONE_A_FRIEND_SCRATCH_ROOT/v1-phone-a-friend/$PHONE_A_FRIEND_SLUG"
 mkdir -p "$PHONE_A_FRIEND_RUN_DIR"
 
 # Replace `<peer-command>` with one selected wrapper below.
@@ -126,7 +127,7 @@ mkdir -p "$PHONE_A_FRIEND_RUN_DIR"
 printf '%s\n' "$!" >"$PHONE_A_FRIEND_RUN_DIR/<peer>.pid"
 ```
 
-Before launching, record the run directory, first-progress deadline, maximum wait or check-in cadence, and any execution surface or resume handle. If `<peer>.stdout`, `<peer>.stderr`, `<peer>.done`, or the visible peer surface does not change by the first-progress deadline, inspect the process and artifacts, then reattach, retry once with a narrower prompt, switch peers, or mark that peer `stalled`.
+Before launching, set `<host-scratch-dir>` to an appropriate local scratch location for the host and record the run directory, first-progress deadline, maximum wait or check-in cadence, and any execution surface or resume handle. If `<peer>.stdout`, `<peer>.stderr`, `<peer>.done`, or the visible peer surface does not change by the first-progress deadline, inspect the process and artifacts, then reattach, retry once with a narrower prompt, switch peers, or mark that peer `stalled`. After completion, the parent records the exit code from `<peer>.done`; do not ask the peer to guess its wrapper exit code.
 
 ## Command Wrapper Matrix
 
@@ -165,7 +166,7 @@ claude -p \
 
 Use full permission mode only for a trusted local repo or isolated worktree. Inspect any resulting diff before keeping it.
 
-Do not substitute undocumented permission modes such as `--permission-mode plan` for read-only Claude Code runs. If the documented read-only wrapper is unavailable, use a disposable worktree or choose another peer.
+Do not rely on `--permission-mode plan` alone as this template's read-only Claude Code wrapper unless local help and behavior confirm the desired constraints. Prefer the explicit allow/deny tool wrapper above for read-only consults; if it is unavailable, use a disposable worktree or choose another peer.
 
 ## Codex
 
