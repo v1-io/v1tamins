@@ -1,7 +1,7 @@
 interface:
   display_name: "Code Review"
   short_description: "Review a pull request with repo context"
-  default_prompt: "Use $v1-code-review to perform a rigorous review of this pull request."
+  default_prompt: "Use $v1-code-review to review this pull request for bugs, regressions, missing requirements, test gaps, and merge risk."
 
 policy:
   allow_implicit_invocation: true

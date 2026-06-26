@@ -6,6 +6,8 @@ description: Use when reviewing recent code changes for reuse, unnecessary compl
 
 Review the changed code for reuse, quality, and efficiency issues, then fix the problems that are worth addressing.
 
+Use this for a bounded cleanup of the current diff. Use `v1-refactor` when the user asks to refactor selected files while preserving behavior. Use `v1-deep-review` when the right output is structural review feedback rather than edits.
+
 ## Quick Start
 
 1. Inspect the current diff with `git diff`; use `git diff HEAD` when staged changes are present.
@@ -34,7 +36,7 @@ Prefer established local helpers over new abstractions. Only add an abstraction 
 
 ### Code Quality
 
-Look for complexity, weak boundaries, and code that will age poorly.
+Look for complexity, weak boundaries, and future-change costs introduced by the current diff.
 
 Check for:
 - Redundant state that can be derived from existing data
@@ -68,6 +70,8 @@ Add change-detection guards when recurring updates can fire without changing obs
 ## Fixing
 
 Aggregate findings from all passes before editing. Fix each valid issue directly and keep the scope tied to the current diff.
+
+Fix only when the cleanup has a concrete reason: removes duplication, deletes unnecessary state/work, restores an existing pattern, narrows a boundary, or reduces a measurable runtime/re-render/retry cost.
 
 Skip false positives and low-value changes without debate. Do not refactor unrelated code just because it is nearby.
 

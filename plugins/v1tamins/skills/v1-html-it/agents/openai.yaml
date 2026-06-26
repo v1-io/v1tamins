@@ -1,7 +1,7 @@
 interface:
   display_name: "HTML It"
-  short_description: "Create polished self-contained HTML artifacts"
-  default_prompt: "Use $v1-html-it to create a self-contained HTML page for this work."
+  short_description: "Create self-contained HTML artifacts"
+  default_prompt: "Use $v1-html-it to create a self-contained HTML page with a clear job, local assets, and validation notes."
 
 policy:
   allow_implicit_invocation: true

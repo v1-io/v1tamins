@@ -1,221 +1,135 @@
 ---
 name: v1-prompt-engineering
-description: Use when writing commands, hooks, skills for agents, or prompts for sub-agents or any other LLM interaction. Triggers on "optimize prompt", "improve LLM output", "prompt template", "write a skill", "system prompt".
+description: Use when writing or reviewing prompts, commands, hooks, skills, system prompts, or sub-agent instructions where the target model or host is not GPT-5.5-specific. Triggers on "optimize prompt", "improve LLM output", "prompt template", "write a skill", "system prompt".
 ---
-# Prompt Engineering Patterns
+# Prompt Engineering
 
-Advanced prompt engineering techniques to maximize LLM performance, reliability, and controllability.
+Improve prompts by tying every instruction to a concrete failure mode, output contract, or evaluation result.
 
-## Core Capabilities
+For GPT-5.5, OpenAI Responses API, OpenRouter, `reasoning_effort`, `reasoning_details`, or model-migration work, use `v1-prompt-engineering-v1tamins` instead.
 
-### 1. Few-Shot Learning
+## Quick Start
 
-Teach the model by showing examples instead of explaining rules. Include 2-5 input-output pairs that demonstrate the desired behavior. Use when you need consistent formatting, specific reasoning patterns, or handling of edge cases. More examples improve accuracy but consume tokens—balance based on task complexity.
+1. Identify the host, model family, tool surface, and output consumer.
+2. Write the smallest prompt that can pass the task.
+3. Add only blocks that fix a named failure mode.
+4. Test against representative inputs before adding more instruction text.
+5. Remove instructions that do not change behavior in test examples.
 
-**Example:**
+## Prompt Contract
 
-```markdown
-Extract key information from support tickets:
+Every production prompt should define:
 
-Input: "My login doesn't work and I keep getting error 403"
-Output: {"issue": "authentication", "error_code": "403", "priority": "high"}
+| Contract | Include |
+| --- | --- |
+| Outcome | What the model must produce or decide |
+| Inputs | Source material, tools, files, schemas, and trusted context |
+| Constraints | Safety, grounding, permissions, latency, or missing-data behavior |
+| Output | Exact format, sections, schema, or artifact destination |
+| Done | Success criteria and stop conditions |
 
-Input: "Feature request: add dark mode to settings"
-Output: {"issue": "feature_request", "error_code": null, "priority": "low"}
+If a prompt block does not support one of these rows, delete it or move it to documentation outside the prompt.
 
-Now process: "Can't upload files larger than 10MB, getting timeout"
-```
+## Instruction Value Gate
 
-### 2. Chain-of-Thought Prompting
+Before keeping an instruction, classify it:
 
-Request step-by-step reasoning before the final answer. Add "Let's think step by step" (zero-shot) or include example reasoning traces (few-shot). Use for complex problems requiring multi-step logic, mathematical reasoning, or when you need to verify the model's thought process. Improves accuracy on analytical tasks by 30-50%.
-
-**Example:**
-
-```markdown
-Analyze this bug report and determine root cause.
-
-Think step by step:
-1. What is the expected behavior?
-2. What is the actual behavior?
-3. What changed recently that could cause this?
-4. What components are involved?
-5. What is the most likely root cause?
-
-Bug: "Users can't save drafts after the cache update deployed yesterday"
-```
-
-### 3. Prompt Optimization
-
-Systematically improve prompts through testing and refinement. Start simple, measure performance (accuracy, consistency, token usage), then iterate. Test on diverse inputs including edge cases. Use A/B testing to compare variations. Critical for production prompts where consistency and cost matter.
-
-**Example:**
+- **Keep:** trigger, gate, artifact, command, threshold, example, failure mode, or stop rule.
+- **Rewrite:** vague advice that can become one of those forms.
+- **Delete:** generic quality language with no observable decision.
 
 ```markdown
-Version 1 (Simple): "Summarize this article"
-→ Result: Inconsistent length, misses key points
+# Weak
+Be careful and produce a high-quality answer.
 
-Version 2 (Add constraints): "Summarize in 3 bullet points"
-→ Result: Better structure, but still misses nuance
-
-Version 3 (Add reasoning): "Identify the 3 main findings, then summarize each"
-→ Result: Consistent, accurate, captures key information
+# Strong
+Before finalizing, verify each required field is present. If a field cannot be derived from the input, output `null` and add the field name to `missing_fields`.
 ```
 
-### 4. Template Systems
+## Workflow
 
-Build reusable prompt structures with variables, conditional sections, and modular components. Use for multi-turn conversations, role-based interactions, or when the same pattern applies to different inputs. Reduces duplication and ensures consistency across similar tasks.
+### 1. Baseline
 
-**Example:**
+Draft the smallest prompt that includes the outcome, inputs, output contract, and missing-information behavior. Do not add examples, role framing, or reasoning instructions yet.
 
-```python
-# Reusable code review template
-template = """
-Review this {language} code for {focus_area}.
+### 2. Evaluate
 
-Code:
-{code_block}
+Run or manually simulate at least three representative cases:
 
-Provide feedback on:
-{checklist}
-"""
+- normal case
+- edge or ambiguity case
+- missing or conflicting input case
 
-# Usage
-prompt = template.format(
-    language="Python",
-    focus_area="security vulnerabilities",
-    code_block=user_code,
-    checklist="1. SQL injection\n2. XSS risks\n3. Authentication"
-)
+Record what failed: wrong trigger, invented fact, wrong format, excessive verbosity, premature stop, bad tool use, unsafe action, or weak refusal/blocked handling.
+
+### 3. Patch Only The Failure
+
+Use the narrowest pattern that fixes the observed failure:
+
+| Failure | Prompt patch |
+| --- | --- |
+| Wrong format | Add exact output schema or template |
+| Missing fields | Add required-field checklist and missing-field behavior |
+| Fabricated facts | Add grounding rule and citation/source constraint |
+| Overlong answer | Add section limits or verbosity contract |
+| Premature stop | Add completeness contract and blocked-item format |
+| Tool misuse | Add tool prerequisites, stop rules, and recovery behavior |
+| Weak routing | Add trigger and non-trigger examples |
+
+Avoid adding broad persona language unless the failure is specifically tone, audience, or authority handling.
+
+### 4. Use Examples When Rules Are Ambiguous
+
+Add 2-3 input/output examples when the model must learn a format, boundary, or classification that prose cannot define compactly.
+
+Each example must cover a different decision. Do not include examples that all demonstrate the same obvious case.
+
+### 5. Verify And Prune
+
+After changes, rerun the examples. Keep the change only if it fixes a failure without introducing a worse one.
+
+Then prune:
+
+- repeated constraints
+- unsupported performance claims
+- generic phrases like "be thorough," "high quality," or "careful"
+- reasoning instructions when the output contract already forces the needed work
+- confidence scores unless a downstream decision consumes them
+
+## Useful Blocks
+
+### Grounded Answer
+
+```xml
+<grounding>
+- Use only the provided context and retrieved tool outputs.
+- Label inference explicitly.
+- If evidence is missing, say what is missing instead of filling the gap.
+</grounding>
 ```
 
-### 5. System Prompt Design
+### Structured Output
 
-Set global behavior and constraints that persist across the conversation. Define the model's role, expertise level, output format, and safety guidelines. Use system prompts for stable instructions that shouldn't change turn-to-turn, freeing up user message tokens for variable content.
-
-**Example:**
-
-```markdown
-System: You are a senior backend engineer specializing in API design.
-
-Rules:
-- Always consider scalability and performance
-- Suggest RESTful patterns by default
-- Flag security concerns immediately
-- Provide code examples in Python
-- Use early return pattern
-
-Format responses as:
-1. Analysis
-2. Recommendation
-3. Code example
-4. Trade-offs
+```xml
+<output_contract>
+- Output only valid JSON matching the requested schema.
+- Do not invent fields.
+- Use `null` for unavailable optional values.
+- Return an error object when required schema information is missing.
+</output_contract>
 ```
 
-## Key Patterns
+### Tool Workflow
 
-### Progressive Disclosure
-
-Start with simple prompts, add complexity only when needed:
-
-1. **Level 1**: Direct instruction
-   - "Summarize this article"
-
-2. **Level 2**: Add constraints
-   - "Summarize this article in 3 bullet points, focusing on key findings"
-
-3. **Level 3**: Add reasoning
-   - "Read this article, identify the main findings, then summarize in 3 bullet points"
-
-4. **Level 4**: Add examples
-   - Include 2-3 example summaries with input-output pairs
-
-### Instruction Hierarchy
-
-```
-[System Context] → [Task Instruction] → [Examples] → [Input Data] → [Output Format]
+```xml
+<tool_rules>
+- Use tools only when they materially improve correctness.
+- Run prerequisite reads before edits or external actions.
+- If a tool returns empty or partial results, try one fallback query before marking the item blocked.
+- Ask before irreversible external mutations.
+</tool_rules>
 ```
 
-### Error Recovery
+## Reference Files
 
-Build prompts that gracefully handle failures:
-
-- Include fallback instructions
-- Request confidence scores
-- Ask for alternative interpretations when uncertain
-- Specify how to indicate missing information
-
-## Best Practices
-
-1. **Be Specific**: Vague prompts produce inconsistent results
-2. **Show, Don't Tell**: Examples are more effective than descriptions
-3. **Test Extensively**: Evaluate on diverse, representative inputs
-4. **Iterate Rapidly**: Small changes can have large impacts
-5. **Monitor Performance**: Track metrics in production
-6. **Version Control**: Treat prompts as code with proper versioning
-7. **Document Intent**: Explain why prompts are structured as they are
-
-## Common Pitfalls
-
-- **Over-engineering**: Starting with complex prompts before trying simple ones
-- **Example pollution**: Using examples that don't match the target task
-- **Context overflow**: Exceeding token limits with excessive examples
-- **Ambiguous instructions**: Leaving room for multiple interpretations
-- **Ignoring edge cases**: Not testing on unusual or boundary inputs
-
-## Integration Patterns
-
-### With RAG Systems
-
-```python
-# Combine retrieved context with prompt engineering
-prompt = f"""Given the following context:
-{retrieved_context}
-
-{few_shot_examples}
-
-Question: {user_question}
-
-Provide a detailed answer based solely on the context above. If the context doesn't contain enough information, explicitly state what's missing."""
-```
-
-### With Validation
-
-```python
-# Add self-verification step
-prompt = f"""{main_task_prompt}
-
-After generating your response, verify it meets these criteria:
-1. Answers the question directly
-2. Uses only information from provided context
-3. Cites specific sources
-4. Acknowledges any uncertainty
-
-If verification fails, revise your response."""
-```
-
-## Performance Optimization
-
-### Token Efficiency
-
-- Remove redundant words and phrases
-- Use abbreviations consistently after first definition
-- Consolidate similar instructions
-- Move stable content to system prompts
-
-### Latency Reduction
-
-- Minimize prompt length without sacrificing quality
-- Use streaming for long-form outputs
-- Cache common prompt prefixes
-- Batch similar requests when possible
-
----
-
-## Advanced Topics
-
-For agent-specific prompting and persuasion principles, see [references/advanced.md](references/advanced.md):
-
-- **Context Window Management**: Token accumulation and conciseness
-- **Degrees of Freedom**: Matching specificity to task fragility
-- **Persuasion Principles**: Authority, commitment, scarcity, social proof, unity
+- `references/advanced.md` - Carry-forward patterns for context management, degrees of freedom, and prompt discipline.

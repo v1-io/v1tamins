@@ -1,6 +1,6 @@
 ---
 name: v1-html-it
-description: Use when creating a polished self-contained HTML page would help the user understand, compare, review, present, tune, or interact with information better than Markdown. Triggers on "make an HTML page", "HTML artifact", "nice HTML", "visual report", "interactive explainer", "one-page dashboard", "shareable page".
+description: Use when creating a self-contained HTML page would help the user understand, compare, review, present, tune, export, or interact with information better than Markdown. Triggers on "make an HTML page", "HTML artifact", "nice HTML", "visual report", "interactive explainer", "one-page dashboard", "shareable page".
 allowed-tools:
   - Bash
   - Read

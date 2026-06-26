@@ -1,11 +1,11 @@
 ---
 name: v1-deep-review
-description: Run an extremely strict maintainability review for abstraction quality, giant files, and spaghetti-condition growth. Use for large prs, new features/architectures, a deep code quality audit, or especially harsh maintainability review.
+description: Use when reviewing large PRs, new feature architecture, file-size growth, abstraction quality, scattered branching, or maintainability regressions that need structural review rather than merge-risk review. Triggers on "deep review", "maintainability audit", "architecture review", "spaghetti code", "too complex".
 ---
 
 ## Deep Code Review
 
-Use this skill for an unusually strict review focused on implementation quality, maintainability, abstraction quality, and codebase health.
+Use this skill for structural maintainability review: whether the diff leaves the codebase simpler to change, or adds avoidable concepts, branches, files, casts, wrappers, and ownership leaks.
 
 ## Usage
 
@@ -15,31 +15,27 @@ Typical invocations:
 
 Apply to the current branch diff, a named PR, or files the user points at. For merge-risk review (bugs, regressions, security, tests, scope), use **v1-code-review** instead.
 
-Above all, this skill should push the reviewer to be **ambitious** about code structure. Do not merely identify local cleanup opportunities. Actively search for "code judo" moves: restructurings that preserve behavior while making the implementation dramatically simpler, smaller, more direct, and more elegant.
+Do not use this skill for ordinary merge-risk review. If the main question is bugs, regressions, security, tests, or missing requirements, use `v1-code-review`.
 
-## Core Prompt
+## Review Contract
 
-Start from this baseline:
+For every changed area, decide whether the current structure should merge as-is. A finding is valid only when it names:
 
-> Perform a deep code quality audit of the current branch's changes.
-> Rethink how to structure / implement the changes to meaningfully improve code quality without impacting behavior.
-> Work to improve abstractions, modularity, reduce Spaghetti code, improve succinctness and legibility.
-> Be ambitious, if there is a clear path to improving the implementation that involves restructuring some of the codebase, go for it.
-> Be extremely thorough and rigorous. Measure twice, cut once.
+- the concrete structural problem;
+- the future change or reader task made harder;
+- the simpler ownership, model, module, or flow that should replace it;
+- the behavior-preservation check needed after the rewrite.
 
 ## Non-Negotiable Additional Standards
 
-Apply the baseline prompt above, plus these explicit review rules:
+Apply these review rules:
 
-0. **Be ambitious about structural simplification.**
+1. **Look for structural simplification.**
    - Do not stop at "this could be a bit cleaner."
    - Look for opportunities to reframe the change so that whole branches, helpers, modes, conditionals, or layers disappear entirely.
-   - Prefer the solution that makes the code feel inevitable in hindsight.
-   - Assume there is often a "code judo" move available: a re-organization that uses the existing architecture more effectively and makes the change dramatically simpler and more elegant.
-   - If you see a path to delete complexity rather than rearrange it, push hard for that path.
+   - If there is a concrete path to delete complexity rather than rearrange it, describe that path.
 
 2. **Do not allow random spaghetti growth in existing code.**
-   - Be highly suspicious of new ad-hoc conditionals, scattered special cases, or one-off branches inserted into unrelated flows.
    - If a change adds "weird if statements in random places", treat that as a design problem, not a stylistic nit.
    - Prefer pushing the logic into a dedicated abstraction, helper, state machine, policy object, or separate module instead of tangling an existing path.
    - Call out changes that make the surrounding code harder to reason about, even if they technically work.
@@ -51,7 +47,7 @@ Apply the baseline prompt above, plus these explicit review rules:
 
 4. **Prefer direct, boring, maintainable code over hacky or magical code.**
    - Treat brittle, ad-hoc, or "magic" behavior as a code-quality problem.
-   - Be skeptical of generic mechanisms that hide simple data-shape assumptions.
+   - Flag generic mechanisms that hide simple data-shape assumptions.
    - Flag thin abstractions, identity wrappers, or pass-through helpers that add indirection without buying clarity.
 
 5. **Push hard on type and boundary cleanliness when they affect maintainability.**
@@ -70,12 +66,12 @@ Apply the baseline prompt above, plus these explicit review rules:
    - Do not over-index on micro-optimizations, but do flag avoidable orchestration complexity that makes the implementation more brittle.
 
 8. **Prefer a few deep modules over a lot of shallow ones.**
-   - Be suspicious of all new modules.  Especially those whose interface is complex relative to its implementation.
+   - Question new modules whose interface is complex relative to the implementation they hide.
    - Prefer deep modules that have a simple interface and hide implementation details from the caller.
-   - Look for opportunities to combine multiple shallow modules into a single deep module.  Prefer general purpose modules over feature-specific modules.
+   - Look for opportunities to combine multiple shallow modules into a single deep module.
 
 9.  **Define errors out of existence.**
-  - Be suspicious of code that contains significant branching logic to handle errors and special cases.
+  - Flag error-handling branches that exist because ownership, validation, or state modeling is unclear.
   - Classes that expose lots of exceptions have complex interfaces and are shallow.
   - Recommend structural changes that will handle errors internally instead of exposing them to the caller.
 
@@ -145,8 +141,8 @@ Do not be satisfied with a merely cleaner version of the same messy idea if ther
 
 ## Review Tone
 
-Be direct, serious, and demanding about quality.
-Do not be rude, but do not soften major maintainability issues into mild suggestions.
+Use direct technical language.
+Do not soften major maintainability issues into mild suggestions.
 If the code is making the codebase messier, say so clearly.
 If the implementation missed an opportunity for a dramatic simplification, say that clearly too.
 
@@ -176,6 +172,16 @@ Prioritize findings in this order:
 
 Do not flood the review with low-value nits if there are larger structural issues.
 Prefer a smaller number of high-conviction comments over a long list of cosmetic notes.
+
+Each finding must use this shape:
+
+```markdown
+[Severity] file_path:line_number - Short title
+Structural problem: What concept, branch, boundary, file, or abstraction got worse.
+Change cost: What future change or reader task becomes harder.
+Rewrite path: The smaller ownership/model/module/flow to use instead.
+Proof: Test, diff check, or behavior-preservation command that should pass after the rewrite.
+```
 
 ## Approval Bar
 

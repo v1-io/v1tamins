@@ -18,4 +18,4 @@ else
 fi
 
 echo ""
-echo "Will create comprehensive unit tests following project conventions."
+echo "Will add focused tests for changed behavior using project conventions."
