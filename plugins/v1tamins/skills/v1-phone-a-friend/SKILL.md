@@ -81,10 +81,21 @@ Report:
 - **host:** current runtime when known, otherwise `unknown`
 - **installed peers:** `claude`, `codex`, `cursor-agent`, `gemini`, `oracle`
 - **auth:** `verified`, `unverified`, or `not checked`
+- **peer skill/plugin surface:** named skill or plugin availability when a named peer workflow is requested, otherwise `not needed`
 - **default peer:** selected counterpart and reason
 - **limits:** subscription tier, browser access, and cloud-agent access if not directly verified
 
 Treat command presence as `installed`, not authenticated. Do not claim a specific subscription tier unless the tool explicitly reports it or a safe probe succeeds. If a peer has no safe status command, report `auth: not checked` and lower confidence in that peer choice. Do not spend tokens, make network calls, or start a model run just to prove auth unless the user asked for a live probe.
+
+## Peer Capability Boundaries
+
+Skills, plugins, slash commands, agents, and subagents are host-local capabilities. Do not assume a skill available in the parent runtime is installed, callable, or semantically identical inside the peer runtime.
+
+- Before asking a peer to invoke a named skill, plugin, slash command, or subagent workflow, verify that peer's surface with a safe local listing, help command, installed-skill path, or tool-visible evidence.
+- If the named workflow is not verified, send a plain prompt that inlines the requested review standard, rubric, or task criteria. Ask the peer to report this as a prompt-only fallback.
+- For headless or read-only peer runs, avoid named workflows that require subagents, task tools, file edits, shell access, or interactive orchestration unless the installed peer documents that mode as supported.
+- If the user specifically wants the named workflow's full machinery and it is not compatible with the selected headless/read-only wrapper, switch to an interactive visible peer surface or an isolated worktree with the needed permissions.
+- Report the capability path actually used: `verified named skill/plugin`, `verified CLI only`, `prompt-only fallback`, or `unavailable`.
 
 ## Decision Matrix
 
@@ -120,13 +131,35 @@ Treat command presence as `installed`, not authenticated. Do not claim a specifi
 
 Permission bypass flags are powerful. Use them deliberately for trusted local coding agents, not for external web sessions or untrusted workspaces. Before any `local-verify` or `isolated-delegate` run with full permissions, record the starting dirty state and require the peer to report final `git status`, files changed, commands run, and validation results.
 
+## Delegation Lifecycle
+
+Long-running delegation needs a visible lifecycle, not just a prompt.
+
+- Give each delegated run a short slug tied to the task, for example `<repo>-<issue>-review` or `<feature>-verify`.
+- Record the execution surface before launch: terminal tab, tmux window/session, cloud-agent URL, browser session slug, thread id, or other resume handle.
+- Record the isolation boundary: worktree path, branch name, sandbox mode, permission mode, and starting dirty state.
+- Prefer visible or resumable execution for `isolated-delegate` work. Do not hide a long-running agent in an untracked background process.
+- If the host supports tmux, cmux, named terminal tabs, cloud-agent labels, or session slugs, use those as local supervision aids without making them part of the cross-runtime contract.
+- For async work, capture how to reattach, what completion signal to watch, and where the peer should leave its report, patch, branch, or PR link.
+- Before consuming the result, reattach or inspect the final surface, read the peer report, inspect any diff, and run local verification.
+
+## Run Supervision
+
+Do not wait on a peer run with no observable contract.
+
+- Before launch, state the run slug, peer, permission mode, output location, completion signal, first-progress deadline, and maximum wait or check-in cadence.
+- For background or concurrent local runs, capture stdout, stderr, and a completion sentinel per peer. Keep artifacts in a run-specific scratch directory.
+- If there is no output, artifact update, completion signal, or visible progress by the first-progress deadline, inspect the process state, stderr, run directory, and resume handle before deciding what to do next.
+- If a peer stalls, either reattach, retry once with a narrower plain prompt, switch to a more reliable peer, or mark that peer `stalled` and continue with completed peer outputs.
+- Never report a multi-peer consult as complete without saying which peers completed, which were partial, which stalled, and which suggestions were locally verified.
+
 ## Command Templates
 
 Keep this file focused on routing and verification. After selecting the peer and permission mode, read:
 - [references/command-templates.md](references/command-templates.md) for Claude Code, Codex, Cursor Agent, and Gemini CLI templates.
 - [references/oracle-browser.md](references/oracle-browser.md) for Oracle browser review and ChatGPT Pro Deep Research packets.
 
-Invariant: ask every peer to return assumptions, model requested and actual model used when available, evidence, commands run, files changed, dirty state, risks, and local verification steps when the peer can touch the worktree.
+Invariant: ask every peer to return status, capability path actually used, assumptions, model requested and actual model used when available, execution surface or resume handle when available, evidence, commands run, files changed, dirty state, risks, and local verification steps when the peer can touch the worktree.
 
 ## Context Packaging Rules
 

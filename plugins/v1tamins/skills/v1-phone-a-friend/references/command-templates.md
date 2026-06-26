@@ -6,6 +6,7 @@ Use these templates after selecting the peer, work type, and permission mode in 
 
 - [Prompt Contracts](#prompt-contracts)
 - [Prompt Bodies](#prompt-bodies)
+- [Supervised Local Runs](#supervised-local-runs)
 - [Command Wrapper Matrix](#command-wrapper-matrix)
 - [Claude Code](#claude-code)
 - [Codex](#codex)
@@ -18,8 +19,12 @@ Ask every coding peer to return this shape:
 
 ```text
 Return:
+- Status: complete | partial | stalled | failed
 - Recommendation
+- Capability path actually used: verified named skill/plugin | verified CLI only | prompt-only fallback | unavailable
 - Model requested and actual model used, if available
+- Execution surface or resume handle, if available
+- Output/log path and exit code, if launched as a local process
 - Evidence or assumptions
 - Commands run and results
 - Files changed
@@ -47,6 +52,7 @@ PHONE_A_FRIEND_MODE_INSTRUCTIONS="$(cat <<'MODE'
 Act as an independent counterpart reviewer. Read only.
 Do not edit files, create files, run commands, request broader permissions, commit, push, publish, send messages, or mutate external services.
 Use `Commands run and results: none` and `Files changed: none`.
+If asked to use a named skill, plugin, slash command, or subagent workflow, use it only when it is verified in this runtime and compatible with read-only headless execution. Otherwise apply the requested review standard inline and report `Capability path actually used: prompt-only fallback`.
 MODE
 )"
 ```
@@ -59,6 +65,8 @@ Act as an independent counterpart reviewer in a trusted or isolated worktree.
 You may inspect the repo and run validation commands.
 Do not commit, push, publish, send messages, or mutate external services.
 Before and after your work, run `git status --short --branch`.
+If the run has a session id, terminal name, tmux/cmux window, cloud-agent URL, browser slug, or other resume handle, report it.
+If asked to use a named skill, plugin, slash command, or subagent workflow, use it only when it is verified in this runtime. Otherwise apply the requested standard inline and report `Capability path actually used: prompt-only fallback`.
 MODE
 )"
 ```
@@ -78,8 +86,12 @@ Question:
 <specific critique, steelman, risk review, synthesis, verification, or delegated implementation request>
 
 Return:
+- Status: complete | partial | stalled | failed
 - Recommendation
+- Capability path actually used: verified named skill/plugin | verified CLI only | prompt-only fallback | unavailable
 - Model requested and actual model used, if available
+- Execution surface or resume handle, if available
+- Output/log path and exit code, if launched as a local process
 - Evidence or assumptions
 - Commands run and results
 - Files changed
@@ -93,6 +105,29 @@ PHONE_A_FRIEND_PROMPT="$(printf '%s\n\n%s\n' "$PHONE_A_FRIEND_MODE_INSTRUCTIONS"
 
 If automation will consume the answer, replace the `Return` list in `PHONE_A_FRIEND_TASK` with a strict JSON schema and keep the same required fields.
 
+## Supervised Local Runs
+
+When launching one or more peers as local processes, create a run directory and make completion observable before waiting.
+
+```bash
+PHONE_A_FRIEND_SLUG="<short-slug>"
+PHONE_A_FRIEND_RUN_DIR="${TMPDIR:-/tmp}/v1-phone-a-friend/$PHONE_A_FRIEND_SLUG"
+mkdir -p "$PHONE_A_FRIEND_RUN_DIR"
+
+# Replace `<peer-command>` with one selected wrapper below.
+(
+  <peer-command> \
+    >"$PHONE_A_FRIEND_RUN_DIR/<peer>.stdout" \
+    2>"$PHONE_A_FRIEND_RUN_DIR/<peer>.stderr"
+  rc=$?
+  printf 'DONE rc=%s\n' "$rc" >"$PHONE_A_FRIEND_RUN_DIR/<peer>.done"
+  exit "$rc"
+) &
+printf '%s\n' "$!" >"$PHONE_A_FRIEND_RUN_DIR/<peer>.pid"
+```
+
+Before launching, record the run directory, first-progress deadline, maximum wait or check-in cadence, and any execution surface or resume handle. If `<peer>.stdout`, `<peer>.stderr`, `<peer>.done`, or the visible peer surface does not change by the first-progress deadline, inspect the process and artifacts, then reattach, retry once with a narrower prompt, switch peers, or mark that peer `stalled`.
+
 ## Command Wrapper Matrix
 
 | Peer | `readonly` wrapper | `local-verify` or `isolated-delegate` wrapper |
@@ -102,7 +137,7 @@ If automation will consume the answer, replace the `Return` list in `PHONE_A_FRI
 | Cursor Agent | `cursor-agent -p --mode plan --trust ...` | `cursor-agent -p --worktree <name> --force ...` |
 | Gemini CLI | Use documented read-only or plan flags when available. | Use full-access flags only in a trusted or isolated worktree. |
 
-Resolve model and effort from current local help, model lists, config, or the user's explicit request. Do not pin concrete model names in reusable commands.
+Resolve model, effort, permission flags, and output modes from current local help, model lists, config, or the user's explicit request. Do not pin concrete model names in reusable commands, and do not invent permission-mode values that local help does not document.
 
 ## Claude Code
 
@@ -129,6 +164,8 @@ claude -p \
 ```
 
 Use full permission mode only for a trusted local repo or isolated worktree. Inspect any resulting diff before keeping it.
+
+Do not substitute undocumented permission modes such as `--permission-mode plan` for read-only Claude Code runs. If the documented read-only wrapper is unavailable, use a disposable worktree or choose another peer.
 
 ## Codex
 
@@ -158,7 +195,7 @@ Use full permission mode only where the user trusts the repo or the worktree is 
 
 ## Cursor Agent
 
-Check `cursor-agent --help` locally before relying on exact flags.
+Check `cursor-agent --help` locally before relying on exact flags or treating plan/ask mode as enforced read-only.
 
 Read-only consult:
 
@@ -172,6 +209,8 @@ cursor-agent -p \
 ```
 
 Use `--mode ask` for pure Q&A. Use `--trust` only for a workspace the user already trusts or for a generated isolated worktree; it answers Cursor's headless workspace-trust prompt and does not replace `--mode plan` or `--mode ask`.
+
+Do not ask headless Cursor plan/ask mode to invoke a named Cursor skill, composer workflow, or subagent workflow unless local evidence shows that workflow works in the selected mode. If a named workflow stalls or returns no output, retry with the rubric inlined as a plain prompt and report `Capability path actually used: prompt-only fallback`.
 
 Trusted verification or isolated delegation:
 
