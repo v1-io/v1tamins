@@ -105,29 +105,63 @@ PHONE_A_FRIEND_PROMPT="$(printf '%s\n\n%s\n' "$PHONE_A_FRIEND_MODE_INSTRUCTIONS"
 
 If automation will consume the answer, replace the `Return` list in `PHONE_A_FRIEND_TASK` with a strict JSON schema and keep the same required fields.
 
-## Supervised Local Runs
+## Inlining a Named Skill's Rubric
 
-When launching one or more peers as local processes, create a run directory and make completion observable before waiting.
+A peer runtime usually does not have your named skills installed (the peer-capability rule in `SKILL.md`). When you want a peer to apply a specific rubric — a review standard, a quality bar — do not name the skill and hope; resolve the skill's `SKILL.md` at runtime and inline its body into the task, then have the peer report `Capability path actually used: prompt-only fallback`.
+
+Resolve the rubric by searching the installed skills roots at runtime rather than committing a host-specific path:
 
 ```bash
-PHONE_A_FRIEND_SLUG="<short-slug>"
-PHONE_A_FRIEND_SCRATCH_ROOT="<host-scratch-dir>"
-PHONE_A_FRIEND_RUN_DIR="$PHONE_A_FRIEND_SCRATCH_ROOT/v1-phone-a-friend/$PHONE_A_FRIEND_SLUG"
-mkdir -p "$PHONE_A_FRIEND_RUN_DIR"
+# Find a named skill's SKILL.md across the installed skills roots (first match wins).
+# Roots vary by host/runtime; glob the plausible ones and degrade if none match.
+find_skill_rubric() {
+  name="$1"
+  # Search from STABLE base dirs and let find recurse — installed plugin caches
+  # nest deeper than a fixed glob expects (e.g.
+  # ~/.codex/plugins/cache/<plugin>/<plugin>/<version>/skills/<name>/SKILL.md, and
+  # Cursor's cursor-team-kit/<hash>/skills/...). An exact-depth glob like
+  # ~/.codex/*/skills silently misses these. A generous -maxdepth covers the real
+  # layouts without hardcoding any one host's cache path.
+  for base in \
+    "$HOME"/.codex/plugins "$HOME"/.claude/plugins "$HOME"/.cursor \
+    "$HOME"/.codex/skills "$HOME"/.claude/skills; do
+    [ -d "$base" ] || continue
+    hit="$(find "$base" -maxdepth 8 -type f -path "*/$name/SKILL.md" 2>/dev/null | head -1)"
+    [ -n "$hit" ] && { printf '%s\n' "$hit"; return 0; }
+  done
+  return 1
+}
 
-# Replace `<peer-command>` with one selected wrapper below.
-(
-  <peer-command> \
-    >"$PHONE_A_FRIEND_RUN_DIR/<peer>.stdout" \
-    2>"$PHONE_A_FRIEND_RUN_DIR/<peer>.stderr"
-  rc=$?
-  printf 'DONE rc=%s\n' "$rc" >"$PHONE_A_FRIEND_RUN_DIR/<peer>.done"
-  exit "$rc"
-) &
-printf '%s\n' "$!" >"$PHONE_A_FRIEND_RUN_DIR/<peer>.pid"
+RUBRIC_FILE="$(find_skill_rubric "<skill-name>")" || RUBRIC_FILE=""
+RUBRIC_BLOCK=""
+[ -n "$RUBRIC_FILE" ] && RUBRIC_BLOCK="$(printf '===== RUBRIC: %s =====\n%s\n===== END RUBRIC =====\n' "<skill-name>" "$(cat "$RUBRIC_FILE")")"
 ```
 
-Before launching, set `<host-scratch-dir>` to an appropriate local scratch location for the host and record the run directory, first-progress deadline, maximum wait or check-in cadence, and any execution surface or resume handle. If `<peer>.stdout`, `<peer>.stderr`, `<peer>.done`, or the visible peer surface does not change by the first-progress deadline, inspect the process and artifacts, then reattach, retry once with a narrower prompt, switch peers, or mark that peer `stalled`. After completion, the parent records the exit code from `<peer>.done`; do not ask the peer to guess its wrapper exit code.
+Embed `"$RUBRIC_BLOCK"` in `PHONE_A_FRIEND_TASK` (under the review lens). If `RUBRIC_FILE` is empty the rubric is unavailable in this environment — apply the standard inline from your own knowledge and still report `prompt-only fallback`, or skip that lens and record it as degraded. The glob roots above are illustrative; adapt them to the host without committing one machine's exact cache path.
+
+## Supervised Local Runs
+
+Background launch is the **default** for any peer run that could exceed the host's command timeout — never foreground-`wait` on a peer, because the host's timeout (e.g. an agent's 2-minute Bash default) sends a signal to the parent's process group and reaps the backgrounded peer along with the wait. A bare `( <peer-command> ) &` does **not** survive this: the subshell stays in the parent's process group. Use the bundled `peer-run.sh` helper, which detaches each peer into its own session — `setsid` on Linux, `perl POSIX::setsid` on macOS (which ships no `setsid`), and a `nohup` + `disown` best-effort fallback only when neither is present. `launch` reports which path it used; on the `nohup` fallback it is best-effort, so pair it with the host's background primitive.
+
+Resolve the helper relative to this skill's directory at runtime (the skill ships it at `scripts/peer-run.sh`); do not hardcode an absolute or checkout path. Then:
+
+```bash
+PEER_RUN="<this skill dir>/scripts/peer-run.sh"
+RUN_DIR="<host-scratch-dir>/v1-phone-a-friend/<run-slug>"
+
+# Launch each peer with a distinct slug under one run dir (multi-peer = N launches):
+"$PEER_RUN" launch --dir "$RUN_DIR" --slug codex  -- <codex-wrapper>
+"$PEER_RUN" launch --dir "$RUN_DIR" --slug claude -- <claude-wrapper>
+
+# Poll across turns until each slug is complete or stalled, then read the verdict:
+"$PEER_RUN" status  --dir "$RUN_DIR" --slug codex     # running | complete | stalled
+"$PEER_RUN" verdict --dir "$RUN_DIR" --slug codex     # complete | stalled (judged by output, not exit code)
+"$PEER_RUN" teardown --dir "$RUN_DIR" --slug codex    # PID-scoped kill; never pkill -f
+```
+
+The helper owns the contract: stdin closed per launch, detached background, sentinels recording both the launched leader and the **real peer pid**, teardown that reaps the actual peer (its process group when a true session was created, else the recorded peer pid — always PID/PGID-derived, never a pattern kill), and a single state resolver shared by `status` and `verdict` so they never disagree. Completion is **judged by substantive output rather than exit code** — real content under a nonzero/odd exit code is `complete`; an empty exit is `stalled`; a process still alive with no output yet is `running`, never falsely `stalled`. The byte threshold assumes **plain-text** output: `stream-json`/`--json` emit framing bytes before any content, so consume text for the verdict and use stream-json only for a live progress stream (judge it on a terminal event, not the byte count). Before launching, set `<host-scratch-dir>` to a host-appropriate scratch location and record the first-progress deadline and check-in cadence. Many peer CLIs buffer all output until completion (0 bytes mid-run is normal), so key "still progressing" on **process liveness** (`status` = `running`), not output growth; only when the process has died or genuinely hung past the deadline should you retry with a narrower prompt, switch peers, or mark it `stalled`. On the `nohup` fallback and for long runs, also use the host's own background primitive (e.g. Claude Code `run_in_background`).
+
+If the helper is unavailable, the manual equivalent is `( <peer-command> </dev/null >"$RUN_DIR/<peer>.stdout" 2>"$RUN_DIR/<peer>.stderr"; printf 'DONE rc=%s\n' "$?" >"$RUN_DIR/<peer>.done" ) &` with `$!` saved to `<peer>.pid` — but this lacks true detachment, so pair it with the host's background primitive.
 
 ## Command Wrapper Matrix
 
@@ -140,29 +174,33 @@ Before launching, set `<host-scratch-dir>` to an appropriate local scratch locat
 
 Resolve model, effort, permission flags, and output modes from current local help, model lists, config, or the user's explicit request. Do not pin concrete model names in reusable commands, and do not invent permission-mode values that local help does not document.
 
+Two stall-killers apply to every wrapper above and are baked into the per-peer sections: close stdin (`< /dev/null`) so a prompt-as-argument run does not block on stdin, and prefix Claude runs with `env -u ANTHROPIC_API_KEY` so a stale env key cannot shadow the logged-in account. The capability-audit probes (`claude doctor`, etc.) can themselves hang — bound them (e.g. wrap in the host's timeout) and treat a probe that does not return as `auth: not checked`, never as a blocker.
+
 ## Claude Code
 
 Read-only consult:
 
 ```bash
-claude -p \
+env -u ANTHROPIC_API_KEY claude -p \
   --allowedTools "Read,Grep,Glob" \
   --disallowedTools "Edit,Write,Bash" \
   --output-format stream-json \
   --model <model-or-alias> \
-  "$PHONE_A_FRIEND_PROMPT"
+  "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
 Trusted verification or isolated delegation:
 
 ```bash
-claude -p \
+env -u ANTHROPIC_API_KEY claude -p \
   --permission-mode bypassPermissions \
   --output-format stream-json \
   --model <model-or-alias> \
   --effort <effort-level> \
-  "$PHONE_A_FRIEND_PROMPT"
+  "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
+
+Prefix `env -u ANTHROPIC_API_KEY` so a stale or invalid `ANTHROPIC_API_KEY` in the environment cannot override the logged-in Claude account and silently fail auth. Keep `--output-format stream-json` so progress is observable and an empty response is distinguishable from a stall, and close stdin (`< /dev/null`) for the same reason as Codex.
 
 Use full permission mode only for a trusted local repo or isolated worktree. Inspect any resulting diff before keeping it.
 
@@ -178,7 +216,7 @@ codex exec \
   --cd <repo> \
   --json \
   --model <model> \
-  "$PHONE_A_FRIEND_PROMPT"
+  "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
 Trusted verification or isolated delegation:
@@ -189,8 +227,10 @@ codex exec \
   --cd <trusted-or-isolated-repo> \
   --json \
   --model <model> \
-  "$PHONE_A_FRIEND_PROMPT"
+  "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
+
+Always close stdin (`< /dev/null`) when the prompt is passed as an argument. Without it, `codex exec` blocks on `Reading additional input from stdin` and the run stalls with no output — a recurring, silent failure.
 
 Use full permission mode only where the user trusts the repo or the worktree is disposable. Require the peer to report commands run, files changed, and final dirty state.
 

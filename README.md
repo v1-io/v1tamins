@@ -95,6 +95,7 @@ mindmap
       ("v1-land-pr")
       ("v1-code-review")
       ("v1-address-review")
+      ("v1-review-board")
       ("v1-prove-work")
     Compound
       ("v1-goldpan")
@@ -139,6 +140,7 @@ Each v1tamin is the smallest sharp tool we could build for one of those failures
 | Diagnose a stuck process, queue, funnel, or roadmap | `v1-diagnosing-constraints` | Specific software bug reproduction |
 | Debug a reproducible failure or flaky behavior | `v1-debug` | Broad operational constraint diagnosis |
 | Get an independent second model/runtime opinion | `v1-phone-a-friend` | First-pass in-agent review or research |
+| Run a parallel multi-agent review board on a PR, then address it | `v1-review-board` | A single counterpart opinion or an in-agent review |
 
 <details>
 <summary><b>#1 &mdash; The plan is wrong before a line of code is written</b></summary>
@@ -211,6 +213,7 @@ These skills compress the ship phase into one chained workflow.
 - [`/v1-land-pr`](./plugins/v1tamins/skills/v1-land-pr/SKILL.md) — the full hand-off: commit → push → open as draft → monitor `gh pr checks` → fix failed checks (up to 3 retries) → mark ready → move linked Linear ticket to Human Review
 - [`/v1-code-review`](./plugins/v1tamins/skills/v1-code-review/SKILL.md) — review the current branch or a specific PR with actionable, file-anchored feedback; posts to GitHub only when requested
 - [`/v1-address-review`](./plugins/v1tamins/skills/v1-address-review/SKILL.md) — work through unresolved review threads from Copilot, Code Factory, bots, or humans and reply with the right diff or context
+- [`/v1-review-board`](./plugins/v1tamins/skills/v1-review-board/SKILL.md) — convene a parallel read-only review board across several peer agents (deep-review + thermo-nuclear lenses), compile one cross-validated finding ledger, then address it — composes `/v1-phone-a-friend`, `/v1-deep-review`, and `/v1-address-review`
 - [`/v1-prove-work`](./plugins/v1tamins/skills/v1-prove-work/SKILL.md) — record a browser GIF of the new behaviour to drop into the PR description
 
 > [!WARNING]
