@@ -119,13 +119,12 @@ case "$cmd" in
 
   status)
     [ -f "$pidfile" ] || die "unknown slug: $SLUG" 3
-    resolve_state >/dev/null; rc=$?
-    case "$rc" in 0) echo complete;; 2) echo running;; *) echo stalled;; esac
+    resolve_state   # already prints running|complete|stalled
     ;;
 
   verdict)
     [ -f "$pidfile" ] || die "unknown slug: $SLUG" 3
-    state="$(resolve_state)"; rc=$?
+    resolve_state >/dev/null; rc=$?
     ob="$(bytes "$outfile")"
     drc="?"; [ -f "$donefile" ] && drc="$(sed -n 's/^DONE rc=//p' "$donefile" | head -1)"
     case "$rc" in
