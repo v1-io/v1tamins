@@ -87,12 +87,14 @@ Report:
 
 Treat command presence as `installed`, not authenticated. Do not claim a specific subscription tier unless the tool explicitly reports it or a safe probe succeeds. If a peer has no safe status command, report `auth: not checked` and lower confidence in that peer choice. Do not spend tokens, make network calls, or start a model run just to prove auth unless the user asked for a live probe.
 
+Bound the probes themselves: `claude doctor` and similar status commands can hang. Wrap them in a short host timeout, and treat a probe that does not return as `auth: not checked` rather than letting it stall the audit. The audit is a quick orientation, never a blocker.
+
 ## Peer Capability Boundaries
 
 Skills, plugins, slash commands, agents, and subagents are host-local capabilities. Do not assume a skill available in the parent runtime is installed, callable, or semantically identical inside the peer runtime.
 
 - Before asking a peer to invoke a named skill, plugin, slash command, or subagent workflow, verify that peer's surface with a safe local listing, help command, installed-skill path, or tool-visible evidence.
-- If the named workflow is not verified, send a plain prompt that inlines the requested review standard, rubric, or task criteria. Ask the peer to report this as a prompt-only fallback.
+- If the named workflow is not verified, send a plain prompt that inlines the requested review standard, rubric, or task criteria. Ask the peer to report this as a prompt-only fallback. See [references/command-templates.md](references/command-templates.md) (Inlining a Named Skill's Rubric) for a runtime pattern that resolves a named skill's `SKILL.md` and embeds it, with no committed host path.
 - For headless or read-only peer runs, avoid named workflows that require subagents, task tools, file edits, shell access, or interactive orchestration unless the installed peer documents that mode as supported.
 - If the user specifically wants the named workflow's full machinery and it is not compatible with the selected headless/read-only wrapper, switch to an interactive visible peer surface or an isolated worktree with the needed permissions.
 - Report the capability path actually used: `verified named skill/plugin`, `verified CLI only`, `prompt-only fallback`, or `unavailable`.
@@ -147,11 +149,19 @@ Long-running delegation needs a visible lifecycle, not just a prompt.
 
 Do not wait on a peer run with no observable contract.
 
+- **Background by default.** Launch any peer that could exceed the host's command timeout as a detached background process — never foreground-`wait` on it. The host's timeout (e.g. an agent's 2-minute Bash default) signals the parent's process group and reaps a peer backgrounded with a bare `&`. Use the bundled `scripts/peer-run.sh` helper, which detaches the peer into its own session so a parent-shell timeout cannot kill it. See [references/command-templates.md](references/command-templates.md) (Supervised Local Runs).
 - Before launch, state the run slug, peer, permission mode, output location, completion signal, first-progress deadline, and maximum wait or check-in cadence.
 - For background or concurrent local runs, capture stdout, stderr, and a completion sentinel per peer. Keep artifacts in a run-specific scratch directory.
+- **Judge completion by substantive output, not exit code.** A peer that returned real content under a nonzero or unusual exit code is complete; an empty success exit is a stall. Wrapper exit codes are advisory.
+- **Tear down by recorded PID only.** Kill a stalled peer by the PID you captured at launch — never a pattern kill like `pkill -f "codex exec"`, which can reap an unrelated peer the user is running elsewhere.
 - If there is no output, artifact update, completion signal, or visible progress by the first-progress deadline, inspect the process state, stderr, run directory, and resume handle before deciding what to do next.
 - If a peer stalls, either reattach, retry once with a narrower plain prompt, switch to a more reliable peer, or mark that peer `stalled` and continue with completed peer outputs.
+- **Routing is reliability-aware.** Headless reliability differs by peer and recipe: apply the hardened invocations (stdin closed, `env -u ANTHROPIC_API_KEY` for Claude, streaming output) before sending real work to a peer, and prefer a peer with a proven headless recipe when the counterpart default points at one that stalls in your environment.
 - Never report a multi-peer consult as complete without saying which peers completed, which were partial, which stalled, and which suggestions were locally verified.
+
+## Quick Consult Express Lane
+
+Not every consult needs the full delegation lifecycle. For a **single read-only peer** giving a quick sanity check — no artifact handoff, no fixes applied — skip the run-slug/run-directory/deadline ceremony: package the question, run one read-only wrapper (stdin closed, streaming), read the answer, verify locally. Graduate to the full Run Supervision lifecycle the moment any of these is true: more than one peer is involved, the work is `verify`/`delegate` (the peer touches the worktree), or the run could outlast the host's command timeout. When in doubt, graduate — the express lane is only for the genuinely quick, single-peer, read-only case.
 
 ## Command Templates
 
