@@ -58,6 +58,8 @@ Define:
 Do not add background the model already knows.
 Do not add blocks that do not change eval results.
 
+Keep a prompt instruction only when it maps to a trigger, gate, artifact, command/tool rule, threshold, example, failure mode, or stop rule. Rewrite generic quality language into one of those forms; delete it when no concrete form exists.
+
 ### 3. Define the outcome before process
 
 For GPT-5.5, define the target outcome and success criteria before adding process instructions.
@@ -230,6 +232,7 @@ Before finalizing:
 - Preserve good existing behavior unless the new model breaks it.
 - Document why each added block exists and which failure mode it addresses.
 - Remove prompt bloat that no longer changes outcomes.
+- Delete standalone exhortations like "be thorough," "be rigorous," or "write high-quality output" unless the prompt also defines the checklist, artifact, threshold, or validation step that makes the instruction observable.
 - If the host routes across providers or fallback models, avoid relying on undocumented provider-specific quirks unless the path is pinned.
 
 ## Reference Files

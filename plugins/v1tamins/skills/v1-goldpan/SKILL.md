@@ -17,7 +17,7 @@ allowed-tools:
 
 Pan recent merged PRs and agent session logs (Claude Code + Codex + Cursor) for compound-worthy moments worth documenting, present the finds for approval, then drive `/ce-compound` (lightweight mode) sequentially over the approved set. Discovery is automatic; documentation only happens for items the user approves.
 
-This skill composes two existing primitives — `ce-compound` (writes solution docs) and `ce-session-inventory` + `ce-session-extract` (cross-platform session reading) — and adds the panning workflow around them. It does not write to `docs/solutions/` directly; that is `/ce-compound`'s job.
+This skill composes two existing primitives — `ce-compound` (writes solution docs) and compound-engineering's session scripts (cross-platform session reading) — and adds the panning workflow around them. It does not write to `docs/solutions/` directly; that is `/ce-compound`'s job.
 
 ## Quick Start
 
@@ -112,7 +112,7 @@ gh pr diff <number> | head -400          # cap diff reads
 
 #### Scout B+C — Agent sessions (Claude Code, Codex, Cursor)
 
-Run as **one** scout, not two. The compound-engineering plugin already owns the cross-platform layout knowledge through `ce-session-inventory` and `ce-session-extract`; this skill composes them rather than re-implementing JSONL parsing.
+Run as **one** scout, not two. The compound-engineering plugin already owns the cross-platform layout knowledge through its session scripts (`discover-sessions.sh`, `extract-metadata.py`, `extract-skeleton.py`, `extract-errors.py`); this skill composes them rather than re-implementing JSONL parsing.
 
 Brief: discover agent sessions touched within the window for this project, rank them by compound-signal density via the keyword filter, then deep-dive only the top-ranked sessions. Cross-reference any session whose `branch`/`gitBranch` matches a merged-PR head branch from Scout A and treat it as supporting evidence for that PR rather than a separate candidate. Standalone candidates from sessions are rarer; promote only when a session resolves a problem that did NOT result in a PR (e.g. an investigation, a runbook gap, or a convention agreed in chat).
 
@@ -122,38 +122,47 @@ Brief: discover agent sessions touched within the window for this project, rank 
 bash <skill-path>/scripts/discover-sessions.sh <N>
 ```
 
-The wrapper invokes `ce-session-inventory`'s `discover-sessions.sh` (Claude + Codex active + Cursor) plus a one-line `find` over `~/.codex/archived_sessions/` to fill an upstream gap, then pipes everything through `ce-session-inventory`'s `extract-metadata.py` with a compound-signal keyword set baked in. Output is JSONL — one session per line with `match_count` and `keyword_matches`, plus a final `_meta` line.
+The wrapper invokes compound-engineering's upstream `discover-sessions.sh` (Claude + Codex active + Cursor) plus a one-line `find` over `~/.codex/archived_sessions/` to fill an upstream gap, then pipes everything through the upstream `extract-metadata.py` with a compound-signal keyword set baked in. It resolves those scripts across compound-engineering's plugin layouts automatically (see Upstream Primitives Used). Output is JSONL — one session per line with `match_count` and `keyword_matches`, plus a final `_meta` line.
 
 The default keyword set is the universal compound signals: `AIDEV-NOTE`, `Root Cause`, `failure mode`, `that worked`, `it's fixed`, `working now`, `lgtm`, `problem solved`, `ship it`, etc. If the project's signals file lists additional verbatim phrases, the scout should append them via the `COMPOUND_SIGNAL_KEYWORDS` env var.
 
 **Step 2 — Triage**: drop sessions with `match_count: 0`; sort by `match_count`; cap to the top ~20 per platform. For each surviving session, the metadata line gives `branch`, `last_ts`, and `size` — branch matching against Scout A is the cheapest dedup.
 
-**Step 3 — Deep-dive** only the top sessions, using `ce-session-extract` rather than reading raw JSONL:
+**Step 3 — Deep-dive** only the top sessions, using compound-engineering's extract scripts rather than reading raw JSONL:
 
 ```bash
-CE_SKILLS_DIR="${CE_SKILLS_DIR:-}"
-if [ -z "$CE_SKILLS_DIR" ]; then
-  for dir in \
-    "$HOME/.codex/plugins/cache/compound-engineering-plugin/compound-engineering"/*/skills; do
-    [ -d "$dir/ce-session-extract/scripts" ] && CE_SKILLS_DIR="$dir" && break
+# Resolve compound-engineering's extract scripts by basename across the layouts
+# the plugin has shipped (ce-session-extract legacy, ce-sessions 3.13.x,
+# ce-compound/scripts/session-history 3.15.x), newest version first. Honors an
+# explicit $CE_SKILLS_DIR (a compound-engineering "skills" dir) override.
+find_ce_script() {
+  local script="$1" rel p
+  for rel in \
+    "ce-session-extract/scripts/$script" \
+    "ce-sessions/scripts/$script" \
+    "ce-compound/scripts/session-history/$script"; do
+    [ -n "${CE_SKILLS_DIR:-}" ] && [ -f "$CE_SKILLS_DIR/$rel" ] && { printf '%s\n' "$CE_SKILLS_DIR/$rel"; return 0; }
   done
-fi
-if [ -z "$CE_SKILLS_DIR" ] && [ -d "$HOME/.claude/plugins" ]; then
-  scripts_dir="$(find "$HOME/.claude/plugins" -path '*/compound-engineering/skills/ce-session-extract/scripts' -type d 2>/dev/null | sort | head -1)"
-  [ -n "$scripts_dir" ] && CE_SKILLS_DIR="${scripts_dir%/ce-session-extract/scripts}"
-fi
-if [ -z "$CE_SKILLS_DIR" ]; then
-  echo "ERROR: Could not find ce-session-extract" >&2
-  exit 1
-fi
+  local roots=()
+  [ -d "$HOME/.codex/plugins/cache" ] && roots+=("$HOME/.codex/plugins/cache")
+  [ -d "$HOME/.claude/plugins/cache" ] && roots+=("$HOME/.claude/plugins/cache")
+  [ ${#roots[@]} -eq 0 ] && return 1
+  p="$(find "${roots[@]}" -type f -name "$script" 2>/dev/null \
+        | grep -E "/compound-engineering/[^/]+/skills/(ce-session-extract|ce-sessions)/scripts/${script}$|/compound-engineering/[^/]+/skills/ce-compound/scripts/session-history/${script}$" \
+        | sort -V | tail -n1 || true)"
+  [ -n "$p" ] && { printf '%s\n' "$p"; return 0; }
+  return 1
+}
 
-EXT="$CE_SKILLS_DIR/ce-session-extract"
+SKELETON="$(find_ce_script extract-skeleton.py || true)"
+[ -n "$SKELETON" ] || { echo "ERROR: compound-engineering extract-skeleton.py not found (ce-session-extract / ce-sessions / ce-compound layouts)" >&2; exit 1; }
+ERRORS="$(find_ce_script extract-errors.py || true)"   # may be absent in some layouts
 
 # Filtered narrative (user/assistant text + collapsed tool calls) — cap to last N lines
-cat <session-file> | python3 "$EXT/scripts/extract-skeleton.py" | tail -n 200
+cat <session-file> | python3 "$SKELETON" | tail -n 200
 
-# Tool errors only (Claude is_error: true / Codex non-zero exec)
-cat <session-file> | python3 "$EXT/scripts/extract-errors.py"
+# Tool errors only (Claude is_error: true / Codex non-zero exec) — skip if unavailable
+[ -n "$ERRORS" ] && cat <session-file> | python3 "$ERRORS"
 ```
 
 Skeleton mode strips thinking blocks and tool-result noise and collapses repeat calls — three orders of magnitude smaller than the raw file. Errors mode surfaces the failed approaches that often anchor a "What didn't work" section.
@@ -276,23 +285,25 @@ verified: true | false                        # was the fix actually shipped/ver
 - [references/scoring.md](references/scoring.md) — universal compound-worthiness rubric defined against `/ce-compound`'s schema
 - [references/calibration.md](references/calibration.md) — Phase 0 calibration workflow that generates `.agents/goldpan-signals.md`
 - [references/pr-signals-template.md](references/pr-signals-template.md) — template the calibration writes to (also a manual-fill option)
-- [references/sources.md](references/sources.md) — source catalogue and how scouts compose `ce-session-inventory` + `ce-session-extract`
+- [references/sources.md](references/sources.md) — source catalogue and how scouts compose compound-engineering's session scripts
 - [references/report-template.md](references/report-template.md) — output report template
-- [scripts/discover-sessions.sh](scripts/discover-sessions.sh) — wraps `ce-session-inventory` with archived-codex gap fill + pre-baked compound-signal keywords
+- [scripts/discover-sessions.sh](scripts/discover-sessions.sh) — wraps compound-engineering's session discovery with archived-codex gap fill + pre-baked compound-signal keywords
 
 ## Upstream Primitives Used
 
 This skill composes (rather than re-implements) primitives from [Every's compound-engineering plugin](https://github.com/EveryInc/compound-engineering-plugin):
 
 - **`ce-compound`** — writes the actual solution doc. Owns `docs/solutions/` and the schema.
-- **`ce-session-inventory`** — cross-platform session discovery + metadata + keyword ranking. Owned scripts: `discover-sessions.sh`, `extract-metadata.py`. Wrapped by `scripts/discover-sessions.sh`.
-- **`ce-session-extract`** — single-file skeleton (filtered narrative) or errors mode. Owned scripts: `extract-skeleton.py`, `extract-errors.py`. Used directly by Scout B+C deep-dives.
+- **session discovery + metadata** — cross-platform session discovery + metadata + keyword ranking via `discover-sessions.sh` and `extract-metadata.py`. Wrapped by `scripts/discover-sessions.sh`.
+- **session extraction** — single-file skeleton (filtered narrative) or errors mode via `extract-skeleton.py` and `extract-errors.py`. Used directly by Scout B+C deep-dives.
 
-If those primitives are absent (compound-engineering plugin uninstalled), the wrapper exits with a clear error. Install the compound-engineering plugin rather than re-implementing — see [v1tamins README → Recommended companion](../../../../README.md#recommended-companion-compound-engineering) for install commands.
+> **Upstream layout drift:** compound-engineering has relocated these scripts across releases — `ce-session-inventory` / `ce-session-extract` (legacy) → a single `ce-sessions` skill (3.13.x) → `ce-compound/scripts/session-history/` (3.15.x). The wrapper and the Step-3 snippet resolve each script by basename across all of these layouts (in both the `~/.claude` and `~/.codex` plugin caches, newest version first), so the skill keeps working as upstream moves them. Set `CE_SKILLS_DIR` to a compound-engineering `skills` dir to override resolution.
+
+If those scripts are absent (compound-engineering plugin uninstalled), the wrapper exits with a clear error naming the missing script. Install the compound-engineering plugin rather than re-implementing — see [v1tamins README → Recommended companion](../../../../README.md#recommended-companion-compound-engineering) for install commands.
 
 ## Anti-Patterns
 
-- **Don't read full session transcripts.** Use `ce-session-extract` skeleton mode; never bulk-load JSONL.
+- **Don't read full session transcripts.** Use `extract-skeleton.py` skeleton mode; never bulk-load JSONL.
 - **Don't fabricate candidates.** If a session has no clear "fix shipped + root cause" signal, skip it.
 - **Don't write into `docs/solutions/`.** That's `/ce-compound`'s job — even from Phase 4.
 - **Don't queue without explicit approval.** Phase 4a is gated on a blocking question. No silent auto-approve, no defaulting to "all High".

@@ -336,6 +336,29 @@ Only add context the agent does not already have. Challenge each piece of inform
 - "Can I assume the agent knows this?"
 - "Does this paragraph justify its token cost?"
 
+### Instruction Value Gate
+
+Keep an instruction only when it changes behavior in at least one concrete way:
+
+- **Trigger:** when the skill should or should not activate.
+- **Gate:** a check that blocks, redirects, or permits the next step.
+- **Artifact:** a required output, template, ledger, checklist, file, or response shape.
+- **Command:** an exact command, script, tool, or validation path to run.
+- **Threshold:** a measurable limit such as line count, severity, retry count, or confidence gate.
+- **Example:** a concrete input/output pair or bad/good contrast.
+- **Failure mode:** a named mistake to detect, prevent, or recover from.
+- **Stop rule:** when to ask, stop, skip, or mark work blocked.
+
+Rewrite generic quality language into one of those forms. Delete it when no concrete form exists.
+
+```markdown
+# BAD: no observable decision
+Be thorough and write high-quality feedback.
+
+# GOOD: behavior-changing gate
+For each finding, include the failing condition, impact, concrete fix, and validation command. Drop findings that cannot name all four.
+```
+
 ### Public-Safe Extraction Gate
 
 Before moving guidance from a private project into a shared skill, keep the reusable workflow and remove private facts. Read [references/public-safe-extraction.md](references/public-safe-extraction.md) for the privacy checklist and scan command.
@@ -385,6 +408,7 @@ Files used in output (not loaded into context).
 
 **Content:**
 - [ ] Instructions use imperative form (not "you should")
+- [ ] Each instruction passes the Instruction Value Gate
 - [ ] Consistent terminology throughout (no synonym alternation)
 - [ ] Degrees of freedom match task fragility
 - [ ] Examples are concrete with real input/output
@@ -454,6 +478,16 @@ Start by reading the file.
 ## Reference Files
 - **references/patterns.md** - Detailed patterns
 - **references/api.md** - API documentation
+```
+
+### 6. Generic Quality Exhortations
+
+```markdown
+# BAD: Sounds useful but does not change the next action
+Be rigorous, careful, and comprehensive.
+
+# GOOD: Defines the action and proof
+Before finalizing, compare the output against every requested item. Mark missing items as `[blocked]` with the exact blocker.
 ```
 
 ## Skill Locations

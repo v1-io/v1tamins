@@ -110,6 +110,7 @@ mindmap
       ("v1-autoresearch-skill")
       ("v1-canon2skill")
     Meta
+      ("v1-phone-a-friend")
       ("v1-skilling-it")
       ("v1-prompt-engineering")
 ```
@@ -137,6 +138,7 @@ Each v1tamin is the smallest sharp tool we could build for one of those failures
 | Review charts, dashboards, or quantitative displays | `v1-reviewing-data-graphics` | General app usability review |
 | Diagnose a stuck process, queue, funnel, or roadmap | `v1-diagnosing-constraints` | Specific software bug reproduction |
 | Debug a reproducible failure or flaky behavior | `v1-debug` | Broad operational constraint diagnosis |
+| Get an independent second model/runtime opinion | `v1-phone-a-friend` | First-pass in-agent review or research |
 
 <details>
 <summary><b>#1 &mdash; The plan is wrong before a line of code is written</b></summary>
@@ -389,6 +391,7 @@ flowchart LR
 
 | Skill | When to use |
 |-------|-------------|
+| [`/v1-phone-a-friend`](./plugins/v1tamins/skills/v1-phone-a-friend/SKILL.md) | Route work to another agent or model for counterpart review, steelmanning, delegation, or deep research |
 | [`/v1-skilling-it`](./plugins/v1tamins/skills/v1-skilling-it/SKILL.md) | Create or improve a shared agent skill (this repo's own toolchain) |
 | [`/v1-prompt-engineering`](./plugins/v1tamins/skills/v1-prompt-engineering/SKILL.md) | Write or improve prompts, system prompts, hooks, or sub-agent briefs |
 | [`/v1-prompt-engineering-v1tamins`](./plugins/v1tamins/skills/v1-prompt-engineering-v1tamins/SKILL.md) | Same, specialised for GPT-5.5 / OpenAI Responses API / OpenRouter migrations |

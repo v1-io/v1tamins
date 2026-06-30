@@ -9,7 +9,9 @@ allowed-tools:
 ---
 # KISS DRY SOLID YAGNI Refactor
 
-Refactor selected files (or current diff) to align with KISS, DRY, SOLID, and YAGNI while strictly preserving behavior.
+Refactor selected files or the current diff only when behavior can be preserved and verified.
+
+Use `v1-simplify` for a quick changed-diff cleanup pass. Use `v1-deep-review` when the right answer may require architecture or module-boundary feedback before editing.
 
 ## Usage
 
@@ -32,7 +34,7 @@ In Codex, the slash examples below map directly to `$v1-refactor ...`.
 - Remove unnecessary wrapper layers and pass-through indirections
 - Replace complex boolean expressions with well-named predicates
 - Prefer straightforward data flow over cleverness
-- Keep functions small and cohesive
+- Split functions when one block owns multiple independent decisions, side effects, or output shapes
 - Inline trivial abstractions that add indirection without reducing complexity
 
 ### 2. YAGNI (You Aren't Gonna Need It)
@@ -59,12 +61,14 @@ In Codex, the slash examples below map directly to `$v1-refactor ...`.
 
 - **Preserve behavior**: No functional changes
 - **Preserve side effects**: Logging and error semantics untouched
-- **Maintain readability**: No over-abstraction
+- **Prove equivalence**: Run existing tests or a focused before/after command for the touched behavior
 - **Keep public APIs stable**: Skip changes that risk breakage
 - **Same or better performance**: No extra allocations in hot paths
-- **Follow repo patterns**: TypeScript types, React hooks rules, Python async-first
+- **Follow repo patterns**: inspect nearby code before introducing a helper, type, module, or pattern
 - **Honor AIDEV-* comments**: Update when modifying related code
 - **No tests unless asked**
+
+Stop and report instead of editing when behavior preservation cannot be proven from tests, snapshots, fixtures, examples, or a focused manual command.
 
 ## Language Specifics
 
@@ -96,3 +100,5 @@ Concise rationale summary grouped by principle:
 ## SOLID
 - Split `UserManager` into `UserReader` and `UserWriter` (SRP)
 ```
+
+Include the verification command that proved behavior preservation, or state why no reliable verification was available.

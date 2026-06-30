@@ -1,6 +1,6 @@
 {
   "name": "v1tamins",
-  "version": "0.3.4",
+  "version": "0.3.9",
   "description": "Reusable AI development skills and workflow guidance from Version1.",
   "author": {
     "name": "Version1",
@@ -15,6 +15,8 @@
     "claude-code",
     "codex",
     "workflow-automation",
+    "agent-consultation",
+    "counterpart-review",
     "code-review",
     "pull-requests",
     "testing",
