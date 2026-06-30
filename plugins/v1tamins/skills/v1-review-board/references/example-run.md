@@ -45,13 +45,12 @@ Each finding verified against the working tree before disposition:
 
 A Cursor finding that looked like a bug was checked against the source and proved a false positive — dropped, not laundered into the ledger.
 
-## Phase 4 — Address (full-auto, fail-safe)
+## Phase 4 — Address (default: apply, stop before push)
 
-- Announced: "full-auto — will apply F1/F2/F3, run the gate, commit, and push."
-- Branch guard: `git rev-parse --abbrev-ref HEAD` → a named feature branch, ≠ default → proceed.
 - Applied F1/F3 (Fix) and F2 (Partial) in batches via `v1-address-review`'s flow.
-- Gate discovered (project's declared check) and run → green. (Had no gate been found, the run would have dropped to `apply` and stopped before push.)
-- Committed naming the peers, models, and the F4 deferral; pushed; posted a summary listing dispositions and the stalled `deep-b`.
+- Gate discovered (the project's declared check) and run → green.
+- Stopped with the diff and a summary (dispositions, the F4 deferral, the stalled `deep-b`) for the user to review. **No commit or push** — `apply` is the default, so agent-authored changes wait for a human before landing.
+- **Full-auto opt-in:** invoked with `full-auto`, the run would instead announce its intent, re-check the branch guard (named feature branch; default resolved via `git symbolic-ref`, never assumed `main`), commit naming the peers/models/deferrals, and push — never on a red gate, never force-push.
 
 ## Degraded variants
 

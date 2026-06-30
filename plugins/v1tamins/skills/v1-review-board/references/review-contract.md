@@ -104,17 +104,17 @@ After every peer is complete or stalled, **verify each finding against the worki
 
 ## Autonomy and Guardrails
 
-Three levels; default `full-auto`. Every level is fail-safe.
+Three levels; **default `apply`**. Every level is fail-safe. `full-auto` is an explicit opt-in, not the silent default — a public skill should not push agent-authored commits before the user has read a finding.
 
 | Level | Stops after |
 | --- | --- |
 | `ledger` | the compiled ledger (you decide what to address) |
-| `apply` | applying Fix/Partial dispositions and running the gate — before commit/push |
-| `full-auto` (default) | commit → push → summary |
+| `apply` (default) | applying Fix/Partial dispositions and running the gate — stops before commit/push, with the diff + summary for review |
+| `full-auto` (opt-in) | commit → push → summary |
 
-Fail-safe rules, enforced regardless of level:
+Fail-safe rules, enforced whenever the board reaches the mutation step:
 
-- **Announce before acting.** State the autonomy level and that it will commit and push.
+- **Announce before acting.** State the autonomy level; under `full-auto`, announce that it will commit and push before doing so.
 - **Minimum-viable-board floor.** Zero surviving review peers → do not apply/commit/push; report the degradation and stop.
 - **Branch guard (positive detection).** Require a named feature branch: `git rev-parse --abbrev-ref HEAD` ≠ `HEAD` (not detached) and ≠ the resolved default branch. Resolve the default branch explicitly via `git symbolic-ref refs/remotes/origin/HEAD` (or `gh repo view --json defaultBranchRef`) — **do not assume `main`**, or a `master`/`develop`-default repo would treat its default branch as a feature branch. If the default branch cannot be resolved, abort the push rather than guessing. Never infer "feature branch" from "not main."
 - **Gate, fail-closed.** Discover the project gate (declared check command, else common test/lint runners). Run it after applying. Commit only when green; never force-push. **No gate confidently identified → drop to `apply` and report**; never push unverified.
