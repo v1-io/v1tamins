@@ -1,0 +1,7 @@
+interface:
+  display_name: "Routing Work"
+  short_description: "Choose the right mode for ambiguous agent work."
+  default_prompt: "Use $v1-routing-work to decide whether this should be prototyped, built, swept, grown, or maintained."
+
+policy:
+  allow_implicit_invocation: true

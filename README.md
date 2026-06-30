@@ -68,6 +68,7 @@ codex plugin marketplace add EveryInc/compound-engineering-plugin
 mindmap
   root((v1tamins))
     Plan
+      ("v1-routing-work")
       ("v1-interview-me")
       ("v1-strategy-review")
       ("v1-bare-bones")
@@ -151,6 +152,7 @@ You describe a feature. The agent writes 800 lines. About 60% solves a different
 > The fix isn't better prompts. It's grilling the idea, building a shared vocabulary, and writing the requirements down — before any code gets written.
 
 - [`/v1-interview-me`](./plugins/v1tamins/skills/v1-interview-me/SKILL.md) — office-hours-style questioning that takes a fuzzy idea ("what if we did X") and walks every branch of the decision tree until you can describe what you actually want
+- [`/v1-routing-work`](./plugins/v1tamins/skills/v1-routing-work/SKILL.md) — route ambiguous work into the right mode before mixing prototype, build, cleanup, growth, and maintenance jobs
 - [`/v1-strategy-review`](./plugins/v1tamins/skills/v1-strategy-review/SKILL.md) — a CEO-style read of a plan, PRD, or proposal that pushes back on scope, ambition, and hidden assumptions ("is this big enough?")
 - [`/v1-bare-bones`](./plugins/v1tamins/skills/v1-bare-bones/SKILL.md) — strip an overscoped plan down to the smallest useful version before it turns into implementation sprawl
 - [`/v1-shared-language`](./plugins/v1tamins/skills/v1-shared-language/SKILL.md) — extract a DDD-style glossary from the current conversation, flag ambiguous terms, and write `LANGUAGE.md`. Pays off session after session: variables, files, and prompts all start using one vocabulary
@@ -321,6 +323,7 @@ flowchart LR
 
 | Skill | When to use |
 |-------|-------------|
+| [`/v1-routing-work`](./plugins/v1tamins/skills/v1-routing-work/SKILL.md) | Choose whether ambiguous agent work should be prototyped, built, swept, grown, or maintained |
 | [`/v1-interview-me`](./plugins/v1tamins/skills/v1-interview-me/SKILL.md) | Fuzzy idea, ticket, or feature request needs to be fleshed out before any code is written |
 | [`/v1-strategy-review`](./plugins/v1tamins/skills/v1-strategy-review/SKILL.md) | Stress-test a plan, PRD, or product direction for scope, ambition, and hidden assumptions |
 | [`/v1-bare-bones`](./plugins/v1tamins/skills/v1-bare-bones/SKILL.md) | Strip an overscoped plan down to the smallest useful version |
