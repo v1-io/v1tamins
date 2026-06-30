@@ -56,6 +56,7 @@ The user can invoke this command without arguments from the repository containin
    - Use a 3 minute timeout per monitoring pass.
    - Treat required checks that are pending or running as wait conditions.
    - Treat failed, cancelled, timed out, action_required, or skipped required checks as failures to investigate.
+   - Treat comments from humans and bots as code review feedback that requires addressing.
    - If checks are inconclusive because GitHub has not created runs yet, wait briefly and poll again within the same timeout.
    - While polling, check for code review comments from both humans and bot reviewers.
 
