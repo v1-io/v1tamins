@@ -58,7 +58,7 @@ Resolve concrete models and the thermo-nuclear rubric location at runtime — th
 
 1. Run `v1-phone-a-friend`'s capability audit to see which peers are installed and authenticated. Bound the probes; a hung probe means `auth: not checked`, not a block.
 2. Resolve each peer's model from its CLI (`--help` / model list), honoring any user-specified tiers. Do not hardcode model names.
-3. Resolve the thermo-nuclear rubric by globbing the **Cursor install location** (under `~/.cursor/…`, e.g. `~/.cursor/**/skills/thermo-nuclear-code-quality-review/SKILL.md`) — not the Codex/Claude plugin caches. If absent, drop the harsh-maintainability lens and record it.
+3. Resolve the thermo-nuclear rubric by searching the **Cursor install location** (under `~/.cursor/…`) with a generous depth — the rubric nests ~8 levels deep (`plugins/cache/.../cursor-team-kit/<hash>/skills/thermo-nuclear-code-quality-review/SKILL.md`), so a shallow glob silently misses it (see `references/review-contract.md`). Search `~/.cursor`, not the Codex/Claude plugin caches. If absent, drop the harsh-maintainability lens and record it.
 4. Resolve `v1-phone-a-friend`'s `peer-run.sh` by globbing the installed skills root for the sibling skill (both ship in the same plugin, co-installed under one skills root): find `*/v1-phone-a-friend/scripts/peer-run.sh`. If unresolved, fall back to the manual supervised-launch snippet (degrade, don't crash).
 
 ### Phase 2: Brief and fan out
@@ -79,7 +79,7 @@ Default autonomy is **full-auto**, but it never acts blind:
 
 - **Announce first.** State the autonomy level and that it will commit and push, before doing so.
 - **Minimum-viable-board floor.** If no review peer survived (all stalled/absent), do not apply/commit/push — report the degradation and stop, regardless of autonomy.
-- **Branch guard (positive detection).** Commit/push only from a confirmed named feature branch: `git rev-parse --abbrev-ref HEAD` must not be `HEAD` (detached) and must differ from the resolved default branch. Abort with a clear message otherwise. Never infer "feature branch" from "not main."
+- **Branch guard (positive detection).** Commit/push only from a confirmed named feature branch: `git rev-parse --abbrev-ref HEAD` must not be `HEAD` (detached) and must differ from the resolved default branch. Resolve the default branch explicitly (`git symbolic-ref refs/remotes/origin/HEAD`, or `gh repo view --json defaultBranchRef`) — never assume `main`; abort if it cannot be resolved. Abort with a clear message on detached HEAD or the default branch. Never infer "feature branch" from "not main."
 - **Gate, fail-closed.** Discover the target project's gate (a project-declared check command, else common test/lint runners). Apply Fix/Partial dispositions in batches (hand to `v1-address-review` where findings map to it), then run the gate. Commit only when green; never force-push. **If no gate can be confidently identified, drop to `apply` (stop before push) and report** — do not push unverified.
 - Commit message names the peers, the models used, and the deliberate deferrals; then push; then post a summary of findings, dispositions, and any skipped/stalled peers.
 
