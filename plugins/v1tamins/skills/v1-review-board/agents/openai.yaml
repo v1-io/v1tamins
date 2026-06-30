@@ -1,0 +1,7 @@
+interface:
+  display_name: "Review Board"
+  short_description: "Fan out a parallel read-only review to several peer agents, compile a verified finding ledger, then address it."
+  default_prompt: "Use $v1-review-board to convene a multi-agent review board on this PR."
+
+policy:
+  allow_implicit_invocation: true
