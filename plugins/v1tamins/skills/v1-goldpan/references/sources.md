@@ -1,6 +1,6 @@
 # Source Catalogue
 
-Exact paths and commands for the sources scouted by this skill. All paths use `~/`. Session inspection is delegated to the compound-engineering plugin's `ce-session-inventory` and `ce-session-extract` primitives — this skill composes them rather than re-implementing JSONL parsing.
+Exact paths and commands for the sources scouted by this skill. All paths use `~/`. Session inspection is delegated to the compound-engineering plugin's session scripts (`discover-sessions.sh`, `extract-metadata.py`, `extract-skeleton.py`, `extract-errors.py`) — this skill composes them rather than re-implementing JSONL parsing. Those scripts have moved between compound-engineering releases (`ce-session-inventory`/`ce-session-extract` → `ce-sessions` → `ce-compound/scripts/session-history`); the wrapper and snippets resolve each by basename across all layouts.
 
 ## Table of contents
 - Source A: Merged PRs (GitHub)
@@ -71,32 +71,39 @@ COMPOUND_SIGNAL_KEYWORDS="AIDEV-NOTE,Root Cause,that worked,<your project's extr
 
 ### Deep-dive
 
-For each shortlisted session, pull a filtered skeleton via `ce-session-extract` rather than reading raw JSONL:
+For each shortlisted session, pull a filtered skeleton via compound-engineering's `extract-skeleton.py` rather than reading raw JSONL. Resolve the script across the layouts the plugin has shipped (`ce-session-extract` legacy, `ce-sessions` 3.13.x, `ce-compound/scripts/session-history` 3.15.x):
 
 ```bash
-CE_SKILLS_DIR="${CE_SKILLS_DIR:-}"
-if [ -z "$CE_SKILLS_DIR" ]; then
-  for dir in \
-    "$HOME/.codex/plugins/cache/compound-engineering-plugin/compound-engineering"/*/skills; do
-    [ -d "$dir/ce-session-extract/scripts" ] && CE_SKILLS_DIR="$dir" && break
+# Locate a compound-engineering extract script by basename across plugin layouts,
+# newest version first. Honors $CE_SKILLS_DIR (a "skills" dir) as an override.
+find_ce_script() {
+  local script="$1" rel p
+  for rel in \
+    "ce-session-extract/scripts/$script" \
+    "ce-sessions/scripts/$script" \
+    "ce-compound/scripts/session-history/$script"; do
+    [ -n "${CE_SKILLS_DIR:-}" ] && [ -f "$CE_SKILLS_DIR/$rel" ] && { printf '%s\n' "$CE_SKILLS_DIR/$rel"; return 0; }
   done
-fi
-if [ -z "$CE_SKILLS_DIR" ] && [ -d "$HOME/.claude/plugins" ]; then
-  scripts_dir="$(find "$HOME/.claude/plugins" -path '*/compound-engineering/skills/ce-session-extract/scripts' -type d 2>/dev/null | sort | head -1)"
-  [ -n "$scripts_dir" ] && CE_SKILLS_DIR="${scripts_dir%/ce-session-extract/scripts}"
-fi
-if [ -z "$CE_SKILLS_DIR" ]; then
-  echo "ERROR: Could not find ce-session-extract" >&2
-  exit 1
-fi
+  local roots=()
+  [ -d "$HOME/.codex/plugins/cache" ] && roots+=("$HOME/.codex/plugins/cache")
+  [ -d "$HOME/.claude/plugins/cache" ] && roots+=("$HOME/.claude/plugins/cache")
+  [ ${#roots[@]} -eq 0 ] && return 1
+  p="$(find "${roots[@]}" -type f -name "$script" 2>/dev/null \
+        | grep -E "/compound-engineering/[^/]+/skills/(ce-session-extract|ce-sessions)/scripts/${script}$|/compound-engineering/[^/]+/skills/ce-compound/scripts/session-history/${script}$" \
+        | sort -V | tail -n1 || true)"
+  [ -n "$p" ] && { printf '%s\n' "$p"; return 0; }
+  return 1
+}
 
-EXT="$CE_SKILLS_DIR/ce-session-extract"
+SKELETON="$(find_ce_script extract-skeleton.py || true)"
+[ -n "$SKELETON" ] || { echo "ERROR: compound-engineering extract-skeleton.py not found" >&2; exit 1; }
+ERRORS="$(find_ce_script extract-errors.py || true)"   # may be absent in some layouts
 
 # Skeleton: user/assistant text + collapsed tool calls. Cap to last 200 lines.
-cat <session-file> | python3 "$EXT/scripts/extract-skeleton.py" | tail -n 200
+cat <session-file> | python3 "$SKELETON" | tail -n 200
 
 # Errors-only view: Claude `is_error: true` tool results, Codex non-zero exec_command_end events.
-cat <session-file> | python3 "$EXT/scripts/extract-errors.py"
+[ -n "$ERRORS" ] && cat <session-file> | python3 "$ERRORS"
 ```
 
 Skeleton output is one logical event per `---` block. Read it like a transcript — no JSON parsing needed in the scout. Most sessions reduce from MB-scale to ~1-3KB once filtered.
