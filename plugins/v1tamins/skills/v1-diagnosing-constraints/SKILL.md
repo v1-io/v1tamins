@@ -1,6 +1,6 @@
 ---
 name: v1-diagnosing-constraints
-description: Use when a process, team, system, roadmap, funnel, queue, or operation is stuck and the user needs to find the bottleneck or highest-leverage constraint. Triggers on "find the bottleneck", "diagnose the constraint", "too much WIP", "everything is urgent", "where should we focus", "throughput is stuck".
+description: Use when a process, team, roadmap, funnel, queue, or operation is stuck and needs bottleneck diagnosis. Triggers on "find the bottleneck", "diagnose the constraint", "too much WIP", "where should we focus", "throughput is stuck".
 allowed-tools:
   - Bash
   - Read

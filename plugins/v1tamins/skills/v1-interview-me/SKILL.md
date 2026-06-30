@@ -1,6 +1,6 @@
 ---
 name: v1-interview-me
-description: Use when the user provides an idea, feature request, Linear ticket, or concept that needs fleshing out, product validation, or office-hours-style questioning. Triggers on "interview me about X", "help me spec out Y", "I have an idea for Z", "flesh out this idea", "office hours", "is this worth building".
+description: Use when an idea, feature request, ticket, or concept needs office-hours-style questioning before planning. Triggers on "interview me about X", "help me spec out Y", "I have an idea for Z", "flesh out this idea", "is this worth building".
 allowed-tools:
   - Bash
   - Read

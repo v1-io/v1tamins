@@ -4,4 +4,4 @@ interface:
   default_prompt: "Use $v1-md2docs to convert this Markdown file into a formatted Google Doc."
 
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false

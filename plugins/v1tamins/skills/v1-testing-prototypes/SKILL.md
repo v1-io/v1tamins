@@ -1,6 +1,6 @@
 ---
 name: v1-testing-prototypes
-description: Use when planning or synthesizing user tests for prototypes, mockups, clickable demos, product concepts, design flows, landing pages, or early product specs. Triggers on "test this prototype", "prototype testing", "user test plan", "validate this product idea", "test with users".
+description: Use when planning or synthesizing user tests for prototypes, mockups, clickable demos, or product concepts. Triggers on "test this prototype", "prototype testing", "user test plan", "validate this product idea", "test with users".
 allowed-tools:
   - Bash
   - Read

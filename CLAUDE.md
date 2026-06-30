@@ -58,6 +58,19 @@ Skill names use the `v1-` prefix in both directory names and frontmatter names (
 
 Private plugin skill directories named `v1-_*` are gitignored — they can exist locally but are not distributed.
 
+### Autonomous Routing Evals
+
+Skill metadata is runtime behavior. Codex and Claude Code select skills from
+compact listings before loading the full skill body, and those listings can
+shorten descriptions when many skills are installed.
+
+Use `plugins/v1tamins/evals/trigger-inventory.md` to review whether a skill's
+trigger contract is right, too broad, too narrow, or side-effectful. Use
+`plugins/v1tamins/evals/skill-routing.jsonl` for should-trigger,
+should-not-trigger, overlap, side-effect, and budget-stress cases. Any change to
+a skill description, invocation policy, `agents/openai.yaml`, or routing-relevant
+body guidance should update these eval files in the same diff.
+
 ## Migration Note
 
 The canonical source moved from `.agents/skills/<skill-name>/` to `plugins/v1tamins/skills/v1-<skill-name>/`. Direct checkout consumers should update symlinks, scripts, and docs to use the plugin path and installed `v1-*` names. Marketplace/plugin consumers already using `/v1-*` skill names should not need to change anything.
@@ -67,11 +80,12 @@ The canonical source moved from `.agents/skills/<skill-name>/` to `plugins/v1tam
 1. Create `plugins/v1tamins/skills/v1-<skill-name>/SKILL.md`
 2. Add `agents/openai.yaml` when the skill should appear cleanly in Codex skill lists
 3. Add YAML frontmatter with `name` and `description`; `name` must match the `v1-*` directory. `allowed-tools` is recommended when the skill needs tool restrictions
-4. Document usage, workflow steps, and examples
-5. Bump both runtime plugin manifest versions when runtime plugin content changes: `plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`.
-6. Run `scripts/validate-plugin.sh` before committing
-7. Test in a project before committing
-8. Push to share with team
+4. Update `plugins/v1tamins/evals/trigger-inventory.md` and `plugins/v1tamins/evals/skill-routing.jsonl` with the intended trigger and near-miss behavior
+5. Document usage, workflow steps, and examples
+6. Bump both runtime plugin manifest versions when runtime plugin content changes: `plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`.
+7. Run `scripts/validate-plugin.sh --verbose` before committing
+8. Test in a project before committing
+9. Push to share with team
 
 When updating shared docs, keep `AGENTS.md`, `CLAUDE.md`, and `README.md` aligned.
 

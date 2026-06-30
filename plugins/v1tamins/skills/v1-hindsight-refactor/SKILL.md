@@ -1,6 +1,6 @@
 ---
 name: v1-hindsight-refactor
-description: Use when a first-pass fix works but is exploratory, messy, or overbuilt, and you want to delete it and reimplement a better version using what the first pass taught you. Triggers on "delete your fix and implement a better version", "hindsight refactor", "second pass refactor", "second pass rewrite", "rewrite after exploration", and "clean reimplementation".
+description: Use when a working first-pass fix is exploratory, messy, or overbuilt and should be reimplemented cleanly. Triggers on "hindsight refactor", "second pass rewrite", "delete your fix and implement a better version", "clean reimplementation".
 allowed-tools:
   - Bash
   - Read

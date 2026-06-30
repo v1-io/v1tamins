@@ -1,6 +1,6 @@
 ---
 name: v1-bare-bones
-description: Use when a plan, PRD, proposal, or implementation outline is overscoped, too ambitious for the immediate goal, or needs to be reduced to a bare-bones version. Triggers on "bare bones", "no damn whistles", "no bells and whistles", "strip this plan", "trim this plan", "scope creep", "descope this plan", "MVP only".
+description: Use when reducing an overscoped plan, PRD, proposal, or implementation outline to the smallest useful version. Triggers on "bare bones", "strip this plan", "trim this plan", "scope creep", "descope this plan", "MVP only".
 allowed-tools:
   - Bash
   - Read

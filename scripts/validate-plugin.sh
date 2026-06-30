@@ -13,6 +13,9 @@ Checks:
   - plugins/v1tamins/skills/v1-*/SKILL.md files have parseable YAML frontmatter
   - each skill frontmatter name matches its v1-* directory
   - optional agents/openai.yaml files parse as YAML
+  - each distributed skill has Codex metadata
+  - routing evals and trigger inventory cover distributed skills
+  - skill descriptions are checked for trigger-oriented, budget-resilient metadata
   - plugin-distributed skills use the v1- prefix
   - plugin skills do not reference known v1tamins skills by legacy bare names
   - root SKILL.md local links and required bundled asset references resolve
@@ -55,6 +58,7 @@ claude_plugin_manifest="$plugin_dir/.claude-plugin/plugin.json"
 claude_marketplace_manifest="$repo_root/.claude-plugin/marketplace.json"
 
 failures=0
+warnings=0
 
 relpath() {
   local path="$1"
@@ -70,6 +74,11 @@ ok() {
 fail() {
   failures=$((failures + 1))
   printf 'ERROR: %s\n' "$1" >&2
+}
+
+warn_validation() {
+  warnings=$((warnings + 1))
+  printf 'WARNING: %s\n' "$1" >&2
 }
 
 print_failure_summary() {
@@ -568,11 +577,153 @@ validate_plugin_skills() {
 
     if [ -f "$openai_yaml" ]; then
       validate_yaml_file "$openai_yaml"
+    else
+      fail "missing Codex metadata: $(relpath "$openai_yaml")"
     fi
   done < <(find "$plugin_skills_dir" -mindepth 1 -maxdepth 1 -type d ! -name '.*' ! -name 'v1-_*' -print 2>/dev/null | sort)
 
   if [ "$found" = false ]; then
     fail "no plugin skills found in $(relpath "$plugin_skills_dir")"
+  fi
+}
+
+validate_skill_routing_fixture() {
+  local args=("--repo-root" "$repo_root")
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    fail "python3 is required to validate skill routing fixture"
+    return 1
+  fi
+
+  if [ "$verbose" = true ]; then
+    args+=("--verbose")
+  fi
+
+  if python3 "$repo_root/scripts/check-skill-routing-fixture.py" "${args[@]}"; then
+    ok "skill routing fixture"
+  else
+    fail "skill routing fixture validation failed"
+  fi
+}
+
+validate_metadata_hygiene() {
+  if ! command -v ruby >/dev/null 2>&1; then
+    fail "ruby is required to validate metadata hygiene"
+    return 1
+  fi
+
+  local output
+  local status
+  if output="$(
+    ruby -ryaml -rdate - "$plugin_skills_dir" "$repo_root" "$verbose" <<'RUBY'
+skills_dir = ARGV.fetch(0)
+repo_root = ARGV.fetch(1)
+verbose = ARGV.fetch(2) == "true"
+
+warnings = []
+failures = []
+descriptions = []
+high_side_effect = %w[
+  v1-land-pr
+  v1-md2docs
+  v1-pr
+  v1-prove-work
+  v1-review-board
+]
+
+def rel(path, root)
+  path.delete_prefix("#{root}/")
+end
+
+def yaml_load(content, path)
+  begin
+    YAML.safe_load(content, permitted_classes: [Date, Time], aliases: false, filename: path)
+  rescue ArgumentError
+    YAML.safe_load(content, [Date, Time], [], false, path)
+  end
+end
+
+Dir.glob(File.join(skills_dir, "v1-*", "SKILL.md")).sort.each do |skill_path|
+  skill_name = File.basename(File.dirname(skill_path))
+  content = File.read(skill_path)
+  frontmatter = content[/\A---\s*\n(.*?)\n---\s*\n/m, 1]
+  next unless frontmatter
+
+  data = yaml_load(frontmatter, skill_path) || {}
+  description = data.fetch("description", "").to_s.strip
+  descriptions << [skill_name, description.length]
+
+  first_clause = description.split(/[.;]/, 2).first.to_s.strip
+
+  if description.length > 350
+    warnings << "#{rel(skill_path, repo_root)}: description is #{description.length} chars; target <= 350 for budget resilience"
+  end
+
+  unless description.match?(/\A(Use when|Conducts?|Create|Convert|Extract|Commit|Autonomous)\b/i)
+    warnings << "#{rel(skill_path, repo_root)}: description should front-load the trigger condition"
+  end
+
+  unless description.match?(/\b(Use when|Triggers? on|trigger|review|debug|test|PR|prompt|skill|research|customer|prototype|HTML|chart|glossary|changelog|refactor|simplify|proof|Google Doc)\b/i)
+    warnings << "#{rel(skill_path, repo_root)}: description may not include natural trigger terms"
+  end
+
+  if first_clause.length > 140
+    warnings << "#{rel(skill_path, repo_root)}: first clause is #{first_clause.length} chars; key trigger may be truncated"
+  end
+
+  openai_path = File.join(File.dirname(skill_path), "agents", "openai.yaml")
+  unless File.file?(openai_path)
+    failures << "#{rel(openai_path, repo_root)}: missing Codex metadata"
+    next
+  end
+
+  openai = yaml_load(File.read(openai_path), openai_path) || {}
+  allow_implicit = openai.dig("policy", "allow_implicit_invocation")
+  if high_side_effect.include?(skill_name) && allow_implicit != false
+    warnings << "#{rel(openai_path, repo_root)}: high-side-effect skill should be explicit/gated or document why implicit is safe"
+  end
+end
+
+total = descriptions.sum { |_name, length| length }
+largest = descriptions.max_by(5) { |_name, length| length }
+
+if verbose
+  puts "ok: total skill description chars: #{total}"
+  largest.each do |name, length|
+    puts "ok: description budget contributor #{name}: #{length} chars"
+  end
+end
+
+failures.each { |failure| puts "ERROR: #{failure}" }
+warnings.each { |warning| puts "WARNING: #{warning}" }
+exit failures.empty? ? 0 : 1
+RUBY
+  )"; then
+    status=0
+  else
+    status=$?
+  fi
+
+  if [ -n "$output" ]; then
+    while IFS= read -r line; do
+      case "$line" in
+        ERROR:*)
+          fail "${line#ERROR: }"
+          ;;
+        WARNING:*)
+          warn_validation "${line#WARNING: }"
+          ;;
+        *)
+          printf '%s\n' "$line"
+          ;;
+      esac
+    done <<< "$output"
+  fi
+
+  if [ "$status" -eq 0 ]; then
+    ok "skill metadata hygiene"
+  else
+    fail "skill metadata hygiene validation failed"
   fi
 }
 
@@ -591,6 +742,8 @@ main() {
 
   validate_no_legacy_agent_skills
   validate_plugin_skills
+  validate_skill_routing_fixture
+  validate_metadata_hygiene
   validate_skill_references
   validate_skill_assets
   validate_portable_host_paths
@@ -601,6 +754,9 @@ main() {
   fi
 
   printf '\nPlugin validation checks passed.\n'
+  if [ "$warnings" -ne 0 ]; then
+    printf '%d validation warning(s)\n' "$warnings" >&2
+  fi
 }
 
 main "$@"

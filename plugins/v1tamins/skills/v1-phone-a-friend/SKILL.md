@@ -1,6 +1,6 @@
 ---
 name: v1-phone-a-friend
-description: Use when an agent needs counterpart review, another agent/model consult, steelmanning, delegated implementation, or external strong-model research. Triggers on "phone a friend", "second opinion", "ask another agent", "ask Claude", "ask Codex", "ask Cursor", "ask Oracle", "consult ChatGPT Pro", "steelman this".
+description: Use when an agent needs a counterpart review, second opinion, steelman, or delegated peer-agent consult. Triggers on "phone a friend", "second opinion", "ask another agent", "ask Claude", "ask Codex", "ask Cursor", "steelman this".
 allowed-tools:
   - Bash
   - Read
