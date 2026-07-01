@@ -23,6 +23,7 @@ from skill_routing_live import (
     run_case,
     score_result,
     side_effect_skills,
+    subscription_runtime_env,
     validate_result_shape,
 )
 
@@ -99,6 +100,14 @@ class LiveRoutingTests(unittest.TestCase):
         result["selected_skill"] = "v1-debug"
         result["evidence_kind"] = "structured_decision"
         scored = score_result(result, fixture_case(), set())
+        self.assertEqual(scored["status"], "pass")
+
+    def test_namespaced_expected_skill_scores_pass(self):
+        result = base_result(fixture_case(), "claude", "fake", None)
+        result["selected_skill"] = "v1tamins:v1-debug"
+        result["evidence_kind"] = "structured_decision"
+        scored = score_result(result, fixture_case(), set())
+        self.assertEqual(scored["selected_skill"], "v1-debug")
         self.assertEqual(scored["status"], "pass")
 
     def test_acceptable_alternative_scores_pass(self):
@@ -188,6 +197,65 @@ class LiveRoutingTests(unittest.TestCase):
 
         self.assertEqual(selected, "v1-debug")
         self.assertEqual(evidence_kind, "observed_invocation")
+
+    def test_extract_decision_normalizes_namespaced_skill_ids(self):
+        stdout = json.dumps(
+            {
+                "type": "result",
+                "result": json.dumps(
+                    {
+                        "selected_skill": "v1tamins:v1-debug",
+                        "reason": "fake routing decision",
+                        "confidence": 1.0,
+                    }
+                ),
+            }
+        )
+
+        selected, evidence_kind, _reason, _confidence = extract_decision(
+            stdout, "claude"
+        )
+
+        self.assertEqual(selected, "v1-debug")
+        self.assertEqual(evidence_kind, "structured_decision")
+
+    def test_subscription_runtime_env_strips_api_key_auth(self):
+        old_values = {
+            name: os.environ.get(name)
+            for name in (
+                "ANTHROPIC_API_KEY",
+                "ANTHROPIC_AUTH_TOKEN",
+                "CLAUDE_API_KEY",
+                "OPENAI_API_KEY",
+                "OPENAI_AUTH_TOKEN",
+                "CODEX_API_KEY",
+            )
+        }
+        os.environ.update(
+            {
+                "ANTHROPIC_API_KEY": "fake",
+                "ANTHROPIC_AUTH_TOKEN": "fake",
+                "CLAUDE_API_KEY": "fake",
+                "OPENAI_API_KEY": "fake",
+                "OPENAI_AUTH_TOKEN": "fake",
+                "CODEX_API_KEY": "fake",
+            }
+        )
+        try:
+            runtime_env = subscription_runtime_env()
+        finally:
+            for name, value in old_values.items():
+                if value is None:
+                    os.environ.pop(name, None)
+                else:
+                    os.environ[name] = value
+
+        self.assertNotIn("ANTHROPIC_API_KEY", runtime_env)
+        self.assertNotIn("ANTHROPIC_AUTH_TOKEN", runtime_env)
+        self.assertNotIn("CLAUDE_API_KEY", runtime_env)
+        self.assertNotIn("OPENAI_API_KEY", runtime_env)
+        self.assertNotIn("OPENAI_AUTH_TOKEN", runtime_env)
+        self.assertNotIn("CODEX_API_KEY", runtime_env)
 
     def test_fake_codex_runtime_records_pass(self):
         with tempfile.TemporaryDirectory() as tmp:

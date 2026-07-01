@@ -61,6 +61,10 @@ Live routing evals are optional smoke checks for real runtime behavior. They may
 make model calls, require local Codex or Claude Code authentication, and produce
 local transcripts, so they are not part of `scripts/validate-plugin.sh`.
 
+The runner strips API-key and auth-token environment variables from Codex and
+Claude child processes. Live evals are intended to exercise the local CLI
+login/subscription state, not direct API-key billing.
+
 Run a small sample after changing skill descriptions, invocation posture,
 high-overlap fixture cases, or side-effect policy:
 

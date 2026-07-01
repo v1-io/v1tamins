@@ -84,7 +84,7 @@ def run() -> int:
     repo_root = Path(args.repo_root).resolve()
     _fixture_path, _schema_path, default_output = repo_paths(repo_root)
     output_root = Path(args.output_dir).resolve() if args.output_dir else default_output
-    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     run_dir = output_root / f"run-{timestamp}"
     run_dir.mkdir(parents=True, exist_ok=True)
 
