@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -19,6 +20,14 @@ EVIDENCE_KINDS = {"observed_invocation", "structured_decision", "inconclusive"}
 RUNTIMES = {"codex", "claude"}
 STATUSES = {"pass", "fail", "inconclusive"}
 SEVERITIES = {"none", "normal", "high"}
+RUNTIME_API_ENV_VARS = {
+    "ANTHROPIC_API_KEY",
+    "ANTHROPIC_AUTH_TOKEN",
+    "CLAUDE_API_KEY",
+    "OPENAI_API_KEY",
+    "OPENAI_AUTH_TOKEN",
+    "CODEX_API_KEY",
+}
 RESULT_REQUIRED_FIELDS = set(
     """
     schema_version case_id runtime runtime_version adapter adapter_version started_at
@@ -148,7 +157,17 @@ def runtime_bin(runtime: str, override: str | None = None) -> str | None:
     return shutil.which(runtime)
 
 
-def command_version(command: str, timeout: int) -> tuple[bool, str]:
+def subscription_runtime_env() -> dict[str, str]:
+    return {
+        name: value
+        for name, value in os.environ.items()
+        if name not in RUNTIME_API_ENV_VARS
+    }
+
+
+def command_version(
+    command: str, timeout: int, env: dict[str, str] | None = None
+) -> tuple[bool, str]:
     try:
         result = subprocess.run(
             [command, "--version"],
@@ -156,6 +175,7 @@ def command_version(command: str, timeout: int) -> tuple[bool, str]:
             capture_output=True,
             text=True,
             timeout=timeout,
+            env=env,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         return False, str(exc)
@@ -175,7 +195,8 @@ def preflight_runtime(
     if not command:
         return False, "", f"{runtime} binary not found"
 
-    ok, version = command_version(command, timeout)
+    env = subscription_runtime_env()
+    ok, version = command_version(command, timeout, env)
     if not ok:
         return False, version, f"{runtime} version check failed: {version}"
 
@@ -187,6 +208,7 @@ def preflight_runtime(
                 capture_output=True,
                 text=True,
                 timeout=timeout,
+                env=env,
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             return False, version, f"claude auth status failed: {exc}"
@@ -264,8 +286,8 @@ def json_from_text(text: str) -> dict[str, Any] | None:
 def skill_name_from_value(value: Any) -> str | None:
     if not isinstance(value, str):
         return None
-    match = re.fullmatch(r"v1-[a-z0-9-]+", value)
-    return match.group(0) if match else None
+    match = re.fullmatch(r"(?:[a-z0-9-]+:)?(v1-[a-z0-9-]+)", value)
+    return match.group(1) if match else None
 
 
 def skill_name_from_tool_use(event: dict[str, Any], runtime: str) -> str | None:
@@ -372,7 +394,9 @@ def extract_decision(
         return None, "inconclusive", "no structured selected_skill result found", None
 
     selected = decision.get("selected_skill")
-    if selected is not None and not isinstance(selected, str):
+    if isinstance(selected, str):
+        selected = skill_name_from_value(selected) or selected
+    elif selected is not None:
         selected = None
     reason = str(decision.get("reason", "structured routing decision"))
     confidence = decision.get("confidence")
@@ -469,6 +493,7 @@ def run_case(
             capture_output=True,
             text=True,
             timeout=timeout,
+            env=subscription_runtime_env(),
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         result["duration_seconds"] = round(time.monotonic() - started, 3)
@@ -569,7 +594,13 @@ def score_result(
     *,
     strict_inconclusive: bool = False,
 ) -> dict[str, Any]:
-    selected = result.get("selected_skill")
+    raw_selected = result.get("selected_skill")
+    selected = raw_selected
+    if isinstance(raw_selected, str):
+        normalized_selected = skill_name_from_value(raw_selected)
+        if normalized_selected:
+            selected = normalized_selected
+            result["selected_skill"] = normalized_selected
     expected = fixture_case.get("expected_skill")
     acceptable = set(fixture_case.get("acceptable_skills", []))
     near_miss = set(fixture_case.get("near_miss_skills", []))
