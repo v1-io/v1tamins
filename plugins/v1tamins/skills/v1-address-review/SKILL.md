@@ -132,7 +132,7 @@ Record the PR head SHA before analysis:
 gh pr view {pr} --repo {owner}/{repo} --json headRefOid --jq .headRefOid
 ```
 
-Before posting replies, adding reactions, resolving threads, committing, or pushing, fetch the head SHA again. If it changed, rebuild the ledger against the new head first.
+Before posting replies, adding reactions, resolving threads, committing, or pushing, fetch the head SHA again. If it changed, rebuild the ledger against the new head first. If the user did not explicitly ask to respond to or resolve PR feedback, draft the replies and proposed resolutions instead of mutating GitHub.
 
 ### 3. Parse Findings by Source
 

@@ -10,6 +10,10 @@ description edits are behavior changes.
   natural prompts, near-miss neighbors, side-effect posture, and budget risk.
 - `skill-routing.jsonl` contains routing cases used by
   `scripts/check-skill-routing-fixture.py`.
+- `agents/openai.yaml` on each skill records machine-readable invocation policy:
+  `policy.invocation_posture` is `implicit`, `selective_implicit`, or
+  `explicit_only`; `policy.side_effects` records routing-critical side effects
+  such as `external_write`, `git_remote`, `peer_launch`, and `browser_capture`.
 
 ## JSONL Schema
 
@@ -37,7 +41,8 @@ Each line in `skill-routing.jsonl` is one JSON object with:
 When changing a skill name, description, `agents/openai.yaml`, invocation
 policy, or routing-relevant body guidance, update both the trigger inventory and
 the JSONL fixture. Add at least one positive case and one near-miss or negative
-case for any new skill.
+case for any new skill. Add a `category: side_effect` case for every skill with
+non-empty `policy.side_effects`.
 
 Run:
 

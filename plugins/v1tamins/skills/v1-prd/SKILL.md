@@ -90,9 +90,11 @@ Creates a Product Requirements Document with these sections:
 [Images with captions if applicable]
 ```
 
-### 4. Upload PRD
-- Replaces existing description in the Linear ticket with the PRD
-- Adds comment: "PRD uploaded"
+### 4. Upload PRD (Explicit Only)
+- Upload to Linear only when the user explicitly asks to update the ticket or publish the PRD
+- If upload is requested, replace the existing description in the Linear ticket with the PRD
+- If upload is requested, add comment: "PRD uploaded"
+- If upload is not requested, return the PRD as a draft and state that Linear was not changed
 
 ## PRD Quality Standards
 

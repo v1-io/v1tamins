@@ -592,7 +592,7 @@ validate_skill_routing_fixture() {
 
   if ! command -v python3 >/dev/null 2>&1; then
     fail "python3 is required to validate skill routing fixture"
-    return 1
+    return 0
   fi
 
   if [ "$verbose" = true ]; then
@@ -609,7 +609,7 @@ validate_skill_routing_fixture() {
 validate_metadata_hygiene() {
   if ! command -v ruby >/dev/null 2>&1; then
     fail "ruby is required to validate metadata hygiene"
-    return 1
+    return 0
   fi
 
   local output
@@ -623,12 +623,12 @@ verbose = ARGV.fetch(2) == "true"
 warnings = []
 failures = []
 descriptions = []
-high_side_effect = %w[
-  v1-land-pr
-  v1-md2docs
-  v1-pr
-  v1-prove-work
-  v1-review-board
+valid_invocation_postures = %w[implicit selective_implicit explicit_only]
+valid_side_effects = %w[
+  browser_capture
+  external_write
+  git_remote
+  peer_launch
 ]
 
 def rel(path, root)
@@ -643,13 +643,26 @@ def yaml_load(content, path)
   end
 end
 
+def safe_yaml_load(content, path, failures, repo_root)
+  yaml_load(content, path) || {}
+rescue Psych::Exception => e
+  failures << "#{rel(path, repo_root)}: invalid YAML: #{e.message}"
+  nil
+end
+
 Dir.glob(File.join(skills_dir, "v1-*", "SKILL.md")).sort.each do |skill_path|
   skill_name = File.basename(File.dirname(skill_path))
   content = File.read(skill_path)
   frontmatter = content[/\A---\s*\n(.*?)\n---\s*\n/m, 1]
   next unless frontmatter
 
-  data = yaml_load(frontmatter, skill_path) || {}
+  data = safe_yaml_load(frontmatter, skill_path, failures, repo_root)
+  next unless data
+  unless data.is_a?(Hash)
+    failures << "#{rel(skill_path, repo_root)}: frontmatter must be a mapping"
+    next
+  end
+
   description = data.fetch("description", "").to_s.strip
   descriptions << [skill_name, description.length]
 
@@ -677,10 +690,56 @@ Dir.glob(File.join(skills_dir, "v1-*", "SKILL.md")).sort.each do |skill_path|
     next
   end
 
-  openai = yaml_load(File.read(openai_path), openai_path) || {}
+  openai = safe_yaml_load(File.read(openai_path), openai_path, failures, repo_root)
+  next unless openai
+  unless openai.is_a?(Hash)
+    failures << "#{rel(openai_path, repo_root)}: metadata must be a mapping"
+    next
+  end
+
+  policy = openai.fetch("policy", {}) || {}
+  unless policy.is_a?(Hash)
+    failures << "#{rel(openai_path, repo_root)}: policy must be a mapping"
+    next
+  end
+
   allow_implicit = openai.dig("policy", "allow_implicit_invocation")
-  if high_side_effect.include?(skill_name) && allow_implicit != false
-    warnings << "#{rel(openai_path, repo_root)}: high-side-effect skill should be explicit/gated or document why implicit is safe"
+  invocation_posture = policy.fetch("invocation_posture", "implicit").to_s
+  side_effects = Array(policy["side_effects"]).map(&:to_s).reject(&:empty?)
+  claude_disabled = data["disable-model-invocation"] == true
+
+  unless valid_invocation_postures.include?(invocation_posture)
+    failures << "#{rel(openai_path, repo_root)}: policy.invocation_posture must be one of #{valid_invocation_postures.join(', ')}"
+  end
+
+  unknown_side_effects = side_effects - valid_side_effects
+  unless unknown_side_effects.empty?
+    failures << "#{rel(openai_path, repo_root)}: unknown policy.side_effects value(s): #{unknown_side_effects.join(', ')}"
+  end
+
+  if side_effects.any? && invocation_posture == "implicit"
+    failures << "#{rel(openai_path, repo_root)}: side-effectful skills must use selective_implicit or explicit_only invocation posture"
+  end
+
+  case invocation_posture
+  when "explicit_only"
+    if allow_implicit != false
+      failures << "#{rel(openai_path, repo_root)}: explicit_only skills must set policy.allow_implicit_invocation: false"
+    end
+    unless claude_disabled
+      failures << "#{rel(skill_path, repo_root)}: explicit_only skills must set disable-model-invocation: true"
+    end
+  when "selective_implicit"
+    if allow_implicit != true
+      failures << "#{rel(openai_path, repo_root)}: selective_implicit skills must set policy.allow_implicit_invocation: true"
+    end
+    if claude_disabled
+      failures << "#{rel(skill_path, repo_root)}: selective_implicit skills should not set disable-model-invocation: true"
+    end
+  else
+    if claude_disabled
+      failures << "#{rel(skill_path, repo_root)}: disable-model-invocation requires policy.invocation_posture: explicit_only"
+    end
   end
 end
 

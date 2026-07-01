@@ -78,7 +78,7 @@ The canonical source moved from `.agents/skills/<skill-name>/` to `plugins/v1tam
 ## Contributing Skills
 
 1. Create `plugins/v1tamins/skills/v1-<skill-name>/SKILL.md`
-2. Add `agents/openai.yaml` when the skill should appear cleanly in Codex skill lists
+2. Add required `agents/openai.yaml` Codex metadata. Include `policy.invocation_posture` and `policy.side_effects` when a skill can publish externally, push to git remotes, launch peer agents, or record browser proof.
 3. Add YAML frontmatter with `name` and `description`; `name` must match the `v1-*` directory. `allowed-tools` is recommended when the skill needs tool restrictions
 4. Update `plugins/v1tamins/evals/trigger-inventory.md` and `plugins/v1tamins/evals/skill-routing.jsonl` with the intended trigger and near-miss behavior
 5. Document usage, workflow steps, and examples

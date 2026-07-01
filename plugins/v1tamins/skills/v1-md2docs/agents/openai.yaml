@@ -5,3 +5,6 @@ interface:
 
 policy:
   allow_implicit_invocation: false
+  invocation_posture: explicit_only
+  side_effects:
+    - external_write

@@ -42,6 +42,12 @@ VALID_PROMPT_SOURCES = {
     "contributor_seed",
 }
 
+VALID_INVOCATION_POSTURES = {
+    "implicit",
+    "selective_implicit",
+    "explicit_only",
+}
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -58,6 +64,79 @@ def load_skill_names(skills_dir: Path) -> list[str]:
         for path in skills_dir.glob("v1-*")
         if path.is_dir() and not path.name.startswith("v1-_")
     )
+
+
+def load_side_effect_skill_names(skills_dir: Path) -> list[str]:
+    """Read the simple policy block used by agents/openai.yaml files."""
+    side_effect_skills: list[str] = []
+
+    for skill_dir in sorted(skills_dir.glob("v1-*")):
+        if not skill_dir.is_dir() or skill_dir.name.startswith("v1-_"):
+            continue
+
+        openai_yaml = skill_dir / "agents" / "openai.yaml"
+        if not openai_yaml.exists():
+            continue
+
+        policy = parse_openai_policy(openai_yaml)
+        side_effects = policy.get("side_effects", [])
+        if side_effects:
+            side_effect_skills.append(skill_dir.name)
+
+    return side_effect_skills
+
+
+def parse_openai_policy(path: Path) -> dict[str, Any]:
+    """Parse the small policy subset needed for fixture coverage checks.
+
+    Full YAML validation happens in scripts/validate-plugin.sh via Ruby. This
+    parser intentionally handles only scalar fields and simple list fields under
+    the top-level `policy:` key so the fixture checker stays dependency-free.
+    """
+    policy: dict[str, Any] = {}
+    current_list_key: str | None = None
+    in_policy = False
+
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        stripped = raw_line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+
+        indent = len(raw_line) - len(raw_line.lstrip(" "))
+
+        if indent == 0:
+            in_policy = stripped == "policy:"
+            current_list_key = None
+            continue
+
+        if not in_policy:
+            continue
+
+        if indent == 2 and stripped.endswith(":"):
+            current_list_key = stripped[:-1]
+            policy[current_list_key] = []
+            continue
+
+        if indent == 2 and ":" in stripped:
+            key, value = stripped.split(":", 1)
+            current_list_key = None
+            value = value.strip()
+            if value in {"true", "false"}:
+                policy[key] = value == "true"
+            else:
+                policy[key] = value.strip("\"'")
+            continue
+
+        if indent == 4 and current_list_key and stripped.startswith("- "):
+            value = stripped[2:].strip().strip("\"'")
+            if value:
+                policy[current_list_key].append(value)
+
+    posture = policy.get("invocation_posture")
+    if posture is not None and posture not in VALID_INVOCATION_POSTURES:
+        return {}
+
+    return policy
 
 
 def require_list_of_strings(
@@ -195,11 +274,16 @@ def load_fixture(
     return cases, errors
 
 
-def validate_coverage(cases: list[dict[str, Any]], skill_names: list[str]) -> list[str]:
+def validate_coverage(
+    cases: list[dict[str, Any]],
+    skill_names: list[str],
+    side_effect_skill_names: list[str],
+) -> list[str]:
     errors: list[str] = []
     positive: Counter[str] = Counter()
     guardrail: Counter[str] = Counter()
     budget: Counter[str] = Counter()
+    side_effect: Counter[str] = Counter()
 
     for case in cases:
         expected_skill = case.get("expected_skill")
@@ -213,6 +297,14 @@ def validate_coverage(cases: list[dict[str, Any]], skill_names: list[str]) -> li
         for skill in case.get("must_not_trigger", []):
             guardrail[skill] += 1
 
+        if case.get("category") == "side_effect":
+            if isinstance(expected_skill, str):
+                side_effect[expected_skill] += 1
+            for skill in case.get("acceptable_skills", []):
+                side_effect[skill] += 1
+            for skill in case.get("must_not_trigger", []):
+                side_effect[skill] += 1
+
     for skill in skill_names:
         if positive[skill] == 0:
             errors.append(f"{skill}: missing positive expected_skill fixture case")
@@ -220,6 +312,10 @@ def validate_coverage(cases: list[dict[str, Any]], skill_names: list[str]) -> li
             errors.append(f"{skill}: missing negative or near-miss fixture coverage")
         if budget[skill] == 0:
             errors.append(f"{skill}: missing budget_stress fixture case")
+
+    for skill in side_effect_skill_names:
+        if side_effect[skill] == 0:
+            errors.append(f"{skill}: missing side_effect fixture coverage")
 
     return errors
 
@@ -265,12 +361,15 @@ def main() -> int:
 
     skill_names = load_skill_names(skills_dir)
     skill_name_set = set(skill_names)
+    side_effect_skill_names = load_side_effect_skill_names(skills_dir)
 
     errors: list[str] = []
     cases, fixture_errors = load_fixture(fixture_path, skill_name_set)
     errors.extend(fixture_errors)
-    if cases:
-        errors.extend(validate_coverage(cases, skill_names))
+    if not cases:
+        errors.append(f"{fixture_path}: no routing fixture cases")
+    else:
+        errors.extend(validate_coverage(cases, skill_names, side_effect_skill_names))
     errors.extend(validate_trigger_inventory(inventory_path, skill_names))
 
     if errors:

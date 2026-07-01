@@ -5,3 +5,7 @@ interface:
 
 policy:
   allow_implicit_invocation: false
+  invocation_posture: explicit_only
+  side_effects:
+    - browser_capture
+    - external_write
