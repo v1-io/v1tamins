@@ -22,6 +22,7 @@ from skill_routing_live import (
     process_failure_reason,
     run_case,
     score_result,
+    side_effect_skills,
     validate_result_shape,
 )
 
@@ -84,6 +85,14 @@ class LiveRoutingTests(unittest.TestCase):
         result = base_result(fixture_case(), "codex", "fake", None)
         del result["runtime"]
         self.assertIn("missing field: runtime", validate_result_shape(result))
+
+    def test_result_shape_enforces_every_required_field(self):
+        result = base_result(fixture_case(), "codex", "fake", None)
+
+        for field in RESULT_REQUIRED_FIELDS:
+            incomplete = dict(result)
+            del incomplete[field]
+            self.assertIn(f"missing field: {field}", validate_result_shape(incomplete))
 
     def test_expected_skill_scores_pass(self):
         result = base_result(fixture_case(), "codex", "fake", None)
@@ -258,6 +267,27 @@ class LiveRoutingTests(unittest.TestCase):
 
         self.assertIn("connector warning", reason)
         self.assertIn("Invalid API key", reason)
+
+    def test_side_effect_skills_rejects_wrong_json_shape(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fake_bin = root / "bin"
+            fake_bin.mkdir()
+            fake_ruby = fake_bin / "ruby"
+            fake_ruby.write_text(
+                '#!/usr/bin/env sh\nprintf \'{"not":"a list"}\\n\'\n',
+                encoding="utf-8",
+            )
+            fake_ruby.chmod(0o755)
+            old_path = os.environ.get("PATH", "")
+            os.environ["PATH"] = f"{fake_bin}{os.pathsep}{old_path}"
+            try:
+                skills, errors = side_effect_skills(root)
+            finally:
+                os.environ["PATH"] = old_path
+
+        self.assertIsNone(skills)
+        self.assertIn("JSON string array", errors[0])
 
     def test_published_schema_and_python_contract_stay_in_lockstep(self):
         schema_path = (

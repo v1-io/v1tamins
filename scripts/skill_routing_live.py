@@ -116,9 +116,14 @@ def side_effect_skills(repo_root: Path) -> tuple[set[str] | None, list[str]]:
         detail = (result.stderr or result.stdout).strip() or f"exit {result.returncode}"
         return None, [f"skill metadata policy read failed: {detail}"]
     try:
-        return set(json.loads(result.stdout)), []
+        parsed = json.loads(result.stdout)
     except json.JSONDecodeError:
         return None, ["skill metadata policy output was not valid JSON"]
+    if not isinstance(parsed, list) or not all(
+        isinstance(item, str) for item in parsed
+    ):
+        return None, ["skill metadata policy output must be a JSON string array"]
+    return set(parsed), []
 
 
 def build_routing_prompt(case: dict[str, Any]) -> str:
@@ -527,32 +532,7 @@ def process_failure_reason(
 
 def validate_result_shape(result: dict[str, Any]) -> list[str]:
     errors: list[str] = []
-    required = {
-        "schema_version",
-        "case_id",
-        "runtime",
-        "runtime_version",
-        "adapter",
-        "adapter_version",
-        "started_at",
-        "duration_seconds",
-        "prompt",
-        "expected_skill",
-        "acceptable_skills",
-        "near_miss_skills",
-        "must_not_trigger",
-        "side_effect_allowed",
-        "category",
-        "selected_skill",
-        "evidence_kind",
-        "status",
-        "severity",
-        "reason",
-        "score_notes",
-        "prohibited_skill_hits",
-        "raw_artifact",
-    }
-    for field in sorted(required - set(result)):
+    for field in sorted(RESULT_REQUIRED_FIELDS - set(result)):
         errors.append(f"missing field: {field}")
     if errors:
         return errors

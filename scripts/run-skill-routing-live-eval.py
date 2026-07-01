@@ -101,6 +101,10 @@ def run() -> int:
 
     case_by_id = fixture_index(cases)
     side_effect_names, side_effect_errors = side_effect_skills(repo_root)
+    if side_effect_errors:
+        for error in side_effect_errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        return 2
     results_path = run_dir / "results.jsonl"
     summary_path = run_dir / "summary.txt"
     runtimes = selected_runtimes(args.runtime)
@@ -133,8 +137,6 @@ def run() -> int:
                 result["status"] = "fail"
                 result["severity"] = "normal"
                 result["score_notes"] = [f"result shape invalid: {shape_errors}"]
-            if side_effect_errors:
-                result["score_notes"].extend(side_effect_errors)
             results.append(result)
 
     with results_path.open("w", encoding="utf-8") as handle:

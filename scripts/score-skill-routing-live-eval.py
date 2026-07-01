@@ -35,6 +35,10 @@ def run() -> int:
     repo_root = Path(args.repo_root).resolve()
     cases = fixture_index(load_fixture(repo_root))
     side_effect_names, side_effect_errors = side_effect_skills(repo_root)
+    if side_effect_errors:
+        for error in side_effect_errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        return 2
     results = load_results([Path(path) for path in args.results])
     scored = []
     errors = []
@@ -53,8 +57,6 @@ def run() -> int:
         shape_errors = validate_result_shape(scored_result)
         if shape_errors:
             errors.append(f"{case_id}: {', '.join(shape_errors)}")
-        if side_effect_errors:
-            scored_result["score_notes"].extend(side_effect_errors)
         scored.append(scored_result)
 
     if errors:
