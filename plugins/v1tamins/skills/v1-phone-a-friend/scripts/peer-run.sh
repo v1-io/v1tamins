@@ -64,11 +64,14 @@ errfile="$peerdir/peer.stderr"
 # output. stream-json/--json modes emit framing events (often >40 bytes) before
 # any review content, which would read as "complete" prematurely — so consume
 # text output for the verdict and use stream-json only for a live progress
-# stream (see references/command-templates.md).
+# stream (see references/command-templates.md). Once a peer has exited, any
+# non-whitespace output counts as complete so concise smoke tests do not look
+# stalled just because they are shorter than the running-output threshold.
 MIN_CONTENT_BYTES="${PEER_RUN_MIN_CONTENT_BYTES:-40}"
 
 bytes() { [ -f "$1" ] && wc -c < "$1" | tr -d ' ' || echo 0; }
 alive() { p="$1"; [ -n "$p" ] && kill -0 "$p" 2>/dev/null; }
+has_content() { [ -s "$1" ] && LC_ALL=C grep -q '[^[:space:]]' "$1" 2>/dev/null; }
 
 # Single source of truth for "what state is this peer in?" — status and verdict
 # both resolve through this, so they can never disagree (a live peer is always
@@ -77,6 +80,7 @@ alive() { p="$1"; [ -n "$p" ] && kill -0 "$p" 2>/dev/null; }
 resolve_state() {
   ob="$(bytes "$outfile")"
   if [ "$ob" -ge "$MIN_CONTENT_BYTES" ]; then echo complete; return 0; fi
+  if [ -f "$donefile" ] && has_content "$outfile"; then echo complete; return 0; fi
   cpid="$(cat "$childpidfile" 2>/dev/null || echo)"
   lpid="$(cat "$pidfile" 2>/dev/null || echo)"
   if alive "$cpid" || alive "$lpid"; then echo running; return 2; fi

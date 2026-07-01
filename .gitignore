@@ -13,6 +13,7 @@ Thumbs.db
 
 # Local eval artifacts
 .v1tamins/
+.antigravitycli/
 
 # Local overrides
 *.local.json

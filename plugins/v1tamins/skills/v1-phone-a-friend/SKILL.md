@@ -37,7 +37,7 @@ Examples:
 
 1. Use a direct in-agent skill instead when independence is not needed: `v1-code-review` for ordinary PR review, `v1-deep-review` for harsh maintainability review, and `v1-deep-research` for in-agent sourced research.
 2. Prefer a counterpart runtime by default: Codex -> Claude Code, Claude Code -> Codex, Cursor -> Claude Code or Codex, unknown host -> best authenticated coding peer not already in use.
-3. Override the counterpart default only for a named user preference or a real specialist fit: ChatGPT Pro Deep Research, Gemini long-context or multimodal review, Cursor Agent/Cloud Agent, or Oracle/browser-mode review.
+3. Override the counterpart default only for a named user preference or a real specialist fit: ChatGPT Pro Deep Research, Antigravity/Gemini long-context or multimodal review, Cursor Agent/Cloud Agent, or Oracle/browser-mode review.
 4. Use the decision matrix to pick one work type and one permission mode.
 5. Resolve the current model and effort from local CLI help, model lists, config, or the user's explicit request. Do not hardcode concrete model names.
 6. Load the relevant reference file and run one bounded template.
@@ -47,7 +47,7 @@ Examples:
 - Use after producing a plan, diagnosis, implementation, PR description, or review that needs independent scrutiny.
 - Use to steelman the best opposing argument before committing to an approach.
 - Use to delegate a bounded implementation or research task to another subscribed agent when the result can be checked locally.
-- Use when a specialist model/tool is materially better suited: ChatGPT Pro for true deep research, Gemini for large-context or multimodal packet review, Cursor for Cursor Agent or IDE-context workflows, Oracle/browser mode for strong external review.
+- Use when a specialist model/tool is materially better suited: ChatGPT Pro for true deep research, Antigravity CLI (`agy`) for Gemini-backed large-context or multimodal packet review, Cursor for Cursor Agent or IDE-context workflows, Oracle/browser mode for strong external review.
 - Use before a risky change when an outside critique could expose missing tests, contract breaks, simpler options, or hidden assumptions.
 
 ## When Not To Use
@@ -63,7 +63,7 @@ Examples:
 Run a small audit before selecting a peer. Check command presence and authentication status without printing secrets.
 
 ```bash
-for cmd in claude codex cursor-agent gemini oracle; do
+for cmd in claude codex cursor-agent agy gemini oracle; do
   if command -v "$cmd" >/dev/null 2>&1; then
     printf '%s: installed at %s\n' "$cmd" "$(command -v "$cmd")"
     "$cmd" --version 2>/dev/null || true
@@ -75,11 +75,12 @@ done
 claude doctor 2>/dev/null || true
 codex doctor --json 2>/dev/null || true
 cursor-agent status 2>/dev/null || true
+agy --version 2>/dev/null || true
 ```
 
 Report:
 - **host:** current runtime when known, otherwise `unknown`
-- **installed peers:** `claude`, `codex`, `cursor-agent`, `gemini`, `oracle`
+- **installed peers:** `claude`, `codex`, `cursor-agent`, `agy` (Antigravity CLI), legacy `gemini`, `oracle`
 - **auth:** `verified`, `unverified`, or `not checked`
 - **peer skill/plugin surface:** named skill or plugin availability when a named peer workflow is requested, otherwise `not needed`
 - **default peer:** selected counterpart and reason
@@ -109,7 +110,7 @@ Skills, plugins, slash commands, agents, and subagents are host-local capabiliti
 | Reproduce a bug or verify tests | `verify` | `local-verify` | Coding peer in a trusted local worktree. |
 | Offload implementation or cleanup | `delegate` | `isolated-delegate` | Coding peer in a disposable or explicitly trusted worktree. |
 | True external deep research | `research` | `external` | ChatGPT Pro Deep Research first when available. |
-| Large-context or multimodal packet | `consult` or `research` | `readonly` or `external` | Gemini or browser-mode strong model when available. |
+| Large-context or multimodal packet | `consult` or `research` | `readonly` or `external` | Antigravity CLI (`agy`) or browser-mode strong model when available. |
 | Cursor subscription should be used | `consult`, `verify`, or `delegate` | Match the work | Cursor Agent locally, or Cursor Cloud Agent for async remote work. |
 | Oracle Pro browser consult | `consult` or `research` | `external` | Oracle with explicit browser/Pro dry-run preview. |
 | User explicitly names a peer | Match the request | Match the work | Named peer if installed and authenticated. |
@@ -166,7 +167,7 @@ Not every consult needs the full delegation lifecycle. For a **single read-only 
 ## Command Templates
 
 Keep this file focused on routing and verification. After selecting the peer and permission mode, read:
-- [references/command-templates.md](references/command-templates.md) for Claude Code, Codex, Cursor Agent, and Gemini CLI templates.
+- [references/command-templates.md](references/command-templates.md) for Claude Code, Codex, Cursor Agent, and Antigravity CLI templates.
 - [references/oracle-browser.md](references/oracle-browser.md) for Oracle browser review and ChatGPT Pro Deep Research packets.
 
 Invariant: ask every peer to return status, capability path actually used, assumptions, model requested and actual model used when available, execution surface or resume handle when available, evidence, commands run, files changed, dirty state, risks, and local verification steps when the peer can touch the worktree.
@@ -205,7 +206,7 @@ Do not hardcode concrete model names in reusable skill instructions. Resolve the
 | Serious code review | Strongest available coding model, high reasoning. |
 | Architecture, security, or migration risk | Strongest available model, high/max reasoning, structured findings. |
 | Deep external research | ChatGPT Pro Deep Research first when available. |
-| Large-context or multimodal review | Gemini or browser-mode strong model when available. |
+| Large-context or multimodal review | Antigravity CLI (`agy`) or browser-mode strong model when available. |
 | Delegated implementation | Coding-strong model, full permissions in isolated/trusted worktree, mandatory validation evidence. |
 | Repeated cheap checks | Lower-cost model is acceptable if the result is locally verified. |
 
@@ -223,5 +224,5 @@ Before acting on advice:
 
 ## Reference Files
 
-- **[references/command-templates.md](references/command-templates.md)** - Coding-agent prompt bodies and command wrappers for Claude Code, Codex, Cursor Agent, and Gemini CLI.
+- **[references/command-templates.md](references/command-templates.md)** - Coding-agent prompt bodies and command wrappers for Claude Code, Codex, Cursor Agent, and Antigravity CLI.
 - **[references/oracle-browser.md](references/oracle-browser.md)** - External Oracle/browser-mode consults, manual packets, and ChatGPT Pro Deep Research packet format.
