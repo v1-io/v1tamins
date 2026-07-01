@@ -32,7 +32,10 @@ Resolve all of the following at run time. Commit none of them.
 - **Thermo-nuclear rubric** — glob the Cursor install location, not the Codex/Claude plugin caches:
 
   ```bash
-  RUBRIC="$(find "$HOME/.cursor" -maxdepth 6 -type f \
+  # The rubric nests deep — e.g. ~/.cursor/plugins/cache/cursor-public/
+  # cursor-team-kit/<hash>/skills/thermo-nuclear-code-quality-review/SKILL.md
+  # (~8 levels). A shallow -maxdepth silently misses it; search generously.
+  RUBRIC="$(find "$HOME/.cursor" -maxdepth 9 -type f \
     -path "*/skills/thermo-nuclear-code-quality-review/SKILL.md" 2>/dev/null | head -1)"
   # empty -> drop the harsh-maintainability lens and record the degradation
   ```
@@ -40,7 +43,9 @@ Resolve all of the following at run time. Commit none of them.
 - **Sibling helper (`peer-run.sh`)** — `v1-review-board` and `v1-phone-a-friend` ship in the same plugin and co-install under one skills root, so resolve the sibling by globbing that root rather than a committed `../` path:
 
   ```bash
-  PEER_RUN="$(find "$(dirname "$REVIEW_BOARD_SKILL_DIR")" -maxdepth 2 -type f \
+  # peer-run.sh sits at <skills>/v1-phone-a-friend/scripts/peer-run.sh — depth 3
+  # below the skills root, so -maxdepth must be >= 3 (it was a too-shallow 2).
+  PEER_RUN="$(find "$(dirname "$REVIEW_BOARD_SKILL_DIR")" -maxdepth 4 -type f \
     -path "*/v1-phone-a-friend/scripts/peer-run.sh" 2>/dev/null | head -1)"
   # empty -> fall back to the manual supervised-launch snippet (degrade, don't crash)
   ```
@@ -99,19 +104,19 @@ After every peer is complete or stalled, **verify each finding against the worki
 
 ## Autonomy and Guardrails
 
-Three levels; default `full-auto`. Every level is fail-safe.
+Three levels; **default `apply`**. Every level is fail-safe. `full-auto` is an explicit opt-in, not the silent default — a public skill should not push agent-authored commits before the user has read a finding.
 
 | Level | Stops after |
 | --- | --- |
 | `ledger` | the compiled ledger (you decide what to address) |
-| `apply` | applying Fix/Partial dispositions and running the gate — before commit/push |
-| `full-auto` (default) | commit → push → summary |
+| `apply` (default) | applying Fix/Partial dispositions and running the gate — stops before commit/push, with the diff + summary for review |
+| `full-auto` (opt-in) | commit → push → summary |
 
-Fail-safe rules, enforced regardless of level:
+Fail-safe rules, enforced whenever the board reaches the mutation step:
 
-- **Announce before acting.** State the autonomy level and that it will commit and push.
+- **Announce before acting.** State the autonomy level; under `full-auto`, announce that it will commit and push before doing so.
 - **Minimum-viable-board floor.** Zero surviving review peers → do not apply/commit/push; report the degradation and stop.
-- **Branch guard (positive detection).** Require a named feature branch: `git rev-parse --abbrev-ref HEAD` ≠ `HEAD` (not detached) and ≠ the resolved default branch. Abort otherwise. Never infer "feature branch" from "not main."
+- **Branch guard (positive detection).** Require a named feature branch: `git rev-parse --abbrev-ref HEAD` ≠ `HEAD` (not detached) and ≠ the resolved default branch. Resolve the default branch explicitly via `git symbolic-ref refs/remotes/origin/HEAD` (or `gh repo view --json defaultBranchRef`) — **do not assume `main`**, or a `master`/`develop`-default repo would treat its default branch as a feature branch. If the default branch cannot be resolved, abort the push rather than guessing. Never infer "feature branch" from "not main."
 - **Gate, fail-closed.** Discover the project gate (declared check command, else common test/lint runners). Run it after applying. Commit only when green; never force-push. **No gate confidently identified → drop to `apply` and report**; never push unverified.
 - **Commit message** names the peers, the models used, and the deliberate deferrals.
 

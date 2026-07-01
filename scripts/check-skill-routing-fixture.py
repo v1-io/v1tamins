@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -42,12 +43,6 @@ VALID_PROMPT_SOURCES = {
     "contributor_seed",
 }
 
-VALID_INVOCATION_POSTURES = {
-    "implicit",
-    "selective_implicit",
-    "explicit_only",
-}
-
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -66,77 +61,50 @@ def load_skill_names(skills_dir: Path) -> list[str]:
     )
 
 
-def load_side_effect_skill_names(skills_dir: Path) -> list[str]:
-    """Read the simple policy block used by agents/openai.yaml files."""
-    side_effect_skills: list[str] = []
+def load_side_effect_skill_names(
+    repo_root: Path, skills_dir: Path
+) -> tuple[list[str], list[str]]:
+    metadata_script = repo_root / "scripts" / "check-skill-metadata.rb"
+    command = [
+        "ruby",
+        str(metadata_script),
+        "--side-effect-skills-json",
+        str(skills_dir),
+        str(repo_root),
+        "false",
+    ]
 
-    for skill_dir in sorted(skills_dir.glob("v1-*")):
-        if not skill_dir.is_dir() or skill_dir.name.startswith("v1-_"):
-            continue
+    try:
+        result = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        return [], ["ruby is required to read skill metadata policy"]
 
-        openai_yaml = skill_dir / "agents" / "openai.yaml"
-        if not openai_yaml.exists():
-            continue
+    if result.returncode != 0:
+        output = "\n".join(
+            line for line in (result.stderr + result.stdout).splitlines() if line
+        )
+        return [], [
+            f"skill metadata policy reader failed: {output or result.returncode}"
+        ]
 
-        policy = parse_openai_policy(openai_yaml)
-        side_effects = policy.get("side_effects", [])
-        if side_effects:
-            side_effect_skills.append(skill_dir.name)
+    try:
+        side_effect_skills = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        return [], [f"skill metadata policy reader returned invalid JSON: {exc}"]
 
-    return side_effect_skills
+    if not isinstance(side_effect_skills, list) or not all(
+        isinstance(skill, str) for skill in side_effect_skills
+    ):
+        return [], [
+            "skill metadata policy reader returned invalid side-effect skill list"
+        ]
 
-
-def parse_openai_policy(path: Path) -> dict[str, Any]:
-    """Parse the small policy subset needed for fixture coverage checks.
-
-    Full YAML validation happens in scripts/validate-plugin.sh via Ruby. This
-    parser intentionally handles only scalar fields and simple list fields under
-    the top-level `policy:` key so the fixture checker stays dependency-free.
-    """
-    policy: dict[str, Any] = {}
-    current_list_key: str | None = None
-    in_policy = False
-
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        stripped = raw_line.strip()
-        if not stripped or stripped.startswith("#"):
-            continue
-
-        indent = len(raw_line) - len(raw_line.lstrip(" "))
-
-        if indent == 0:
-            in_policy = stripped == "policy:"
-            current_list_key = None
-            continue
-
-        if not in_policy:
-            continue
-
-        if indent == 2 and stripped.endswith(":"):
-            current_list_key = stripped[:-1]
-            policy[current_list_key] = []
-            continue
-
-        if indent == 2 and ":" in stripped:
-            key, value = stripped.split(":", 1)
-            current_list_key = None
-            value = value.strip()
-            if value in {"true", "false"}:
-                policy[key] = value == "true"
-            else:
-                policy[key] = value.strip("\"'")
-            continue
-
-        if indent == 4 and current_list_key and stripped.startswith("- "):
-            value = stripped[2:].strip().strip("\"'")
-            if value:
-                policy[current_list_key].append(value)
-
-    posture = policy.get("invocation_posture")
-    if posture is not None and posture not in VALID_INVOCATION_POSTURES:
-        return {}
-
-    return policy
+    return sorted(side_effect_skills), []
 
 
 def require_list_of_strings(
@@ -297,12 +265,10 @@ def validate_coverage(
         for skill in case.get("must_not_trigger", []):
             guardrail[skill] += 1
 
-        if case.get("category") == "side_effect":
+        if case.get("category") == "side_effect" and case.get("side_effect_allowed"):
             if isinstance(expected_skill, str):
                 side_effect[expected_skill] += 1
             for skill in case.get("acceptable_skills", []):
-                side_effect[skill] += 1
-            for skill in case.get("must_not_trigger", []):
                 side_effect[skill] += 1
 
     for skill in skill_names:
@@ -361,9 +327,12 @@ def main() -> int:
 
     skill_names = load_skill_names(skills_dir)
     skill_name_set = set(skill_names)
-    side_effect_skill_names = load_side_effect_skill_names(skills_dir)
+    side_effect_skill_names, side_effect_skill_errors = load_side_effect_skill_names(
+        repo_root, skills_dir
+    )
 
     errors: list[str] = []
+    errors.extend(side_effect_skill_errors)
     cases, fixture_errors = load_fixture(fixture_path, skill_name_set)
     errors.extend(fixture_errors)
     if not cases:

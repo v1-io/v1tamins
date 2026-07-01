@@ -8,3 +8,4 @@ policy:
   invocation_posture: selective_implicit
   side_effects:
     - external_write
+    - git_remote

@@ -6,7 +6,7 @@ contract at all.
 
 | Skill | Trigger assessment | Candidate trigger examples | Near-miss neighbors | Invocation posture | Budget risk |
 | --- | --- | --- | --- | --- | --- |
-| `v1-address-review` | Right trigger: resolving already-existing review comments and conversations. | "work through the unresolved PR comments"; "reply to this bot review with fixes" | `v1-code-review`, `v1-review-board`, `v1-pr` | selective implicit; GitHub replies and resolution require explicit request | medium |
+| `v1-address-review` | Right trigger: resolving already-existing review comments and conversations. | "work through the unresolved PR comments"; "reply to this bot review with fixes" | `v1-code-review`, `v1-review-board`, `v1-pr` | selective implicit; GitHub replies, resolution, and push require explicit request | medium |
 | `v1-autoresearch-skill` | Broad optimization trigger; should stay measurable-target only. | "run an optimization loop on this metric"; "keep variants that improve the score" | `v1-deep-research`, `v1-goldpan`, `v1-simplify` | selective implicit; can consume substantial time | medium |
 | `v1-bare-bones` | Strong trigger for reducing scope before execution. | "strip this plan to the minimum useful version"; "remove the bells and whistles" | `v1-strategy-review`, `v1-interview-me`, `v1-prd` | high-recall implicit | low |
 | `v1-canon2skill` | Right trigger: turn source material into reusable skill ideas. | "what skills could come from this paper"; "extract agent workflows from these notes" | `v1-skilling-it`, `v1-deep-research`, `v1-prompt-engineering` | high-recall implicit | low |

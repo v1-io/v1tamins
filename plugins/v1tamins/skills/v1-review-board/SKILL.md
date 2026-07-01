@@ -28,7 +28,7 @@ This skill **composes existing primitives** and adds the board workflow around t
 3. Build one shared read-only brief and pre-dump the diff once.
 4. Fan out all peers concurrently, read-only, each supervised by `peer-run.sh`.
 5. Compile the convergence ledger: every finding verified against the working tree, annotated with peer-convergence count and a Fix / Partial / Defer disposition.
-6. Address the ledger at the chosen autonomy level (default: full-auto to a pushed feature branch, fail-safe).
+6. Address the ledger at the chosen autonomy level (default: apply fixes + run the gate, then stop before commit/push for review; full-auto-to-pushed-branch is an explicit opt-in).
 
 See [references/review-contract.md](references/review-contract.md) for the brief template, the ledger format, runtime resolution, and the autonomy/guardrail rules. See [references/example-run.md](references/example-run.md) for a worked end-to-end run.
 
@@ -48,7 +48,7 @@ See [references/review-contract.md](references/review-contract.md) for the brief
 Invoke against a PR or branch. Optional arguments override defaults:
 
 - **peer set** — which peers and roles (default: deep-review on the two most reliable available coding peers + thermo-nuclear on Cursor when present).
-- **autonomy** — `ledger` (stop at the compiled ledger), `apply` (apply + verify, stop before push), or `full-auto` (default: apply → gate → commit → push → summary).
+- **autonomy** — `ledger` (stop at the compiled ledger), `apply` (default: apply + verify, stop before push), or `full-auto` (explicit opt-in: apply → gate → commit → push → summary).
 - **models / effort** — resolved from each CLI's `--help`/model-list at runtime; pass explicit tiers to override.
 
 Resolve concrete models and the thermo-nuclear rubric location at runtime — this skill commits **no** model names and **no** host-specific paths.
@@ -76,15 +76,15 @@ Resolve concrete models and the thermo-nuclear rubric location at runtime — th
 
 ### Phase 4: Address (autonomy-gated, fail-safe)
 
-Default autonomy is **full-auto**, but it never acts blind:
+Default autonomy is **`apply`** — apply the agreed fixes, run the gate, then stop with the diff and summary for review. `full-auto` (commit + push) is an explicit per-run opt-in, never the silent default. When full-auto *is* requested, it still never acts blind:
 
-- **Announce first.** State the autonomy level and that it will commit and push, before doing so.
+- **Announce first.** State the autonomy level; under `full-auto`, state that it will commit and push before doing so.
 - **Minimum-viable-board floor.** If no review peer survived (all stalled/absent), do not apply/commit/push — report the degradation and stop, regardless of autonomy.
 - **Branch guard (positive detection).** Commit/push only from a confirmed named feature branch: `git rev-parse --abbrev-ref HEAD` must not be `HEAD` (detached) and must differ from the resolved default branch. Abort with a clear message otherwise. Never infer "feature branch" from "not main."
 - **Gate, fail-closed.** Discover the target project's gate (a project-declared check command, else common test/lint runners). Apply Fix/Partial dispositions in batches (hand to `v1-address-review` where findings map to it), then run the gate. Commit only when green; never force-push. **If no gate can be confidently identified, drop to `apply` (stop before push) and report** — do not push unverified.
 - Commit message names the peers, the models used, and the deliberate deferrals; then push; then post a summary of findings, dispositions, and any skipped/stalled peers.
 
-Lower autonomy levels stop earlier: `ledger` stops after Phase 3; `apply` applies and runs the gate but stops before commit/push.
+The other levels: `ledger` stops after Phase 3; `full-auto`, when explicitly requested, continues past the default `apply` stop to commit → push → summary under the fail-safe rules above.
 
 ## Verification Rule
 
