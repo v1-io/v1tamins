@@ -116,11 +116,17 @@ Resolve the rubric by searching the installed skills roots at runtime rather tha
 # Roots vary by host/runtime; glob the plausible ones and degrade if none match.
 find_skill_rubric() {
   name="$1"
-  for root in \
-    "$HOME"/.claude/plugins/*/*/*/skills "$HOME"/.claude/skills \
-    "$HOME"/.codex/*/skills "$HOME"/.cursor/*/*/*/skills; do
-    [ -d "$root" ] || continue
-    hit="$(find "$root" -maxdepth 3 -type f -path "*/$name/SKILL.md" 2>/dev/null | head -1)"
+  # Search from STABLE base dirs and let find recurse — installed plugin caches
+  # nest deeper than a fixed glob expects (e.g.
+  # ~/.codex/plugins/cache/<plugin>/<plugin>/<version>/skills/<name>/SKILL.md, and
+  # Cursor's cursor-team-kit/<hash>/skills/...). An exact-depth glob like
+  # ~/.codex/*/skills silently misses these. A generous -maxdepth covers the real
+  # layouts without hardcoding any one host's cache path.
+  for base in \
+    "$HOME"/.codex/plugins "$HOME"/.claude/plugins "$HOME"/.cursor \
+    "$HOME"/.codex/skills "$HOME"/.claude/skills; do
+    [ -d "$base" ] || continue
+    hit="$(find "$base" -maxdepth 8 -type f -path "*/$name/SKILL.md" 2>/dev/null | head -1)"
     [ -n "$hit" ] && { printf '%s\n' "$hit"; return 0; }
   done
   return 1
@@ -135,7 +141,7 @@ Embed `"$RUBRIC_BLOCK"` in `PHONE_A_FRIEND_TASK` (under the review lens). If `RU
 
 ## Supervised Local Runs
 
-Background launch is the **default** for any peer run that could exceed the host's command timeout — never foreground-`wait` on a peer, because the host's timeout (e.g. an agent's 2-minute Bash default) sends a signal to the parent's process group and reaps the backgrounded peer along with the wait. A bare `( <peer-command> ) &` does **not** survive this: the subshell stays in the parent's process group. Use the bundled `peer-run.sh` helper, which detaches each peer into its own session (`setsid`, falling back to `nohup` + `disown`) so a parent-shell timeout cannot reap it.
+Background launch is the **default** for any peer run that could exceed the host's command timeout — never foreground-`wait` on a peer, because the host's timeout (e.g. an agent's 2-minute Bash default) sends a signal to the parent's process group and reaps the backgrounded peer along with the wait. A bare `( <peer-command> ) &` does **not** survive this: the subshell stays in the parent's process group. Use the bundled `peer-run.sh` helper, which detaches each peer into its own session — `setsid` on Linux, `perl POSIX::setsid` on macOS (which ships no `setsid`), and a `nohup` + `disown` best-effort fallback only when neither is present. `launch` reports which path it used; on the `nohup` fallback it is best-effort, so pair it with the host's background primitive.
 
 Resolve the helper relative to this skill's directory at runtime (the skill ships it at `scripts/peer-run.sh`); do not hardcode an absolute or checkout path. Then:
 
@@ -153,7 +159,7 @@ RUN_DIR="<host-scratch-dir>/v1-phone-a-friend/<run-slug>"
 "$PEER_RUN" teardown --dir "$RUN_DIR" --slug codex    # PID-scoped kill; never pkill -f
 ```
 
-The helper owns the contract: stdin closed per launch, detached background, a `peer.pid`/`peer.done` sentinel pair, PID-scoped teardown (never a pattern kill that could reap an unrelated peer), and a completion **verdict judged by substantive output rather than exit code** — a peer that returned real content under a nonzero/odd exit code is `complete`; an empty success exit is `stalled`. Before launching, set `<host-scratch-dir>` to a host-appropriate scratch location and record the run directory, first-progress deadline, and check-in cadence. If `status` stays `running` past the first-progress deadline with no output growth, retry once with a narrower prompt, switch peers, or mark that peer `stalled`. On hosts without `setsid` and for long runs, also use the host's own background primitive (e.g. Claude Code `run_in_background`) — the helper's detachment is best-effort-portable, not a universal guarantee.
+The helper owns the contract: stdin closed per launch, detached background, sentinels recording both the launched leader and the **real peer pid**, teardown that reaps the actual peer (its process group when a true session was created, else the recorded peer pid — always PID/PGID-derived, never a pattern kill), and a single state resolver shared by `status` and `verdict` so they never disagree. Completion is **judged by substantive output rather than exit code** — real content under a nonzero/odd exit code is `complete`; an empty exit is `stalled`; a process still alive with no output yet is `running`, never falsely `stalled`. The byte threshold assumes **plain-text** output: `stream-json`/`--json` emit framing bytes before any content, so consume text for the verdict and use stream-json only for a live progress stream (judge it on a terminal event, not the byte count). Before launching, set `<host-scratch-dir>` to a host-appropriate scratch location and record the first-progress deadline and check-in cadence. Many peer CLIs buffer all output until completion (0 bytes mid-run is normal), so key "still progressing" on **process liveness** (`status` = `running`), not output growth; only when the process has died or genuinely hung past the deadline should you retry with a narrower prompt, switch peers, or mark it `stalled`. On the `nohup` fallback and for long runs, also use the host's own background primitive (e.g. Claude Code `run_in_background`).
 
 If the helper is unavailable, the manual equivalent is `( <peer-command> </dev/null >"$RUN_DIR/<peer>.stdout" 2>"$RUN_DIR/<peer>.stderr"; printf 'DONE rc=%s\n' "$?" >"$RUN_DIR/<peer>.done" ) &` with `$!` saved to `<peer>.pid` — but this lacks true detachment, so pair it with the host's background primitive.
 
