@@ -56,6 +56,10 @@ The package keeps that contract reviewable with:
   should-not-trigger, overlap, side-effect, and budget-stress prompts.
 - `scripts/check-skill-routing-fixture.py` — fixture coverage validation, wired
   into `scripts/validate-plugin.sh`.
+- `scripts/run-skill-routing-live-eval.py` and
+  `scripts/score-skill-routing-live-eval.py` — optional live smoke checks that
+  sample real Codex or Claude Code routing and write ignored local artifacts
+  under `.v1tamins/live-routing/`.
 
 When changing a skill name, description, `agents/openai.yaml`, invocation
 policy, or routing-relevant body guidance, update the trigger inventory and
@@ -63,6 +67,11 @@ routing fixture in the same change. Low-risk local review/edit skills should be
 easy for agents to invoke implicitly. Skills that push, publish, upload, create
 external docs, move issues, or launch broad peer workflows should be explicit or
 gated.
+
+Live evals are opt-in because they may require local runtime authentication and
+model calls. Use them after changing high-overlap descriptions, invocation
+posture, or side-effect policy; treat missing runtime/auth as inconclusive
+rather than a static validation failure. Do not commit raw live transcripts.
 
 ### Recommended companion: compound-engineering
 
@@ -458,9 +467,13 @@ Marketplace/plugin consumers already invoking `/v1-*` skills should not need to 
    ```bash
    scripts/validate-plugin.sh --verbose
    ```
-7. Test the skill in a real project before committing.
-8. Run a privacy and portability scan over your changes — no secrets, internal URLs, customer names, or absolute local paths.
-9. Open a PR.
+7. For routing-sensitive edits, optionally run a bounded live smoke check:
+   ```bash
+   scripts/run-skill-routing-live-eval.py --runtime codex --max-cases 3
+   ```
+8. Test the skill in a real project before committing.
+9. Run a privacy and portability scan over your changes — no secrets, internal URLs, customer names, or absolute local paths.
+10. Open a PR.
 
 ## Validation
 
@@ -469,7 +482,7 @@ scripts/validate-plugin.sh           # check
 scripts/validate-plugin.sh --verbose # per-file trace
 ```
 
-The check validates `SKILL.md` frontmatter, required `agents/openai.yaml` metadata, routing eval coverage, trigger inventory coverage, metadata hygiene, local skill asset links, references to known v1tamins skills, portable helper paths, both runtime plugin manifests (`plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`), both marketplace manifests (`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`), plugin version bumps when runtime content changes, and the absence of a tracked `.agents/skills` mirror. `scripts/sync-skill-hosts.sh` remains as a legacy wrapper for old local instructions; new docs should use `scripts/validate-plugin.sh`.
+The check validates `SKILL.md` frontmatter, required `agents/openai.yaml` metadata, routing eval coverage, trigger inventory coverage, live routing result schema JSON, metadata hygiene, local skill asset links, references to known v1tamins skills, portable helper paths, both runtime plugin manifests (`plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`), both marketplace manifests (`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`), plugin version bumps when runtime content changes, and the absence of a tracked `.agents/skills` mirror. `scripts/sync-skill-hosts.sh` remains as a legacy wrapper for old local instructions; new docs should use `scripts/validate-plugin.sh`.
 
 ## Requirements
 

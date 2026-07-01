@@ -71,6 +71,11 @@ should-not-trigger, overlap, side-effect, and budget-stress cases. Any change to
 a skill description, invocation policy, `agents/openai.yaml`, or routing-relevant
 body guidance should update these eval files in the same diff.
 
+For routing-sensitive changes, `scripts/run-skill-routing-live-eval.py` can run
+an opt-in live Codex or Claude Code smoke sample. It may require local runtime
+auth and writes ignored artifacts under `.v1tamins/live-routing/`; do not commit
+raw transcripts.
+
 ## Migration Note
 
 The canonical source moved from `.agents/skills/<skill-name>/` to `plugins/v1tamins/skills/v1-<skill-name>/`. Direct checkout consumers should update symlinks, scripts, and docs to use the plugin path and installed `v1-*` names. Marketplace/plugin consumers already using `/v1-*` skill names should not need to change anything.

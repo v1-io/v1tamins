@@ -11,6 +11,9 @@ Thumbs.db
 # Backups
 *.backup
 
+# Local eval artifacts
+.v1tamins/
+
 # Local overrides
 *.local.json
 *.local

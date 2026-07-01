@@ -10,6 +10,8 @@ description edits are behavior changes.
   natural prompts, near-miss neighbors, side-effect posture, and budget risk.
 - `skill-routing.jsonl` contains routing cases used by
   `scripts/check-skill-routing-fixture.py`.
+- `live-routing-output.schema.json` defines the normalized output for optional
+  live routing runs.
 - `agents/openai.yaml` on each skill records machine-readable invocation policy:
   `policy.invocation_posture` is `implicit`, `selective_implicit`, or
   `explicit_only`; `policy.side_effects` records routing-critical side effects
@@ -50,6 +52,41 @@ Run:
 scripts/validate-plugin.sh --verbose
 ```
 
-The static fixture is not a replacement for fresh-session Codex or Claude Code
-benchmarks. It is the cheap review gate that keeps trigger contracts from
-drifting between live eval runs.
+## Live Routing Evals
+
+The static fixture is the required CI-safe contract. It proves that trigger
+expectations are complete, side-effect aware, and internally consistent.
+
+Live routing evals are optional smoke checks for real runtime behavior. They may
+make model calls, require local Codex or Claude Code authentication, and produce
+local transcripts, so they are not part of `scripts/validate-plugin.sh`.
+
+Run a small sample after changing skill descriptions, invocation posture,
+high-overlap fixture cases, or side-effect policy:
+
+```bash
+scripts/run-skill-routing-live-eval.py --runtime codex --max-cases 3
+scripts/run-skill-routing-live-eval.py --runtime claude --category side_effect --max-cases 2
+```
+
+The runner writes local artifacts under `.v1tamins/live-routing/`, which is
+ignored by git. Share the summary or selected normalized results in a PR, not
+raw transcripts.
+
+Score existing result files without launching runtimes:
+
+```bash
+scripts/score-skill-routing-live-eval.py .v1tamins/live-routing/run-*/results.jsonl
+```
+
+Interpret results as:
+
+- `pass`: selected the expected skill or an acceptable alternative.
+- `fail`: selected a near-miss, unexpected, or prohibited skill.
+- `inconclusive`: runtime, auth, adapter, or output parsing did not provide
+  enough evidence. Missing runtime/auth is not a static fixture failure.
+
+Evidence classes matter. `observed_invocation` means the adapter saw a concrete
+skill-like runtime event. `structured_decision` means the runtime returned a
+routing decision in the requested JSON shape. `inconclusive` means no reliable
+decision was available.

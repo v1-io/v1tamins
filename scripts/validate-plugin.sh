@@ -15,6 +15,7 @@ Checks:
   - optional agents/openai.yaml files parse as YAML
   - each distributed skill has Codex metadata
   - routing evals and trigger inventory cover distributed skills
+  - live routing eval schema parses as JSON
   - skill descriptions are checked for trigger-oriented, budget-resilient metadata
   - plugin-distributed skills use the v1- prefix
   - plugin skills do not reference known v1tamins skills by legacy bare names
@@ -56,6 +57,7 @@ plugin_manifest="$plugin_dir/.codex-plugin/plugin.json"
 marketplace_manifest="$repo_root/.agents/plugins/marketplace.json"
 claude_plugin_manifest="$plugin_dir/.claude-plugin/plugin.json"
 claude_marketplace_manifest="$repo_root/.claude-plugin/marketplace.json"
+live_routing_schema="$plugin_dir/evals/live-routing-output.schema.json"
 
 failures=0
 warnings=0
@@ -660,6 +662,7 @@ main() {
 
   validate_no_legacy_agent_skills
   validate_plugin_skills
+  validate_json_file "$live_routing_schema"
   validate_skill_routing_fixture
   validate_metadata_hygiene
   validate_skill_references
