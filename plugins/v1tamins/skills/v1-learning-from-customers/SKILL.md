@@ -1,6 +1,6 @@
 ---
 name: v1-learning-from-customers
-description: Use when planning customer discovery, auditing customer interview questions, synthesizing customer conversation notes, checking whether demand evidence is real, or applying Jobs-to-Be-Done discovery. Triggers on "customer discovery", "customer interviews", "talk to customers", "mom test", "is this real demand", "jobs to be done".
+description: Use when planning or synthesizing customer discovery to test whether demand evidence is real. Triggers on "customer discovery", "customer interviews", "talk to customers", "mom test", "is this real demand", "jobs to be done".
 allowed-tools:
   - Bash
   - Read

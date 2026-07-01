@@ -1,6 +1,7 @@
 ---
 name: v1-land-pr
-description: "Commit, push, open, and land a pull request through CI handoff. Use when work is complete and the user wants an agent to create or update a PR, open it as a draft, monitor GitHub checks with `gh pr checks`, fix failed checks, retry up to three remediation pushes, mark the PR ready for review once green, and move a linked Linear ticket to Human Review when one exists. Trigger on requests like 'land this PR', 'open and monitor a PR', 'commit push and watch CI', 'get this ready for review', or 'finish the PR workflow'."
+description: "Use when completed work should be committed, pushed, opened as a PR, monitored through CI, and marked ready. Triggers on 'land this PR', 'open and monitor a PR', 'commit push and watch CI', 'get this ready for review', or 'finish the PR workflow'."
+disable-model-invocation: true
 allowed-tools:
   - Bash
   - Read

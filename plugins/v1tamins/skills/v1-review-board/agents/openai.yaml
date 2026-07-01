@@ -4,4 +4,8 @@ interface:
   default_prompt: "Use $v1-review-board to convene a multi-agent review board on this PR."
 
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false
+  invocation_posture: explicit_only
+  side_effects:
+    - git_remote
+    - peer_launch

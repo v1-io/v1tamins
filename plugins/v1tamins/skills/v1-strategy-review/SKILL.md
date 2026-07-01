@@ -1,6 +1,6 @@
 ---
 name: v1-strategy-review
-description: Use when reviewing a plan, PRD, product direction, or implementation proposal for strategy, scope, user value, ambition, and hidden assumptions. Triggers on "strategy review", "CEO review", "founder review", "think bigger", "rethink this", "is this ambitious enough".
+description: Use when reviewing a plan, PRD, product direction, or implementation proposal for strategy and assumptions. Triggers on "strategy review", "CEO review", "founder review", "think bigger", "rethink this", "is this ambitious enough".
 allowed-tools:
   - Bash
   - Read

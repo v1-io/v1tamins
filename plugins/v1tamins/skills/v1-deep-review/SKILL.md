@@ -1,6 +1,6 @@
 ---
 name: v1-deep-review
-description: Use when reviewing large PRs, new feature architecture, file-size growth, abstraction quality, scattered branching, or maintainability regressions that need structural review rather than merge-risk review. Triggers on "deep review", "maintainability audit", "architecture review", "spaghetti code", "too complex".
+description: Use when a branch needs structural maintainability review rather than merge-risk review. Triggers on "deep review", "maintainability audit", "architecture review", "file-size growth", "abstraction quality", "too complex".
 ---
 
 ## Deep Code Review

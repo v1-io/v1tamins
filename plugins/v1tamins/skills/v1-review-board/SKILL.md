@@ -1,6 +1,7 @@
 ---
 name: v1-review-board
-description: Use when you want a multi-agent review board on a PR or branch — fan out a parallel read-only review to several peer agents, compile a cross-validated finding ledger, then address the findings. Triggers on "review board", "convene the review board", "multi-agent review", "fan out a review", "have codex/claude/cursor review this PR", "deep-review from multiple models".
+description: Use when the user wants several peer agents to review a PR or branch and produce a verified finding ledger. Triggers on "review board", "convene the review board", "multi-agent review", "fan out a review", "deep-review from multiple models".
+disable-model-invocation: true
 allowed-tools:
   - Bash
   - Read

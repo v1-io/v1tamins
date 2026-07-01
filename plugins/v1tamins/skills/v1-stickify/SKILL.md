@@ -1,6 +1,6 @@
 ---
 name: v1-stickify
-description: Use when writing or improving communications to be more memorable and persuasive. Applies when drafting pitches, presentations, marketing copy, product messaging, emails, announcements, or any text that needs to stick. Also use proactively whenever producing copy that would benefit from stickiness -- landing pages, taglines, investor updates, team announcements, product descriptions. Triggers on "stickify", "make this sticky", "make this memorable", "SUCCESs framework", "Made to Stick".
+description: Use when writing or improving communication copy so it is memorable and persuasive. Triggers on "stickify", "make this sticky", "make this memorable", "SUCCESs framework", "Made to Stick", "improve this pitch", "launch copy".
 ---
 # Stickify
 

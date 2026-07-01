@@ -1,6 +1,6 @@
 ---
 name: v1-simplify
-description: Use when reviewing recent code changes for reuse, unnecessary complexity, quality issues, or efficiency problems before considering the work done. Triggers on "simplify", "clean up this diff", "review for reuse", "make this simpler", "quality pass", "efficiency pass".
+description: Use when reviewing recent code changes for reuse, unnecessary complexity, quality, or efficiency before done. Triggers on "simplify", "clean up this diff", "review for reuse", "make this simpler", "quality pass", "efficiency pass".
 ---
 # Simplify
 

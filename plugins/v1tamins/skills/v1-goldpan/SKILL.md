@@ -1,6 +1,6 @@
 ---
 name: v1-goldpan
-description: Use when panning recent merged PRs and agent session logs (Claude Code, Codex, Cursor) for compound-worthy moments to document, then queueing the gold through /ce-compound. Triggers on "goldpan", "pan for compound candidates", "pan for gems", "what should I /ce-compound", "find solutions to document", "scan sessions for learnings", "what did we learn last week", "compound candidates", "/v1-goldpan".
+description: Use when mining recent PRs and agent sessions for compound-worthy lessons to document. Triggers on "goldpan", "pan for compound candidates", "what should I /ce-compound", "scan sessions for learnings", "what did we learn last week".
 allowed-tools:
   - Bash
   - Read

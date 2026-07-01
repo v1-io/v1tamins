@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/v1-io/v1tamins/plugins/v1tamins/evals/live-routing-output.schema.json",
+  "title": "v1tamins live skill routing result",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "case_id",
+    "runtime",
+    "runtime_version",
+    "adapter",
+    "adapter_version",
+    "started_at",
+    "duration_seconds",
+    "prompt",
+    "expected_skill",
+    "acceptable_skills",
+    "near_miss_skills",
+    "must_not_trigger",
+    "side_effect_allowed",
+    "category",
+    "selected_skill",
+    "evidence_kind",
+    "status",
+    "severity",
+    "reason",
+    "score_notes",
+    "prohibited_skill_hits",
+    "raw_artifact"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "v1"
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "runtime": {
+      "enum": ["codex", "claude"]
+    },
+    "runtime_version": {
+      "type": "string"
+    },
+    "adapter": {
+      "type": "string"
+    },
+    "adapter_version": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "duration_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "prompt": {
+      "type": "string"
+    },
+    "expected_skill": {
+      "type": ["string", "null"]
+    },
+    "acceptable_skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "near_miss_skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "must_not_trigger": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "side_effect_allowed": {
+      "type": "boolean"
+    },
+    "category": {
+      "enum": [
+        "positive",
+        "near_miss",
+        "negative",
+        "overlap",
+        "side_effect",
+        "budget"
+      ]
+    },
+    "selected_skill": {
+      "type": ["string", "null"]
+    },
+    "evidence_kind": {
+      "enum": ["observed_invocation", "structured_decision", "inconclusive"]
+    },
+    "status": {
+      "enum": ["pass", "fail", "inconclusive"]
+    },
+    "severity": {
+      "enum": ["none", "normal", "high"]
+    },
+    "reason": {
+      "type": "string"
+    },
+    "score_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "prohibited_skill_hits": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "raw_artifact": {
+      "type": ["string", "null"]
+    }
+  }
+}

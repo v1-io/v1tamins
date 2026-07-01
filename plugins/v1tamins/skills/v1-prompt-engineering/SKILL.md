@@ -1,6 +1,6 @@
 ---
 name: v1-prompt-engineering
-description: Use when writing or reviewing prompts, commands, hooks, skills, system prompts, or sub-agent instructions where the target model or host is not GPT-5.5-specific. Triggers on "optimize prompt", "improve LLM output", "prompt template", "write a skill", "system prompt".
+description: Use when writing or reviewing prompts, commands, hooks, skills, system prompts, or sub-agent instructions. Triggers on "optimize prompt", "improve LLM output", "prompt template", "system prompt". Use `v1-prompt-engineering-v1tamins` for GPT-5.5-specific work.
 ---
 # Prompt Engineering
 

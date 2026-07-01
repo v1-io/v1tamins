@@ -1,6 +1,7 @@
 ---
 name: v1-pr
-description: Use when shipping local work as a pull request. Triggers on "ship it", "create PR", "open PR", "submit PR", "/v1-pr".
+description: Use when the user explicitly wants local work pushed or opened as a pull request. Triggers on "ship it", "create PR", "open PR", "submit PR", "/v1-pr".
+disable-model-invocation: true
 allowed-tools:
   - Bash
   - Read

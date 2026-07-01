@@ -4,4 +4,8 @@ interface:
   default_prompt: "Use $v1-prove-work to record a demo of this change and package it for the PR."
 
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false
+  invocation_posture: explicit_only
+  side_effects:
+    - browser_capture
+    - external_write

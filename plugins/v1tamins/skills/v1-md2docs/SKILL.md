@@ -1,6 +1,7 @@
 ---
 name: v1-md2docs
-description: Convert a Markdown file into a nicely formatted Google Doc and open it in the browser. Use when the user wants to create a Google Doc from a .md file, share markdown content as a Google Doc, or invoke md2docs. Handles headings, bold, italic, inline code, fenced code blocks, tables, lists, links, horizontal rules, and mermaid diagrams.
+description: Use when the user explicitly wants a Markdown file converted into a formatted Google Doc. Triggers on "turn this .md into a Google Doc", "publish this markdown as a doc", "md2docs".
+disable-model-invocation: true
 allowed-tools:
   - Bash
 ---

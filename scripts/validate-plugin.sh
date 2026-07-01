@@ -13,6 +13,10 @@ Checks:
   - plugins/v1tamins/skills/v1-*/SKILL.md files have parseable YAML frontmatter
   - each skill frontmatter name matches its v1-* directory
   - optional agents/openai.yaml files parse as YAML
+  - each distributed skill has Codex metadata
+  - routing evals and trigger inventory cover distributed skills
+  - live routing eval schema parses as JSON
+  - skill descriptions are checked for trigger-oriented, budget-resilient metadata
   - plugin-distributed skills use the v1- prefix
   - plugin skills do not reference known v1tamins skills by legacy bare names
   - root SKILL.md local links and required bundled asset references resolve
@@ -53,8 +57,10 @@ plugin_manifest="$plugin_dir/.codex-plugin/plugin.json"
 marketplace_manifest="$repo_root/.agents/plugins/marketplace.json"
 claude_plugin_manifest="$plugin_dir/.claude-plugin/plugin.json"
 claude_marketplace_manifest="$repo_root/.claude-plugin/marketplace.json"
+live_routing_schema="$plugin_dir/evals/live-routing-output.schema.json"
 
 failures=0
+warnings=0
 
 relpath() {
   local path="$1"
@@ -70,6 +76,11 @@ ok() {
 fail() {
   failures=$((failures + 1))
   printf 'ERROR: %s\n' "$1" >&2
+}
+
+warn_validation() {
+  warnings=$((warnings + 1))
+  printf 'WARNING: %s\n' "$1" >&2
 }
 
 print_failure_summary() {
@@ -568,11 +579,71 @@ validate_plugin_skills() {
 
     if [ -f "$openai_yaml" ]; then
       validate_yaml_file "$openai_yaml"
+    else
+      fail "missing Codex metadata: $(relpath "$openai_yaml")"
     fi
   done < <(find "$plugin_skills_dir" -mindepth 1 -maxdepth 1 -type d ! -name '.*' ! -name 'v1-_*' -print 2>/dev/null | sort)
 
   if [ "$found" = false ]; then
     fail "no plugin skills found in $(relpath "$plugin_skills_dir")"
+  fi
+}
+
+validate_skill_routing_fixture() {
+  local args=("--repo-root" "$repo_root")
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    fail "python3 is required to validate skill routing fixture"
+    return 0
+  fi
+
+  if [ "$verbose" = true ]; then
+    args+=("--verbose")
+  fi
+
+  if python3 "$repo_root/scripts/check-skill-routing-fixture.py" "${args[@]}"; then
+    ok "skill routing fixture"
+  else
+    fail "skill routing fixture validation failed"
+  fi
+}
+
+validate_metadata_hygiene() {
+  if ! command -v ruby >/dev/null 2>&1; then
+    fail "ruby is required to validate metadata hygiene"
+    return 0
+  fi
+
+  local output
+  local status
+  if output="$(
+    ruby "$repo_root/scripts/check-skill-metadata.rb" "$plugin_skills_dir" "$repo_root" "$verbose"
+  )"; then
+    status=0
+  else
+    status=$?
+  fi
+
+  if [ -n "$output" ]; then
+    while IFS= read -r line; do
+      case "$line" in
+        ERROR:*)
+          fail "${line#ERROR: }"
+          ;;
+        WARNING:*)
+          warn_validation "${line#WARNING: }"
+          ;;
+        *)
+          printf '%s\n' "$line"
+          ;;
+      esac
+    done <<< "$output"
+  fi
+
+  if [ "$status" -eq 0 ]; then
+    ok "skill metadata hygiene"
+  else
+    fail "skill metadata hygiene validation failed"
   fi
 }
 
@@ -591,6 +662,9 @@ main() {
 
   validate_no_legacy_agent_skills
   validate_plugin_skills
+  validate_json_file "$live_routing_schema"
+  validate_skill_routing_fixture
+  validate_metadata_hygiene
   validate_skill_references
   validate_skill_assets
   validate_portable_host_paths
@@ -601,6 +675,9 @@ main() {
   fi
 
   printf '\nPlugin validation checks passed.\n'
+  if [ "$warnings" -ne 0 ]; then
+    printf '%d validation warning(s)\n' "$warnings" >&2
+  fi
 }
 
 main "$@"
