@@ -1,6 +1,6 @@
 {
   "name": "v1tamins",
-  "version": "0.3.10",
+  "version": "0.3.11",
   "description": "Reusable AI development skills and workflow guidance from Version1.",
   "author": {
     "name": "Version1",
@@ -29,13 +29,14 @@
     "usability",
     "interaction-review",
     "constraints",
+    "project-cockpit",
     "operations"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "v1tamins",
     "shortDescription": "Reusable AI development skills and workflow guidance.",
-    "longDescription": "v1tamins packages reusable AI development skills for reviewing code, consulting counterpart agents, writing tests, preparing PRs, improving documentation, debugging failures, learning from customers, testing product prototypes, reviewing usability, extracting reusable skills from source material, creating self-contained HTML artifacts, reviewing data graphics, diagnosing constraints, and keeping agent workflows consistent across projects. Plugin-distributed skills use a v1- prefix to avoid collisions with other public skills.",
+    "longDescription": "v1tamins packages reusable AI development skills for reviewing code, consulting counterpart agents, writing tests, preparing PRs, improving documentation, debugging failures, learning from customers, testing product prototypes, reviewing usability, extracting reusable skills from source material, creating self-contained HTML artifacts, reviewing data graphics, diagnosing constraints, operating project cockpits, and keeping agent workflows consistent across projects. Plugin-distributed skills use a v1- prefix to avoid collisions with other public skills.",
     "developerName": "Version1",
     "category": "Coding",
     "capabilities": [
@@ -57,7 +58,8 @@
       "/v1-reviewing-usability review this product flow",
       "/v1-html-it make a self-contained HTML page",
       "/v1-reviewing-data-graphics review this dashboard",
-      "/v1-diagnosing-constraints find the bottleneck in this process"
+      "/v1-diagnosing-constraints find the bottleneck in this process",
+      "/v1-project-cockpit set up one control document for this project"
     ],
     "screenshots": []
   }

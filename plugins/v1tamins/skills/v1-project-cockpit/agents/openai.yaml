@@ -1,0 +1,7 @@
+interface:
+  display_name: "Project Cockpit"
+  short_description: "Operate one control document for multi-repo agent work"
+  default_prompt: "Use $v1-project-cockpit to set up or run a project cockpit for this work."
+
+policy:
+  allow_implicit_invocation: true

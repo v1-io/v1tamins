@@ -114,6 +114,7 @@ mindmap
       ("v1-phone-a-friend")
       ("v1-skilling-it")
       ("v1-prompt-engineering")
+      ("v1-project-cockpit")
 ```
 
 ## Why these skills exist
@@ -398,6 +399,7 @@ flowchart LR
 | [`/v1-skilling-it`](./plugins/v1tamins/skills/v1-skilling-it/SKILL.md) | Create or improve a shared agent skill (this repo's own toolchain) |
 | [`/v1-prompt-engineering`](./plugins/v1tamins/skills/v1-prompt-engineering/SKILL.md) | Write or improve prompts, system prompts, hooks, or sub-agent briefs |
 | [`/v1-prompt-engineering-v1tamins`](./plugins/v1tamins/skills/v1-prompt-engineering-v1tamins/SKILL.md) | Same, specialised for GPT-5.5 / OpenAI Responses API / OpenRouter migrations |
+| [`/v1-project-cockpit`](./plugins/v1tamins/skills/v1-project-cockpit/SKILL.md) | Operate one control document for multi-repo agent work and tracker coordination |
 
 ---
 
