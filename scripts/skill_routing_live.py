@@ -19,6 +19,14 @@ EVIDENCE_KINDS = {"observed_invocation", "structured_decision", "inconclusive"}
 RUNTIMES = {"codex", "claude"}
 STATUSES = {"pass", "fail", "inconclusive"}
 SEVERITIES = {"none", "normal", "high"}
+RESULT_REQUIRED_FIELDS = set(
+    """
+    schema_version case_id runtime runtime_version adapter adapter_version started_at
+    duration_seconds prompt expected_skill acceptable_skills near_miss_skills
+    must_not_trigger side_effect_allowed category selected_skill evidence_kind
+    status severity reason score_notes prohibited_skill_hits raw_artifact
+    """.split()  # noqa: SIM905 - compact to keep this helper under the file-size bar
+)
 
 DECISION_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -84,28 +92,33 @@ def filter_cases(
     return selected
 
 
-def side_effect_skills(repo_root: Path) -> set[str]:
+def side_effect_skills(repo_root: Path) -> tuple[set[str] | None, list[str]]:
     skills_dir = repo_root / "plugins" / "v1tamins" / "skills"
     script = repo_root / "scripts" / "check-skill-metadata.rb"
-    result = subprocess.run(
-        [
-            "ruby",
-            str(script),
-            "--side-effect-skills-json",
-            str(skills_dir),
-            str(repo_root),
-            "false",
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        return set()
+    command = [
+        "ruby",
+        str(script),
+        "--side-effect-skills-json",
+        str(skills_dir),
+        str(repo_root),
+        "false",
+    ]
     try:
-        return set(json.loads(result.stdout))
+        result = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        return None, ["ruby is required to read skill metadata policy"]
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip() or f"exit {result.returncode}"
+        return None, [f"skill metadata policy read failed: {detail}"]
+    try:
+        return set(json.loads(result.stdout)), []
     except json.JSONDecodeError:
-        return set()
+        return None, ["skill metadata policy output was not valid JSON"]
 
 
 def build_routing_prompt(case: dict[str, Any]) -> str:
@@ -243,51 +256,101 @@ def json_from_text(text: str) -> dict[str, Any] | None:
     return parsed if isinstance(parsed, dict) else None
 
 
-def iter_strings(value: Any) -> list[str]:
-    if isinstance(value, str):
-        return [value]
-    if isinstance(value, list):
-        strings: list[str] = []
-        for item in value:
-            strings.extend(iter_strings(item))
-        return strings
-    if isinstance(value, dict):
-        strings = []
-        for item in value.values():
-            strings.extend(iter_strings(item))
-        return strings
-    return []
+def skill_name_from_value(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    match = re.fullmatch(r"v1-[a-z0-9-]+", value)
+    return match.group(0) if match else None
 
 
-def looks_like_skill_event(event: dict[str, Any]) -> bool:
-    type_text = str(event.get("type", "")).lower()
-    name_text = str(event.get("name", "") or event.get("tool_name", "")).lower()
-    return "skill" in type_text or "skill" in name_text
+def skill_name_from_tool_use(event: dict[str, Any], runtime: str) -> str | None:
+    if runtime == "codex":
+        item = event.get("item")
+        if not isinstance(item, dict):
+            return None
+        item_type = item.get("type")
+        if item_type not in {"tool_call", "function_call"}:
+            return None
+        for field in ("name", "tool_name"):
+            skill_name = skill_name_from_value(item.get(field))
+            if skill_name:
+                return skill_name
+        input_value = item.get("input")
+        if isinstance(input_value, dict):
+            for field in ("skill", "skill_name", "name"):
+                skill_name = skill_name_from_value(input_value.get(field))
+                if skill_name:
+                    return skill_name
+        return None
+
+    if runtime == "claude":
+        content_blocks: list[Any] = []
+        message = event.get("message")
+        if isinstance(message, dict):
+            content = message.get("content")
+            if isinstance(content, list):
+                content_blocks.extend(content)
+        if event.get("type") == "tool_use":
+            content_blocks.append(event)
+
+        for block in content_blocks:
+            if not isinstance(block, dict) or block.get("type") != "tool_use":
+                continue
+            skill_name = skill_name_from_value(block.get("name"))
+            if skill_name:
+                return skill_name
+            input_value = block.get("input")
+            if isinstance(input_value, dict):
+                for field in ("skill", "skill_name", "name"):
+                    skill_name = skill_name_from_value(input_value.get(field))
+                    if skill_name:
+                        return skill_name
+        return None
+
+    return None
 
 
-def extract_decision(stdout: str) -> tuple[str | None, str, str, float | None]:
+def decision_texts_from_event(event: dict[str, Any], runtime: str) -> list[str]:
+    texts: list[str] = []
+    if runtime == "codex":
+        item = event.get("item")
+        if isinstance(item, dict) and isinstance(item.get("text"), str):
+            texts.append(item["text"])
+        return texts
+
+    if runtime == "claude":
+        if isinstance(event.get("result"), str):
+            texts.append(event["result"])
+        message = event.get("message")
+        if isinstance(message, dict):
+            content = message.get("content")
+            if isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict) and isinstance(block.get("text"), str):
+                        texts.append(block["text"])
+        return texts
+
+    return texts
+
+
+def extract_decision(
+    stdout: str, runtime: str
+) -> tuple[str | None, str, str, float | None]:
     observed_skill: str | None = None
     decision: dict[str, Any] | None = None
 
     for line in stdout.splitlines():
         parsed = json_from_text(line)
         if parsed is None:
-            parsed = json_from_text(" ".join(iter_strings(line)))
-        if parsed is None:
             continue
 
-        if looks_like_skill_event(parsed):
-            for text in iter_strings(parsed):
-                match = re.search(r"\bv1-[a-z0-9-]+\b", text)
-                if match:
-                    observed_skill = match.group(0)
-                    break
+        observed_skill = observed_skill or skill_name_from_tool_use(parsed, runtime)
 
         if "selected_skill" in parsed:
             decision = parsed
             continue
 
-        for text in iter_strings(parsed):
+        for text in decision_texts_from_event(parsed, runtime):
             maybe_decision = json_from_text(text)
             if maybe_decision and "selected_skill" in maybe_decision:
                 decision = maybe_decision
@@ -428,7 +491,9 @@ def run_case(
         result["score_notes"] = [result["reason"]]
         return result
 
-    selected, evidence_kind, reason, confidence = extract_decision(completed.stdout)
+    selected, evidence_kind, reason, confidence = extract_decision(
+        completed.stdout, runtime
+    )
     result["selected_skill"] = selected
     result["evidence_kind"] = evidence_kind
     result["reason"] = reason
@@ -520,7 +585,7 @@ def validate_result_shape(result: dict[str, Any]) -> list[str]:
 def score_result(
     result: dict[str, Any],
     fixture_case: dict[str, Any],
-    side_effect_skill_names: set[str],
+    side_effect_skill_names: set[str] | None,
     *,
     strict_inconclusive: bool = False,
 ) -> dict[str, Any]:
@@ -543,8 +608,14 @@ def score_result(
     if isinstance(selected, str) and selected in must_not:
         prohibited_hits.append(selected)
         result["status"] = "fail"
-        result["severity"] = "high" if selected in side_effect_skill_names else "normal"
+        result["severity"] = (
+            "high"
+            if side_effect_skill_names is None or selected in side_effect_skill_names
+            else "normal"
+        )
         notes.append(f"selected prohibited skill {selected}")
+        if side_effect_skill_names is None:
+            notes.append("side-effect metadata unavailable; severity failed closed")
     elif expected is None and selected is None:
         result["status"] = "pass"
         result["severity"] = "none"

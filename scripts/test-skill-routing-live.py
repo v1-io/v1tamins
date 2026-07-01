@@ -11,7 +11,13 @@ import unittest
 from pathlib import Path
 
 from skill_routing_live import (
+    EVIDENCE_KINDS,
+    RESULT_REQUIRED_FIELDS,
+    RUNTIMES,
+    SEVERITIES,
+    STATUSES,
     base_result,
+    extract_decision,
     load_results,
     process_failure_reason,
     run_case,
@@ -59,7 +65,7 @@ def write_fake_runtime(path: Path, selected_skill: str = "v1-debug") -> None:
                 "if 'claude' in sys.argv[0]:",
                 "    print(json.dumps({'type': 'result', 'result': payload}))",
                 "else:",
-                "    print(json.dumps({'type': 'message', 'content': payload}))",
+                "    print(json.dumps({'type': 'item.completed', 'item': {'type': 'agent_message', 'text': payload}}))",
             ]
         )
         + "\n",
@@ -112,10 +118,67 @@ class LiveRoutingTests(unittest.TestCase):
         self.assertEqual(scored["severity"], "high")
         self.assertEqual(scored["prohibited_skill_hits"], ["v1-land-pr"])
 
+    def test_missing_side_effect_metadata_fails_closed_for_prohibited_hit(self):
+        result = base_result(fixture_case(), "codex", "fake", None)
+        result["selected_skill"] = "v1-land-pr"
+        result["evidence_kind"] = "structured_decision"
+        scored = score_result(result, fixture_case(), None)
+        self.assertEqual(scored["status"], "fail")
+        self.assertEqual(scored["severity"], "high")
+        self.assertIn("severity failed closed", " ".join(scored["score_notes"]))
+
     def test_inconclusive_is_not_failure_by_default(self):
         result = base_result(fixture_case(), "codex", "fake", None)
         scored = score_result(result, fixture_case(), set())
         self.assertEqual(scored["status"], "inconclusive")
+
+    def test_extract_decision_ignores_non_invocation_skill_mentions(self):
+        decision = {
+            "selected_skill": None,
+            "reason": "no matching routing decision",
+            "confidence": 0.1,
+        }
+        stdout = "\n".join(
+            [
+                json.dumps(
+                    {
+                        "type": "item.completed",
+                        "item": {
+                            "type": "agent_reasoning",
+                            "text": "this sounds like v1-debug territory",
+                        },
+                    }
+                ),
+                json.dumps(
+                    {
+                        "type": "item.completed",
+                        "item": {"type": "agent_message", "text": json.dumps(decision)},
+                    }
+                ),
+            ]
+        )
+
+        selected, evidence_kind, _reason, _confidence = extract_decision(
+            stdout, "codex"
+        )
+
+        self.assertIsNone(selected)
+        self.assertEqual(evidence_kind, "structured_decision")
+
+    def test_extract_decision_observes_explicit_tool_use_only(self):
+        stdout = json.dumps(
+            {
+                "type": "item.completed",
+                "item": {"type": "tool_call", "name": "v1-debug"},
+            }
+        )
+
+        selected, evidence_kind, _reason, _confidence = extract_decision(
+            stdout, "codex"
+        )
+
+        self.assertEqual(selected, "v1-debug")
+        self.assertEqual(evidence_kind, "observed_invocation")
 
     def test_fake_codex_runtime_records_pass(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -195,6 +258,24 @@ class LiveRoutingTests(unittest.TestCase):
 
         self.assertIn("connector warning", reason)
         self.assertIn("Invalid API key", reason)
+
+    def test_published_schema_and_python_contract_stay_in_lockstep(self):
+        schema_path = (
+            Path(__file__).resolve().parents[1]
+            / "plugins"
+            / "v1tamins"
+            / "evals"
+            / "live-routing-output.schema.json"
+        )
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(set(schema["required"]), RESULT_REQUIRED_FIELDS)
+        self.assertEqual(set(schema["properties"]["runtime"]["enum"]), RUNTIMES)
+        self.assertEqual(
+            set(schema["properties"]["evidence_kind"]["enum"]), EVIDENCE_KINDS
+        )
+        self.assertEqual(set(schema["properties"]["status"]["enum"]), STATUSES)
+        self.assertEqual(set(schema["properties"]["severity"]["enum"]), SEVERITIES)
 
 
 if __name__ == "__main__":
