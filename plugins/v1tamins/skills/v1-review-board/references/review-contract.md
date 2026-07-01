@@ -28,6 +28,7 @@ Two-peer down to one-peer boards are valid (e.g. no Cursor → drop the harsh-ma
 Resolve all of the following at run time. Commit none of them.
 
 - **Peer availability** — use `v1-phone-a-friend`'s capability audit. Bound the probes; a hung probe is `auth: not checked`, not a block.
+- **Antigravity/Gemini peer** — prefer Antigravity CLI via `agy` when a Gemini-backed peer is requested or useful for model-family diversity. Treat `gemini` as a legacy fallback only when `agy` is unavailable and local `gemini --help` confirms the old CLI still works.
 - **Models** — from each CLI's `--help` / model list, honoring any user-specified tier. If a peer does not report its actual model, record `model: not reported`.
 - **Thermo-nuclear rubric** — glob the Cursor install location, not the Codex/Claude plugin caches:
 

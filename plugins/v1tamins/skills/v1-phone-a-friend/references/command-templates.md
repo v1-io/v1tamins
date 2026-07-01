@@ -11,7 +11,7 @@ Use these templates after selecting the peer, work type, and permission mode in 
 - [Claude Code](#claude-code)
 - [Codex](#codex)
 - [Cursor Agent](#cursor-agent)
-- [Gemini CLI](#gemini-cli)
+- [Antigravity CLI](#antigravity-cli)
 
 ## Prompt Contracts
 
@@ -170,7 +170,7 @@ If the helper is unavailable, the manual equivalent is `( <peer-command> </dev/n
 | Claude Code | `claude -p --allowedTools "Read,Grep,Glob" --disallowedTools "Edit,Write,Bash" ...` | `claude -p --permission-mode bypassPermissions ...` |
 | Codex | `codex exec --sandbox read-only --cd <repo> ...` | `codex exec --dangerously-bypass-approvals-and-sandbox --cd <repo> ...` |
 | Cursor Agent | `cursor-agent -p --mode plan --trust ...` | `cursor-agent -p --worktree <name> --force ...` |
-| Gemini CLI | Use documented read-only or plan flags when available. | Use full-access flags only in a trusted or isolated worktree. |
+| Antigravity CLI (`agy`) | `agy --sandbox --print ...` | `agy --dangerously-skip-permissions --print ...` only in a trusted or isolated worktree. |
 
 Resolve model, effort, permission flags, and output modes from current local help, model lists, config, or the user's explicit request. Do not pin concrete model names in reusable commands, and do not invent permission-mode values that local help does not document.
 
@@ -266,17 +266,45 @@ cursor-agent -p \
 
 Use `--force` only for trusted verification or delegation. If the installed CLI lacks `--mode` or `--worktree`, prefer Claude/Codex for enforced read-only consults, or run Cursor in a disposable git worktree and discard unexpected diffs after reading its answer.
 
-## Gemini CLI
+## Antigravity CLI
 
-Use Gemini when installed and authenticated, especially for large-context, multimodal, or Google-grounded packets. Check `gemini --help` locally before relying on exact flags or approval modes.
+Use Antigravity CLI when installed and authenticated, especially for Gemini-backed large-context, multimodal, or Google-grounded packets. Google is transitioning consumer Gemini CLI users to Antigravity CLI; prefer the `agy` command. Treat `gemini` as a legacy fallback only when `agy` is unavailable and `gemini --help` proves the old CLI still works locally.
+
+Capability probe:
+
+```bash
+if command -v agy >/dev/null 2>&1; then
+  AGY_CMD=agy
+elif command -v gemini >/dev/null 2>&1; then
+  AGY_CMD=gemini
+else
+  AGY_CMD=""
+fi
+
+[ -n "$AGY_CMD" ] && "$AGY_CMD" --version 2>/dev/null || true
+[ -n "$AGY_CMD" ] && "$AGY_CMD" --help 2>/dev/null | sed -n '1,80p' || true
+```
+
+If `agy` reports that the installed version is unsupported, run `agy update`, then retry `agy --version` and a tiny `--print` probe. If the updated CLI asks for logout/login, stop and ask the user to complete the interactive Google OAuth step.
 
 Read-only consult:
 
 ```bash
-gemini \
-  --model <model> \
-  --output-format stream-json \
-  -p "$PHONE_A_FRIEND_PROMPT"
+agy \
+  --sandbox \
+  --print-timeout 5m \
+  --print "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
-If local help exposes a read-only or plan approval mode, include it in the consult command. If local help exposes an auto-approve, yolo, or full-access flag, reserve that flag for trusted verification or delegation in an isolated worktree. State which flags were used when adapting to an installed CLI.
+Pass `--model <model-or-auto>` only when `agy --help` exposes `--model` and the requested model is available from `agy models`. Keep `--sandbox` for read-only consults. Close stdin so `--print` mode cannot wait for more input.
+
+Trusted verification or isolated delegation:
+
+```bash
+agy \
+  --dangerously-skip-permissions \
+  --print-timeout 5m \
+  --print "$PHONE_A_FRIEND_PROMPT" < /dev/null
+```
+
+Use `--dangerously-skip-permissions` only in a trusted repo or isolated worktree. Record the starting dirty state first, require final `git status`, and inspect any diff before keeping it. If falling back to legacy `gemini`, check local help and adapt flags from the installed CLI rather than assuming Antigravity flags are present.
