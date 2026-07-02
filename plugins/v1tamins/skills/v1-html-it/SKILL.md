@@ -96,6 +96,10 @@ Do not invent data to make the page look complete. Mark unknowns visibly.
 If the artifact contains charts, dashboards, metric tables, or quantitative displays, read
 [references/visual-evidence-checklist.md](references/visual-evidence-checklist.md) before designing the page.
 
+If the artifact should follow a supplied `design.md` or design-system brief, use
+[references/design-md-example.md](references/design-md-example.md) as the shape for
+separating the reusable visual recipe from the current artifact prompt.
+
 ### 3. Design for Reading First
 
 Make the first viewport useful:
@@ -194,6 +198,8 @@ Before finishing, check:
 ## Reference Files
 
 - **[references/visual-evidence-checklist.md](references/visual-evidence-checklist.md)** - Quality checks for charts, dashboards, metric tables, and quantitative visual reports.
+- **[references/design-md-example.md](references/design-md-example.md)** - Tiny public-safe
+  `design.md` fixture paired with a `/v1-html-it` prompt.
 
 ## Response Back
 
