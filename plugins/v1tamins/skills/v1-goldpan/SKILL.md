@@ -1,6 +1,7 @@
 ---
 name: v1-goldpan
 description: Use when mining recent PRs and agent sessions for compound-worthy lessons to document. Triggers on "goldpan", "pan for compound candidates", "what should I /ce-compound", "scan sessions for learnings", "what did we learn last week".
+disable-model-invocation: true
 allowed-tools:
   - Bash
   - Read

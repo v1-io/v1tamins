@@ -4,4 +4,5 @@ interface:
   default_prompt: "Use $v1-canon2skill to turn this source material into recommended agent skills."
 
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false
+  invocation_posture: explicit_only

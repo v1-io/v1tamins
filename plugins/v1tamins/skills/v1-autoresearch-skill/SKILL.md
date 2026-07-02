@@ -5,6 +5,7 @@ description: >-
   measurable target and it will modify, measure, keep improvements, and discard regressions.
   Triggers on "autoresearch", "optimize this", "run the loop", "karpathy loop",
   "improvement loop".
+disable-model-invocation: true
 allowed-tools:
   - Bash
   - Read

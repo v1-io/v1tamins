@@ -66,7 +66,17 @@ policy, or routing-relevant body guidance, update the trigger inventory and
 routing fixture in the same change. Low-risk local review/edit skills should be
 easy for agents to invoke implicitly. Skills that push, publish, upload, create
 external docs, move issues, or launch broad peer workflows should be explicit or
-gated.
+gated. Deliberate rituals the user always summons by name — session mining,
+skill extraction from sources, long autonomous loops — should also be
+`explicit_only` (`disable-model-invocation: true` plus
+`policy.allow_implicit_invocation: false`): their descriptions spend routing
+budget without earning autonomous reach.
+
+`/v1-menu` is the user-facing index over the full skill set — the one name to
+remember when you can't recall which skill fits, and the only place
+`explicit_only` skills stay discoverable. When a skill is added, renamed,
+removed, or changes posture, update `v1-menu` in the same change; a stale
+router is worse than none.
 
 Live evals are opt-in because they may require local runtime authentication and
 model calls. Use them after changing high-overlap descriptions, invocation
@@ -460,8 +470,8 @@ Marketplace/plugin consumers already invoking `/v1-*` skills should not need to 
    git remote add upstream git@github.com:v1-io/v1tamins.git
    ```
 2. Create a branch.
-3. Edit the canonical skill at `plugins/v1tamins/skills/v1-<skill-name>/SKILL.md`. Each `SKILL.md` needs YAML frontmatter with a `v1-*` `name` matching the directory and a `description`. `allowed-tools` is recommended for skills that need tool restrictions; see [v1-skilling-it](./plugins/v1tamins/skills/v1-skilling-it/SKILL.md) for the full schema. Add required `agents/openai.yaml` Codex metadata. Include `policy.invocation_posture` and `policy.side_effects` when a skill can publish externally, push to git remotes, launch peer agents, or record browser proof.
-4. Update `plugins/v1tamins/evals/trigger-inventory.md` and `plugins/v1tamins/evals/skill-routing.jsonl` when the change affects skill routing, invocation policy, or trigger wording.
+3. Edit the canonical skill at `plugins/v1tamins/skills/v1-<skill-name>/SKILL.md`. Each `SKILL.md` needs YAML frontmatter with a `v1-*` `name` matching the directory and a `description`. `allowed-tools` is recommended for skills that need tool restrictions; see [v1-skilling-it](./plugins/v1tamins/skills/v1-skilling-it/SKILL.md) for the full schema. Add required `agents/openai.yaml` Codex metadata. Include `policy.invocation_posture` and `policy.side_effects` when a skill can publish externally, push to git remotes, launch peer agents, or record browser proof — and use `invocation_posture: explicit_only` (with `disable-model-invocation: true` in `SKILL.md`) for deliberate rituals the user always summons by name.
+4. Update `plugins/v1tamins/evals/trigger-inventory.md` and `plugins/v1tamins/evals/skill-routing.jsonl` when the change affects skill routing, invocation policy, or trigger wording. Update `v1-menu` when a skill is added, renamed, removed, or changes invocation posture.
 5. Bump both runtime plugin manifest versions when runtime plugin content changes: `plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`.
 6. Validate plugin manifests, routing evals, and skill metadata:
    ```bash
