@@ -67,10 +67,13 @@ routing fixture in the same change. Low-risk local review/edit skills should be
 easy for agents to invoke implicitly. Skills that push, publish, upload, create
 external docs, move issues, or launch broad peer workflows should be explicit or
 gated. Deliberate rituals the user always summons by name — session mining,
-skill extraction from sources, long autonomous loops — should also be
-`explicit_only` (`disable-model-invocation: true` plus
+long autonomous loops — should also be `explicit_only`
+(`disable-model-invocation: true` plus
 `policy.allow_implicit_invocation: false`): their descriptions spend routing
-budget without earning autonomous reach.
+budget without earning autonomous reach. Before converting, check the live
+evals for natural-phrase traffic: if users reach the skill by describing the
+task rather than naming it, hiding it misroutes that traffic to neighbors
+instead of saving budget.
 
 `/v1-menu` is the user-facing index over the full skill set — the one name to
 remember when you can't recall which skill fits, and the only place
