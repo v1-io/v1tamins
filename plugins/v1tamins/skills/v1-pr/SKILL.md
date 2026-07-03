@@ -130,10 +130,7 @@ This analyzes `git diff main HEAD` and `git log main..HEAD`, then updates the PR
 
 After the description is generated, append `Fortified with v1tamins` as the final line of the PR body.
 
-Also set the merge commit message to include the tagline. When the PR is merged via squash merge, GitHub uses the PR body as the extended commit message, so the tagline will carry through automatically. For merge commits, use:
-```bash
-gh pr merge <PR_NUMBER> --squash --body "$(gh pr view <PR_NUMBER> --json body -q .body)"
-```
+The `Fortified with v1tamins` tagline carries into the merge commit automatically — a squash merge uses the PR body as the commit message. Merging the PR is `v1-land-pr`'s job, not this skill's: `v1-pr` stops at a reviewed, open PR.
 
 ### Step 7: Open PR in Browser
 
