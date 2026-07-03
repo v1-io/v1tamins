@@ -3,6 +3,11 @@
 # Mirror the version in package.json into both runtime plugin manifests so all
 # three stay in lockstep. Run automatically by the `version` npm script after
 # `changeset version` bumps package.json; safe to run by hand at any time.
+#
+# Two-phase: both manifests are rendered to temp files first, so a failure in
+# either render aborts before any tracked file is touched; only after both
+# render cleanly are they moved into place. A trap removes temp files on any
+# exit, so a mid-run failure never leaves a stray temp or a half-applied bump.
 
 set -euo pipefail
 
@@ -29,14 +34,17 @@ if [ -z "$version" ] || [ "$version" = "null" ]; then
   exit 1
 fi
 
-mirror() {
-  local manifest="$1"
-  local tmp
-  tmp="$(mktemp)"
-  jq --arg v "$version" '.version = $v' "$manifest" > "$tmp"
-  mv "$tmp" "$manifest"
-  echo "synced $(basename "$(dirname "$manifest")")/plugin.json -> $version"
-}
+codex_tmp="$(mktemp)"
+claude_tmp="$(mktemp)"
+trap 'rm -f "$codex_tmp" "$claude_tmp"' EXIT
 
-mirror "$codex_manifest"
-mirror "$claude_manifest"
+# Phase 1 — render both manifests. If either jq fails, set -e aborts here and
+# no tracked manifest has been touched.
+jq --arg v "$version" '.version = $v' "$codex_manifest"  > "$codex_tmp"
+jq --arg v "$version" '.version = $v' "$claude_manifest" > "$claude_tmp"
+
+# Phase 2 — both rendered cleanly, so commit them.
+mv "$codex_tmp" "$codex_manifest"
+mv "$claude_tmp" "$claude_manifest"
+
+echo "synced .codex-plugin/plugin.json and .claude-plugin/plugin.json -> $version"

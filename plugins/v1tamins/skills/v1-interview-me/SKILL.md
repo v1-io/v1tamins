@@ -70,7 +70,7 @@ The loop also holds uncertainty handling, the question-category tables, construc
 
 ## With-docs mode: make the interview compound
 
-By default, in a repo — or whenever the user asks — the interview writes its results as they crystallize, so the next session doesn't re-explain the same facts. Outside a repo, or when the user opts out, skip all writes and behave as a pure conversation.
+With-docs is **opt-in** — the default interview is a pure conversation that writes nothing. Enable it only when the user asks (e.g. "keep a glossary as we go") or accepts it when offered. When interviewing inside a repo, offer it once in the opening round as a recommended-answer question — "Keep a running glossary and record hard-to-reverse decisions as we go? **(Recommended)**" — and enable writes only if they accept. Never write to the repo on mere repo-detection. Once enabled, write results as they crystallize so the next session doesn't re-explain the same facts:
 
 **Resolved terms → the glossary, inline.** The moment a domain term is settled (not merely raised), invoke `v1-shared-language`'s inline term update to upsert that one term into `LANGUAGE.md`. Write it as it lands, mid-interview — not batched at the end. Re-runs update the row in place, so evolving a definition is safe.
 

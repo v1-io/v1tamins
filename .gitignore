@@ -23,10 +23,9 @@ Thumbs.db
 __pycache__/
 *.pyc
 
-# Node — changesets release tooling only. Deps are resolved fresh in CI
-# (npm install), so the lockfile is not committed.
+# Node — changesets release tooling only. package-lock.json IS committed
+# (reproducible release toolchain, installed via npm ci); node_modules is not.
 node_modules/
-package-lock.json
 
 # Google OAuth credentials
 client_secret*.json
