@@ -1,0 +1,14 @@
+{
+  "name": "v1tamins",
+  "version": "0.4.1",
+  "private": true,
+  "description": "Shared collection of reusable AI development skills, distributed as a Claude Code and Codex plugin.",
+  "license": "MIT",
+  "scripts": {
+    "changeset": "changeset",
+    "version": "changeset version && ./scripts/sync-plugin-versions.sh"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.31.0"
+  }
+}

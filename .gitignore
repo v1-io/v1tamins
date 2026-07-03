@@ -23,6 +23,9 @@ Thumbs.db
 __pycache__/
 *.pyc
 
+# Node (changesets tooling devDependencies)
+node_modules/
+
 # Google OAuth credentials
 client_secret*.json
 token.json
