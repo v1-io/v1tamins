@@ -1,0 +1,35 @@
+name: Release
+
+# On merge to main, roll any pending changesets into a "Version Packages" PR
+# that runs `npm run version` (changeset version + sync-plugin-versions.sh),
+# bumping package.json + CHANGELOG.md and mirroring the version into both
+# runtime manifests. Versioning only — the package is private, nothing is
+# published to a registry.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci --no-audit --no-fund
+      - name: Create or update the Version Packages PR
+        uses: changesets/action@v1
+        with:
+          version: npm run version
+          commit: "chore: version packages"
+          title: "chore: version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

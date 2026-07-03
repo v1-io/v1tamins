@@ -89,3 +89,26 @@ When invoked again in the same conversation:
 3. Update definitions if understanding has evolved
 4. Re-flag any new ambiguities
 5. Rewrite the example dialogue to incorporate new terms
+
+## Inline term update
+
+The two modes above extract a glossary in a batch — a full scan of the
+conversation, written or rewritten in one pass. This mode does the opposite:
+upsert **one** term the moment it is resolved, without rescanning the
+conversation or rewriting the file. It exists so a stateful interview (see
+`v1-interview-me`'s with-docs mode) can record terms as they crystallize
+instead of losing them.
+
+Given a single term — its canonical name, one-sentence definition, and optional
+group and aliases-to-avoid — do exactly this and nothing more:
+
+1. Read `LANGUAGE.md` if it exists. If it does not, create it with the `# Language` heading.
+2. Find the table for the term's group (create the group heading and a `Term | Definition | Aliases to avoid` table if that group has none yet).
+3. **Upsert the single row:** if a row for this term exists, update its definition and aliases in place; otherwise append a new row. Match on the canonical term name.
+4. Leave every other term, table, relationship, ambiguity note, and the example dialogue untouched. Do not rewrite the file, re-scan the conversation, or regenerate the example dialogue.
+
+Keep the same tight, opinionated definition style as the batch mode (one
+sentence, define what it IS). The upsert is idempotent: calling it again with an
+evolved definition updates the row in place rather than duplicating it. Only
+promote a term inline once it is actually resolved — a term still under
+discussion is not ready to write.

@@ -84,3 +84,27 @@
 - "What's the migration story for existing data/users?"
 - "What are we intentionally deferring?"
 - "Is there anything we haven't covered that should be captured?"
+
+---
+
+# Recommended Answers in Practice
+
+Every question leads with a proposed answer so the user reacts to a concrete
+lean instead of a blank prompt. In AskUserQuestion, the recommended option is
+first and labeled `(Recommended)`; the reasoning comes from the context already
+gathered.
+
+**Weak (blank prompt):**
+
+> "What delivery guarantee do you want for webhooks?"
+
+**Strong (recommended answer, from context):**
+
+> "You said customers currently poll because they can't miss events. Delivery guarantee?"
+> - **At-least-once with retries + idempotency keys (Recommended)** — matches "can't miss events"; costs a retry queue and dedup on the customer side.
+> - Best-effort — simpler, but customers lose events on downtime.
+> - Exactly-once — strongest, but expensive and rarely needed here.
+
+The recommendation is accepted with one word when right and corrected fast when
+wrong — either beats an open question. When you genuinely have no lean, say so
+and present balanced options rather than a hollow "recommended" pick.

@@ -23,6 +23,10 @@ Thumbs.db
 __pycache__/
 *.pyc
 
+# Node — changesets release tooling only. package-lock.json IS committed
+# (reproducible release toolchain, installed via npm ci); node_modules is not.
+node_modules/
+
 # Google OAuth credentials
 client_secret*.json
 token.json
