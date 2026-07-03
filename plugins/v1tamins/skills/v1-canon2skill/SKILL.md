@@ -215,7 +215,7 @@ When running inside a skill repository:
 
 Suggest short gerund-form names:
 
-- `canon2skill`
+- `extracting-skills`
 - `reviewing-documents`
 - `debugging-traces`
 

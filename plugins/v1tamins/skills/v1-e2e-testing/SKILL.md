@@ -282,12 +282,7 @@ test('checkout flow', async ({ page }) => {
 **`scripts/with_server.py`** - Server lifecycle management
 
 ```bash
-if [ -z "${SKILL_ROOT:-}" ]; then
-  echo "ERROR: Could not find scripts/with_server.py" >&2
-  exit 1
-fi
-
-# Single server
+# Single server (resolve SKILL_ROOT as shown in Quick Start)
 python3 "$SKILL_ROOT/scripts/with_server.py" --server "npm run dev" --port 3000 -- python test.py
 
 # Multiple servers (backend + frontend)

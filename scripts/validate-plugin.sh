@@ -22,6 +22,7 @@ Checks:
   - root SKILL.md local links and required bundled asset references resolve
   - distributed helper snippets avoid checkout-only executable paths and host-specific plugin cache paths
   - package.json and both runtime plugin manifest versions stay in lockstep
+  - each SKILL.md stays within the 500-line budget (disclose detail to references/)
   - legacy tracked .agents/skills mirrors are absent
 
 Options:
@@ -466,6 +467,7 @@ validate_plugin_skills() {
   local skill_name
   local skill_md
   local openai_yaml
+  local skill_lines
   local found=false
 
   require_dir "$plugin_skills_dir"
@@ -486,6 +488,10 @@ validate_plugin_skills() {
 
     if [ -f "$skill_md" ]; then
       validate_skill_frontmatter "$skill_md" "$skill_name"
+      skill_lines="$(wc -l < "$skill_md" | tr -d '[:space:]')"
+      if [ "$skill_lines" -gt 500 ]; then
+        fail "$(relpath "$skill_md"): $skill_lines lines over the 500-line SKILL.md budget — disclose detail to references/"
+      fi
     else
       fail "missing SKILL.md: $(relpath "$skill_md")"
     fi

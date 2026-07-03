@@ -41,7 +41,6 @@ In Codex, the slash examples below map directly to `$v1-refactor ...`.
 - Remove dead/unreachable code, unused params/locals/imports/exports
 - Delete speculative abstractions with single use and no near-term reuse
 - Collapse configuration surface to what's actually used
-- Keep public APIs stable (SKIP if removal risks breakage)
 
 ### 3. DRY (Don't Repeat Yourself)
 - Detect duplication: copy/paste blocks, repeated queries/hooks/effects
