@@ -10,7 +10,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
       - run: scripts/validate-plugin.sh
       - name: Require a changeset for plugin content changes
         if: github.event_name == 'pull_request'
