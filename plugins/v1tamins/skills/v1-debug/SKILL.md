@@ -97,9 +97,9 @@ For user-error and operator-error root causes, apply the taxonomy's fix priority
 - If no correct seam exists, document that as an architectural finding and still re-run the original feedback loop after the fix
 
 ### 8. Cleanup and Handoff
-- Respects/updates existing `AIDEV-*` notes
+- Respects existing code annotations and anchor-comment conventions
 - Follows logging levels (warning for expected, error with `exc_info=True` for unexpected)
-- Keeps FastAPI code async-first
+- Matches the codebase's existing idioms and concurrency style
 - Scopes changes to the fix
 - Removes all temporary `[DEBUG-...]` instrumentation and throwaway harnesses unless they are intentionally promoted into tests/tools
 - States the winning hypothesis and validation command in the final report, commit, or PR description

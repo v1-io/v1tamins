@@ -148,6 +148,8 @@ description: Use when tests have race conditions, timing dependencies, or pass/f
 description: Use when creating, writing, or improving shared agent skills. Triggers on "create a skill", "SKILL.md", "skill description".
 ```
 
+**Front-load the leading word.** The description is where a skill's *leading word* does its invocation work — when the same word lives in your prompts, docs, and code, the agent links it to the skill and fires more reliably. State **one trigger per branch**: synonyms that rename a single branch ("build features using TDD ... asks for test-first development") are duplication — collapse them and keep only genuinely distinct branches. Leading words in full: [references/diagnosis.md](references/diagnosis.md).
+
 **Format:** Third person, starts with "Use when..."
 **Include:** Specific symptoms, error messages, exact user phrases
 **Max length:** 1024 characters (aim for <500)
@@ -217,91 +219,7 @@ Rule of thumb: narrow bridge with cliffs = low freedom, open field = high freedo
 
 ## Common Patterns
 
-### Template Pattern
-
-For **strict requirements** (API responses, data formats), enforce exact structure:
-
-````markdown
-ALWAYS use this exact template:
-
-```markdown
-# [Title]
-## Executive summary
-[One-paragraph overview]
-## Key findings
-- Finding with supporting data
-```
-````
-
-For **flexible guidance** (where adaptation is useful), signal it:
-
-```markdown
-Sensible default format -- adjust sections as needed for the analysis type.
-```
-
-### Input/Output Examples
-
-Show desired style through concrete pairs rather than descriptions:
-
-````markdown
-**Example 1:**
-Input: Added user authentication with JWT tokens
-Output:
-```
-feat(auth): implement JWT-based authentication
-Add login endpoint and token validation middleware
-```
-
-**Example 2:**
-Input: Fixed bug where dates displayed incorrectly
-Output:
-```
-fix(reports): correct date formatting in timezone conversion
-Use UTC timestamps consistently across report generation
-```
-````
-
-### Conditional Workflow
-
-Guide through decision points when a skill handles multiple task types:
-
-```markdown
-1. Determine modification type:
-   **Creating new content?** → Follow "Creation workflow" below
-   **Editing existing?** → Follow "Editing workflow" below
-```
-
-If conditional branches are large, push each into a separate reference file and tell the agent to read the appropriate one.
-
-### Progress Checklist
-
-For complex multi-step workflows, provide a copy-paste checklist the agent can track:
-
-````markdown
-Copy this checklist and check off items as you complete them:
-
-```
-- [ ] Step 1: Analyze the input
-- [ ] Step 2: Create mapping
-- [ ] Step 3: Validate mapping
-- [ ] Step 4: Apply changes
-- [ ] Step 5: Verify output
-```
-````
-
-### Feedback Loop
-
-For quality-critical operations, build in a validate-fix-repeat cycle:
-
-```markdown
-1. Make edits
-2. Run validator: `python scripts/validate.py`
-3. If validation fails:
-   - Review error message
-   - Fix the issue
-   - Run validation again
-4. Only proceed when validation passes
-```
+Reusable body patterns — template, input/output examples, conditional workflow, progress checklist, feedback loop — live in [references/patterns.md](references/patterns.md). Pull the one that fits the task.
 
 ## Content Guidelines
 
@@ -351,6 +269,8 @@ Keep an instruction only when it changes behavior in at least one concrete way:
 
 Rewrite generic quality language into one of those forms. Delete it when no concrete form exists.
 
+This is the **no-op test** by another name — keep a line only if it changes behaviour versus the model's default. It's model-relative: settle "is this a no-op?" by running the skill, not by debating. See [references/diagnosis.md](references/diagnosis.md) for the full review vocabulary.
+
 ```markdown
 # BAD: no observable decision
 Be thorough and write high-quality feedback.
@@ -362,6 +282,20 @@ For each finding, include the failing condition, impact, concrete fix, and valid
 ### Public-Safe Extraction Gate
 
 Before moving guidance from a private project into a shared skill, keep the reusable workflow and remove private facts. Read [references/public-safe-extraction.md](references/public-safe-extraction.md) for the privacy checklist and scan command.
+
+## Reviewing and Diagnosing Skills
+
+Building a skill and reviewing one take different lenses. To review — your own draft or an existing skill — diagnose with **named failure modes**, each with an observable symptom and a specific cure, so the review names the concept instead of trading taste. Name and prescribe from this set (full definitions, the symptom→cure table, and the two split tests live in [references/diagnosis.md](references/diagnosis.md)):
+
+- **no-op** — a line the model already obeys by default → delete it, or strengthen a weak leading word.
+- **duplication** — one meaning in two places → keep one single source of truth.
+- **sediment** — stale layers never pruned → check each line for relevance, delete the stale.
+- **sprawl** — too long even when every line is live → the ladder: disclose reference, split by branch or sequence.
+- **premature completion** — a step ended early → sharpen the completion criterion first; hide later steps only if it is irreducibly fuzzy *and* you observe the rush, and only across a real context boundary.
+- **context load vs cognitive load** — a description loaded every turn for a hand-only skill → make it user-invoked and route it; a pile of user-invoked skills nobody remembers → a router (`v1-menu`).
+- **completion criterion** — judge it on two axes: *clarity* (checkable done/not-done, resists premature completion) and *demand* (how exhaustive — drives legwork, and binds flat reference too, which is how a stepless skill still forces thorough work).
+
+Two split tests when dividing a skill: **by invocation** only for a distinct leading word or when another skill must reach it (you pay context load); **by sequence** only to hide later steps that tempt a rush.
 
 ## Bundled Resources
 
@@ -526,3 +460,5 @@ For detailed patterns and extended guidance, see:
 - **[references/discipline-enforcement.md](references/discipline-enforcement.md)** - TDD for documentation, rationalization-proofing, gate functions
 - **[references/executable-code.md](references/executable-code.md)** - Script best practices, error handling, MCP tools, dependency management
 - **[references/public-safe-extraction.md](references/public-safe-extraction.md)** - Public-safe framing and privacy scans for shared skills
+- **[references/diagnosis.md](references/diagnosis.md)** - Named failure modes for reviewing skills: no-op, duplication, sediment, sprawl, premature completion, the two loads, leading words, completion criterion
+- **[references/patterns.md](references/patterns.md)** - Reusable body patterns: template, input/output examples, conditional workflow, progress checklist, feedback loop
