@@ -75,11 +75,12 @@ evals for natural-phrase traffic: if users reach the skill by describing the
 task rather than naming it, hiding it misroutes that traffic to neighbors
 instead of saving budget.
 
-`/v1-menu` is the user-facing index over the full skill set — the one name to
-remember when you can't recall which skill fits, and the only place
-`explicit_only` skills stay discoverable. When a skill is added, renamed,
-removed, or changes posture, update `v1-menu` in the same change; a stale
-router is worse than none.
+`/v1-menu` is the index over the full skill set — the one name to remember
+when you can't recall which skill fits, and where `explicit_only` skills stay
+discoverable. It stays model-reachable (`selective_implicit`) so a plain
+"which skill should I use?" routes to it. When a skill is added, renamed,
+removed, or changes posture, update `v1-menu` in the same change;
+`scripts/validate-plugin.sh` fails on menu drift.
 
 Live evals are opt-in because they may require local runtime authentication and
 model calls. Use them after changing high-overlap descriptions, invocation

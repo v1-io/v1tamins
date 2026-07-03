@@ -406,6 +406,10 @@ Files used in output (not loaded into context).
 - [ ] Includes specific phrases users would say
 - [ ] Under 1024 characters
 
+**Invocation posture (v1tamins plugin skills):**
+- [ ] Side-effectful skills and deliberate rituals the user always summons by name set `invocation_posture: explicit_only` in `agents/openai.yaml` plus `disable-model-invocation: true` in frontmatter; before hiding a skill, check the live routing evals for natural-phrase traffic that would misroute to neighbors
+- [ ] `v1-menu` updated when a skill is added, renamed, removed, or changes posture (validate-plugin.sh fails on menu drift)
+
 **Content:**
 - [ ] Instructions use imperative form (not "you should")
 - [ ] Each instruction passes the Instruction Value Gate
