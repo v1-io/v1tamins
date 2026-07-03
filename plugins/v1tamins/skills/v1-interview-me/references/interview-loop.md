@@ -38,6 +38,11 @@ downstream ones. A decision is resolved when it reaches one of these states:
 **Branch closure rule:** don't move on from a decision until it reaches one of
 these states. This prevents a spec full of implicit assumptions.
 
+**With-docs hook.** When with-docs mode is active (see `SKILL.md`), write each
+result the moment it closes — resolved terms to the glossary via
+`v1-shared-language`, gate-passing decisions as ADRs — rather than waiting for
+the final synthesis.
+
 ## 4. Open with the right first question
 
 The first question shapes the interview. Choose based on what the user provided:

@@ -68,6 +68,21 @@ Once the posture is set, run the loop in [interview-loop.md](references/intervie
 
 The loop also holds uncertainty handling, the question-category tables, constructive-challenge and pivot guidance, and the specification template.
 
+## With-docs mode: make the interview compound
+
+By default, in a repo — or whenever the user asks — the interview writes its results as they crystallize, so the next session doesn't re-explain the same facts. Outside a repo, or when the user opts out, skip all writes and behave as a pure conversation.
+
+**Resolved terms → the glossary, inline.** The moment a domain term is settled (not merely raised), invoke `v1-shared-language`'s inline term update to upsert that one term into `LANGUAGE.md`. Write it as it lands, mid-interview — not batched at the end. Re-runs update the row in place, so evolving a definition is safe.
+
+**Hard-to-reverse decisions → an ADR, gated.** Offer to record a decision as an ADR only when it clears all three gates:
+- **Hard to reverse** — undoing it later is expensive (data shape, public contract, framework choice).
+- **Surprising without context** — a competent reader would ask "why this way?" without the rationale.
+- **A real trade-off** — a genuine alternative was given up, not a foregone choice.
+
+A session that produces zero ADRs is normal — most decisions don't clear the gate. When one does, write it to the project's ADR directory if it has one (`docs/adr/`, `docs/decisions/`, or `adr/`); if more than one exists, prefer the directory that already holds ADRs, and ask once if it's still ambiguous; if none exists, offer to create `docs/decisions/`. Record the decision, the rationale, and the alternative given up.
+
+**When a write fails** (path not writable, tool error), tell the user inline, keep interviewing, and carry the term or decision into the final synthesis so it isn't lost. A failed write never blocks the interview.
+
 ## Recognize completion
 
 Stop interviewing when:
