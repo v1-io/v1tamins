@@ -7,4 +7,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
       - run: scripts/validate-plugin.sh
+      - name: Require a changeset for plugin content changes
+        if: github.event_name == 'pull_request'
+        run: |
+          changed="$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" -- plugins/v1tamins/)"
+          if [ -n "$changed" ]; then
+            echo "plugins/v1tamins/ changed — a changeset is required:"
+            npx changeset status --since="origin/${{ github.base_ref }}"
+          else
+            echo "No plugins/v1tamins/ changes; changeset not required."
+          fi
