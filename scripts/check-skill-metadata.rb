@@ -6,6 +6,10 @@ require "json"
 require "yaml"
 
 VALID_INVOCATION_POSTURES = %w[implicit selective_implicit explicit_only].freeze
+# Grammar of a v1-menu entry: a backtick-wrapped slash-name, optionally
+# followed by the bold explicit marker. Centralized here; the menu body is
+# free-form Markdown, so this is the one scan the format allows.
+MENU_ENTRY = /`\/(v1-[a-z0-9-]+)`(\s+\*\*\(explicit\)\*\*)?/.freeze
 VALID_SIDE_EFFECTS = %w[
   browser_capture
   external_write
@@ -53,6 +57,7 @@ warnings = []
 failures = []
 descriptions = []
 side_effect_skills = []
+claude_disabled_by_skill = {}
 
 Dir.glob(File.join(skills_dir, "v1-*", "SKILL.md")).sort.each do |skill_path|
   skill_name = File.basename(File.dirname(skill_path))
@@ -111,6 +116,7 @@ Dir.glob(File.join(skills_dir, "v1-*", "SKILL.md")).sort.each do |skill_path|
   invocation_posture = policy.fetch("invocation_posture", "implicit").to_s
   side_effects = Array(policy["side_effects"]).map(&:to_s).reject(&:empty?)
   claude_disabled = data["disable-model-invocation"] == true
+  claude_disabled_by_skill[skill_name] = claude_disabled
   side_effect_skills << skill_name if side_effects.any?
 
   unless VALID_INVOCATION_POSTURES.include?(invocation_posture)
@@ -146,6 +152,41 @@ Dir.glob(File.join(skills_dir, "v1-*", "SKILL.md")).sort.each do |skill_path|
       failures << "#{rel(skill_path, repo_root)}: disable-model-invocation requires policy.invocation_posture: explicit_only"
     end
   end
+end
+
+# v1-menu sync: the router must list every distributed skill, and its
+# **(explicit)** markers must match each skill's disable-model-invocation
+# frontmatter, so the menu cannot silently drift from the real posture.
+menu_path = File.join(skills_dir, "v1-menu", "SKILL.md")
+if File.file?(menu_path)
+  menu_body = File.read(menu_path).sub(/\A---\s*\n.*?\n---\s*\n/m, "")
+  menu_entries = {}
+  menu_body.scan(MENU_ENTRY) do |name, marker|
+    menu_entries[name] = menu_entries.fetch(name, false) || !marker.nil?
+  end
+
+  claude_disabled_by_skill.each do |name, disabled|
+    next if name == "v1-menu"
+
+    unless menu_entries.key?(name)
+      failures << "#{rel(menu_path, repo_root)}: missing entry for #{name}"
+      next
+    end
+    if disabled && !menu_entries[name]
+      failures << "#{rel(menu_path, repo_root)}: #{name} is explicit_only but not marked **(explicit)**"
+    end
+    if !disabled && menu_entries[name]
+      failures << "#{rel(menu_path, repo_root)}: #{name} is marked **(explicit)** but is model-invocable"
+    end
+  end
+
+  menu_entries.each_key do |name|
+    unless claude_disabled_by_skill.key?(name)
+      failures << "#{rel(menu_path, repo_root)}: lists #{name}, which is not a distributed skill"
+    end
+  end
+elsif !claude_disabled_by_skill.empty?
+  failures << "#{rel(menu_path, repo_root)}: missing v1-menu skill (router required)"
 end
 
 if side_effect_json
