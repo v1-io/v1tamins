@@ -17,9 +17,9 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
-          changed="$(git diff --name-only "origin/$BASE_REF...HEAD" -- plugins/v1tamins/)"
+          changed="$(git diff --name-only "origin/$BASE_REF...HEAD" -- plugins/v1tamins/skills/)"
           if [ -n "$changed" ]; then
-            echo "plugins/v1tamins/ changed — a changeset is required:"
+            echo "plugins/v1tamins/skills/ changed — a changeset is required:"
             npx changeset status --since="origin/$BASE_REF"
           else
             echo "No plugins/v1tamins/ changes; changeset not required."
