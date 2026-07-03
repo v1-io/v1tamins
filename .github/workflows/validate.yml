@@ -22,5 +22,5 @@ jobs:
             echo "plugins/v1tamins/skills/ changed — a changeset is required:"
             npx changeset status --since="origin/$BASE_REF"
           else
-            echo "No plugins/v1tamins/ changes; changeset not required."
+            echo "No plugins/v1tamins/skills/ changes; changeset not required."
           fi
