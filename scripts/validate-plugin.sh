@@ -21,7 +21,7 @@ Checks:
   - plugin skills do not reference known v1tamins skills by legacy bare names
   - root SKILL.md local links and required bundled asset references resolve
   - distributed helper snippets avoid checkout-only executable paths and host-specific plugin cache paths
-  - runtime plugin content changes bump both runtime plugin versions
+  - package.json and both runtime plugin manifest versions stay in lockstep
   - legacy tracked .agents/skills mirrors are absent
 
 Options:
@@ -50,6 +50,7 @@ for arg in "$@"; do
 done
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+package_json="$repo_root/package.json"
 legacy_agent_skills_dir="$repo_root/.agents/skills"
 plugin_dir="$repo_root/plugins/v1tamins"
 plugin_skills_dir="$plugin_dir/skills"
@@ -234,114 +235,26 @@ validate_marketplace_manifest() {
   fi
 }
 
-version_gt() {
-  local current="$1"
-  local previous="$2"
+validate_version_parity() {
+  local pkg codex claude
 
-  awk -v current="$current" -v previous="$previous" '
-    BEGIN {
-      split(current, c, ".")
-      split(previous, p, ".")
-      for (i = 1; i <= 3; i++) {
-        cn = c[i] + 0
-        pn = p[i] + 0
-        if (cn > pn) {
-          exit 0
-        }
-        if (cn < pn) {
-          exit 1
-        }
-      }
-      exit 1
-    }
-  '
-}
-
-resolve_version_base() {
-  if [ -n "${GITHUB_BASE_REF:-}" ]; then
-    local github_base="origin/$GITHUB_BASE_REF"
-    if git -C "$repo_root" rev-parse --verify "$github_base" >/dev/null 2>&1; then
-      printf '%s\n' "$github_base"
-      return 0
-    fi
-  fi
-
-  if git -C "$repo_root" rev-parse --verify origin/main >/dev/null 2>&1; then
-    printf '%s\n' "origin/main"
+  if [ ! -f "$package_json" ]; then
+    fail "missing package.json (the version source changesets bumps)"
     return 0
   fi
 
-  if git -C "$repo_root" rev-parse --verify HEAD~1 >/dev/null 2>&1; then
-    printf '%s\n' "HEAD~1"
-    return 0
-  fi
+  pkg="$(jq -r '.version' "$package_json")"
+  codex="$(jq -r '.version' "$plugin_manifest")"
+  claude="$(jq -r '.version' "$claude_plugin_manifest")"
 
-  return 1
-}
-
-validate_plugin_version_bump() {
-  local base_ref diff_base changed_files runtime_changed=0
-  local current_codex current_claude
-  local base_codex base_claude changed_file
-
-  if ! git -C "$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    ok "plugin version bump skipped outside git worktree"
-    return 0
-  fi
-
-  if ! base_ref="$(resolve_version_base)"; then
-    ok "plugin version bump skipped without base ref"
-    return 0
-  fi
-
-  diff_base="$(git -C "$repo_root" merge-base "$base_ref" HEAD 2>/dev/null || printf '%s\n' "$base_ref")"
-  changed_files="$(
-    {
-      git -C "$repo_root" diff --name-only "$diff_base" HEAD || true
-      git -C "$repo_root" diff --name-only "$diff_base" || true
-      git -C "$repo_root" ls-files --others --exclude-standard || true
-    } | sort -u
-  )"
-
-  while IFS= read -r changed_file; do
-    case "$changed_file" in
-      plugins/v1tamins/skills/* | plugins/v1tamins/.codex-plugin/plugin.json | plugins/v1tamins/.claude-plugin/plugin.json)
-        runtime_changed=1
-        break
-        ;;
-    esac
-  done <<< "$changed_files"
-
-  current_codex="$(jq -r '.version' "$plugin_manifest")"
-  current_claude="$(jq -r '.version' "$claude_plugin_manifest")"
-
-  if [ "$current_codex" != "$current_claude" ]; then
-    fail "runtime plugin versions must match: $current_codex != $current_claude"
-    return 0
-  fi
-
-  if [ "$runtime_changed" -eq 0 ]; then
-    ok "plugin version bump not required"
-    return 0
-  fi
-
-  base_codex="$(git -C "$repo_root" show "$base_ref:plugins/v1tamins/.codex-plugin/plugin.json" 2>/dev/null | jq -r '.version' || true)"
-  base_claude="$(git -C "$repo_root" show "$base_ref:plugins/v1tamins/.claude-plugin/plugin.json" 2>/dev/null | jq -r '.version' || true)"
-
-  if [ -z "$base_codex" ] || [ -z "$base_claude" ]; then
-    ok "plugin version bump skipped because manifests are absent at $base_ref"
-    return 0
-  fi
-
-  if [ "$base_codex" != "$base_claude" ]; then
-    fail "base runtime plugin versions differ at $base_ref: $base_codex != $base_claude"
-    return 0
-  fi
-
-  if version_gt "$current_codex" "$base_codex"; then
-    ok "plugin version bumped $base_codex -> $current_codex"
+  # Changesets owns bumping: `changeset version` bumps package.json and the
+  # `version` npm script mirrors it into both manifests. This check only
+  # enforces that the three never drift. Requiring a changeset when plugin
+  # content changes is enforced separately in CI (release/changeset-status).
+  if [ "$pkg" = "$codex" ] && [ "$pkg" = "$claude" ]; then
+    ok "plugin version parity: package.json and both manifests at $pkg"
   else
-    fail "runtime plugin content changed but version was not bumped above $base_codex"
+    fail "version drift: package.json=$pkg codex=$codex claude=$claude (run scripts/sync-plugin-versions.sh)"
   fi
 }
 
@@ -653,7 +566,7 @@ main() {
   validate_plugin_manifest
   validate_json_file "$claude_plugin_manifest"
   validate_marketplace_manifest
-  validate_plugin_version_bump
+  validate_version_parity
 
   if [ "$failures" -ne 0 ]; then
     print_failure_summary
