@@ -4,4 +4,5 @@ interface:
   default_prompt: "Use $v1-goldpan 7d to pan the last week of work for compound-worthy moments."
 
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false
+  invocation_posture: explicit_only

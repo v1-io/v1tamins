@@ -1,0 +1,8 @@
+interface:
+  display_name: "V1 Menu"
+  short_description: "Pick the right v1tamins skill for the current situation"
+  default_prompt: "Use $v1-menu to recommend which v1tamins skill fits this task."
+
+policy:
+  allow_implicit_invocation: false
+  invocation_posture: explicit_only
