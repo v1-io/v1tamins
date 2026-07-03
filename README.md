@@ -474,9 +474,9 @@ Marketplace/plugin consumers already invoking `/v1-*` skills should not need to 
    git remote add upstream git@github.com:v1-io/v1tamins.git
    ```
 2. Create a branch.
-3. Edit the canonical skill at `plugins/v1tamins/skills/v1-<skill-name>/SKILL.md`. Each `SKILL.md` needs YAML frontmatter with a `v1-*` `name` matching the directory and a `description`. `allowed-tools` is recommended for skills that need tool restrictions; see [v1-skilling-it](./plugins/v1tamins/skills/v1-skilling-it/SKILL.md) for the full schema. Add required `agents/openai.yaml` Codex metadata. Include `policy.invocation_posture` and `policy.side_effects` when a skill can publish externally, push to git remotes, launch peer agents, or record browser proof — and use `invocation_posture: explicit_only` (with `disable-model-invocation: true` in `SKILL.md`) for deliberate rituals the user always summons by name.
+3. Before proposing a new skill, check `.out-of-scope/` for a prior rejection of the concept. Edit the canonical skill at `plugins/v1tamins/skills/v1-<skill-name>/SKILL.md`. Each `SKILL.md` needs YAML frontmatter with a `v1-*` `name` matching the directory and a `description`. `allowed-tools` is recommended for skills that need tool restrictions; see [v1-skilling-it](./plugins/v1tamins/skills/v1-skilling-it/SKILL.md) for the full schema. Add required `agents/openai.yaml` Codex metadata. Include `policy.invocation_posture` and `policy.side_effects` when a skill can publish externally, push to git remotes, launch peer agents, or record browser proof — and use `invocation_posture: explicit_only` (with `disable-model-invocation: true` in `SKILL.md`) for deliberate rituals the user always summons by name.
 4. Update `plugins/v1tamins/evals/trigger-inventory.md` and `plugins/v1tamins/evals/skill-routing.jsonl` when the change affects skill routing, invocation policy, or trigger wording. Update `v1-menu` when a skill is added, renamed, removed, or changes invocation posture.
-5. Bump both runtime plugin manifest versions when runtime plugin content changes: `plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`.
+5. Add a changeset (`npx changeset`) describing the change. CI generates the version bump and `CHANGELOG.md` and keeps `package.json` and both plugin manifests in lockstep — don't hand-edit versions.
 6. Validate plugin manifests, routing evals, and skill metadata:
    ```bash
    scripts/validate-plugin.sh --verbose
@@ -496,7 +496,7 @@ scripts/validate-plugin.sh           # check
 scripts/validate-plugin.sh --verbose # per-file trace
 ```
 
-The check validates `SKILL.md` frontmatter, required `agents/openai.yaml` metadata, routing eval coverage, trigger inventory coverage, live routing result schema JSON, metadata hygiene, local skill asset links, references to known v1tamins skills, portable helper paths, both runtime plugin manifests (`plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`), both marketplace manifests (`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`), plugin version bumps when runtime content changes, and the absence of a tracked `.agents/skills` mirror. `scripts/sync-skill-hosts.sh` remains as a legacy wrapper for old local instructions; new docs should use `scripts/validate-plugin.sh`.
+The check validates `SKILL.md` frontmatter, required `agents/openai.yaml` metadata, routing eval coverage, trigger inventory coverage, live routing result schema JSON, metadata hygiene, local skill asset links, references to known v1tamins skills, portable helper paths, both runtime plugin manifests (`plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`), both marketplace manifests (`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`), three-way version parity across `package.json` and both plugin manifests, and the absence of a tracked `.agents/skills` mirror. `scripts/sync-skill-hosts.sh` remains as a legacy wrapper for old local instructions; new docs should use `scripts/validate-plugin.sh`.
 
 ## Requirements
 
