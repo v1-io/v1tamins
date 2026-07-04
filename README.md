@@ -131,8 +131,6 @@ mindmap
     Quality
       ("v1-simplify")
       ("v1-deslop")
-      ("v1-refactor")
-      ("v1-complexity")
       ("v1-hindsight-refactor")
       ("v1-deep-review")
       ("v1-diagnosing-constraints")
@@ -237,10 +235,8 @@ Agents over-build. Extra try/except. Unused helpers. Premature abstractions. Def
 > [!IMPORTANT]
 > Ship that diff once and the next change inherits its shape. Run a quality pass *before* marking work as done.
 
-- [`/v1-simplify`](./plugins/v1tamins/skills/v1-simplify/SKILL.md) — review recent changes for reuse, unnecessary complexity, and efficiency before considering the work shippable
+- [`/v1-simplify`](./plugins/v1tamins/skills/v1-simplify/SKILL.md) — review or restructure the current diff or named files for reuse, simplicity, duplication, cognitive complexity, and efficiency (KISS / DRY / SOLID / YAGNI), preserving behavior
 - [`/v1-deslop`](./plugins/v1tamins/skills/v1-deslop/SKILL.md) — strip AI-generated boilerplate, defensive checks, and verbose comments that add nothing
-- [`/v1-refactor`](./plugins/v1tamins/skills/v1-refactor/SKILL.md) — apply KISS / DRY / SOLID / YAGNI to a working diff
-- [`/v1-complexity`](./plugins/v1tamins/skills/v1-complexity/SKILL.md) — flatten nested code and reduce cognitive complexity in specific functions
 - [`/v1-hindsight-refactor`](./plugins/v1tamins/skills/v1-hindsight-refactor/SKILL.md) — when the first-pass fix is exploratory or overbuilt, delete it and reimplement a clean version using what the first pass taught you
 - [`/v1-deep-review`](./plugins/v1tamins/skills/v1-deep-review/SKILL.md) — unusually strict maintainability audit: abstraction quality, file-size boundaries, spaghetti branching, and ambitious structural simplification before merge
 
@@ -393,10 +389,8 @@ flowchart LR
 
 | Skill | When to use |
 |-------|-------------|
-| [`/v1-simplify`](./plugins/v1tamins/skills/v1-simplify/SKILL.md) | Review recent changes for reuse, unnecessary complexity, and efficiency before declaring done |
+| [`/v1-simplify`](./plugins/v1tamins/skills/v1-simplify/SKILL.md) | Review or restructure the diff or named files for reuse, simplicity, duplication, complexity, and efficiency (KISS / DRY / SOLID / YAGNI) |
 | [`/v1-deslop`](./plugins/v1tamins/skills/v1-deslop/SKILL.md) | Strip AI-generated boilerplate, defensive checks, and dead comments |
-| [`/v1-refactor`](./plugins/v1tamins/skills/v1-refactor/SKILL.md) | Apply KISS / DRY / SOLID / YAGNI to a working diff |
-| [`/v1-complexity`](./plugins/v1tamins/skills/v1-complexity/SKILL.md) | Reduce cognitive complexity in specific functions |
 | [`/v1-hindsight-refactor`](./plugins/v1tamins/skills/v1-hindsight-refactor/SKILL.md) | Throw away the messy first-pass fix and reimplement cleanly using what it taught you |
 | [`/v1-deep-review`](./plugins/v1tamins/skills/v1-deep-review/SKILL.md) | Harsh maintainability and structure audit on a large PR, new feature, or architecture change |
 | [`/v1-diagnosing-constraints`](./plugins/v1tamins/skills/v1-diagnosing-constraints/SKILL.md) | Find the bottleneck or constraint governing throughput in a stuck process, team, queue, or roadmap |

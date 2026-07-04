@@ -1,32 +1,39 @@
 ---
 name: v1-simplify
-description: Use when reviewing recent code changes for reuse, unnecessary complexity, quality, or efficiency before done. Triggers on "simplify", "clean up this diff", "review for reuse", "make this simpler", "quality pass", "efficiency pass".
+description: Use when reviewing or restructuring code on the current diff or named files for reuse, simplicity, duplication, complexity, or efficiency. Triggers on "simplify", "refactor", "clean up code", "apply DRY", "reduce complexity", "too nested".
+allowed-tools:
+  - Bash
+  - Read
+  - Edit
+  - Grep
 ---
 # Simplify
 
-Review the changed code for reuse, quality, and efficiency issues, then fix the problems that are worth addressing.
+Review changed code (or named files) for reuse, quality, structure, cognitive complexity, and efficiency, then fix what is worth fixing while preserving behavior.
 
-Use this for a bounded cleanup of the current diff. Use `v1-refactor` when the user asks to refactor selected files while preserving behavior. Use `v1-deep-review` when the right output is structural review feedback rather than edits.
+Scope defaults to the current diff; pass files or a `file:function` target to scope to specific code. Use `v1-deep-review` when the right output is structural review feedback rather than edits.
 
-## Quick Start
+## Usage
 
-1. Inspect the current diff with `git diff`; use `git diff HEAD` when staged changes are present.
-2. If there is no diff, inspect the files most recently edited or explicitly mentioned by the user.
-3. Run three review passes: reuse, quality, and efficiency.
-4. Apply fixes directly for valid findings.
-5. Summarize what changed, or say the code was already clean.
+Typical invocations:
+- Claude Code: `/v1-simplify [target]`
+- Codex: invoke `v1-simplify` from the skills menu or use `$v1-simplify [target]`
+
+**Target (optional):**
+- none → the current diff (`git diff`, or `git diff HEAD` when staged changes are present)
+- a file or glob → those files
+- `file:function` → a single function (useful for cognitive-complexity work)
+
+If there is no diff and no target, inspect the files most recently edited or explicitly mentioned.
 
 ## Review Passes
 
-Run the three passes independently. When the host supports subagents or parallel review workers, launch all three with the same diff context before applying fixes. When it does not, run the passes sequentially in the main thread.
+Run the passes on the target. When the host supports subagents or parallel review workers, launch them with the same context before applying fixes; otherwise run sequentially. Honor any user-supplied focus (memory efficiency, API clarity, duplication) while still checking the full changed surface.
 
-Honor any user-supplied focus, such as memory efficiency, API clarity, or reducing duplicate code, while still checking the full changed surface.
-
-### Code Reuse
+### 1. Reuse
 
 Search for existing project code that can replace new or expanded logic.
 
-Check for:
 - New functions that duplicate helpers, utilities, shared modules, or adjacent file patterns
 - Inline logic that should use an existing helper
 - Hand-rolled string manipulation, path handling, environment checks, type guards, parsing, or formatting
@@ -34,28 +41,54 @@ Check for:
 
 Prefer established local helpers over new abstractions. Only add an abstraction when it removes real duplication or clearly matches project patterns.
 
-### Code Quality
+### 2. Quality and Simplicity
 
-Look for complexity, weak boundaries, and future-change costs introduced by the current diff.
+Reduce complexity, weak boundaries, and future-change cost. This pass folds in KISS, DRY, and cognitive-complexity work.
 
-Check for:
+**KISS:**
+- Flatten deeply nested control flow with guard clauses and early returns
+- Remove unnecessary wrapper layers and pass-through indirection
+- Replace complex boolean expressions with well-named predicates
+- Split a function when one block owns multiple independent decisions, side effects, or output shapes
+- Inline trivial abstractions that add indirection without reducing complexity
+
+**DRY:**
+- Extract copy/paste blocks and repeated queries/hooks/effects into small, well-named helpers
+- Consolidate literals into constants; remove magic numbers and strings
+- Keep helpers close to their use-sites unless broadly reusable
+
+**Quality:**
 - Redundant state that can be derived from existing data
 - Cached values, observers, or effects where direct computation or direct calls would be clearer
 - Parameter sprawl added to avoid restructuring a function or object
-- Copy-paste with slight variation that should be unified
 - Leaky abstractions that expose internal details or break module boundaries
 - Stringly typed values where constants, enums, unions, or branded types already exist
 - Unnecessary wrappers, especially JSX or layout elements that add no behavior or layout value
-- Comments that narrate what the code does, reference the task, or explain obvious identifiers
+- Comments that narrate what the code does or restate obvious identifiers — keep comments that explain non-obvious *why* (hidden constraints, invariants, compatibility, intentional workarounds)
 
-Keep comments that explain non-obvious why: hidden constraints, subtle invariants, compatibility requirements, and intentional workarounds.
+**Cognitive complexity** (use when a function is hard to follow, or on a `file:function` target):
+- Increments (+1 each): `if`/`else if`/`else`, ternary, `for`/`while`/`do`, `catch`, `switch`/`case`, labeled `break`/`continue`, `&&`/`||` in conditions, recursion
+- Nesting multiplier: each nesting level adds +1 to structures nested inside it
+- Free (no increment): function/method calls, simple returns
+- Target: keep each function under ~15
+- Reduce it by returning early to flatten nesting, extracting complex conditions into named predicates, and breaking large functions into single-responsibility helpers
 
-### Efficiency
+### 3. Structure (SOLID and YAGNI)
+
+Apply when restructuring across files, not just tidying a diff.
+
+- **SRP:** one function/class = one reason to change
+- **OCP:** prefer extension points over editing core logic, when warranted
+- **LSP:** subtypes uphold base contracts
+- **ISP:** break wide interfaces into focused ones
+- **DIP:** depend on abstractions; inject dependencies
+- **YAGNI:** remove dead/unreachable code, unused params/locals/imports/exports; delete single-use speculative abstractions; collapse configuration surface to what is actually used
+
+### 4. Efficiency
 
 Look for unnecessary work and avoidable runtime cost.
 
-Check for:
-- Redundant computation, repeated file reads, duplicate network calls, or repeated API calls
+- Redundant computation, repeated file reads, duplicate network or API calls
 - N+1 access patterns introduced by loops or nested lookups
 - Independent operations that now run sequentially without a reason
 - Blocking work added to startup, render, request, or other hot paths
@@ -67,19 +100,33 @@ Check for:
 
 Add change-detection guards when recurring updates can fire without changing observable state.
 
+## Behavior Preservation
+
+The gate depends on the kind of fix:
+
+- **Pure restructures** (KISS/DRY/SOLID, complexity reduction, dead-code removal): preserve behavior. Prove equivalence with existing tests or a focused before/after command for the touched behavior. If equivalence cannot be proven from tests, snapshots, fixtures, examples, or a focused manual command, **stop and report instead of editing**.
+- **Behavior-changing fixes** (efficiency changes, reuse that swaps an implementation): allowed, but call out the behavior change explicitly in the summary.
+
+Always preserve side effects (logging, error semantics), keep public APIs stable, honor `AIDEV-*` and other anchor comments, and follow existing repo patterns — inspect nearby code before introducing a helper, type, module, or pattern.
+
+## Language Specifics
+
+**React/TypeScript:** prefer small pure utilities, stable hook signatures, typed params/returns; don't break the Rules of Hooks; keep component props stable.
+
+**Python:** prefer pure functions and dataclasses; keep docstrings and typing intact; prefer guard clauses over unnecessary `try`/`except`.
+
 ## Fixing
 
-Aggregate findings from all passes before editing. Fix each valid issue directly and keep the scope tied to the current diff.
+Aggregate findings from all passes before editing. Fix each valid issue directly and keep the scope tied to the target.
 
-Fix only when the cleanup has a concrete reason: removes duplication, deletes unnecessary state/work, restores an existing pattern, narrows a boundary, or reduces a measurable runtime/re-render/retry cost.
-
-Skip false positives and low-value changes without debate. Do not refactor unrelated code just because it is nearby.
+Fix only when the change has a concrete reason: removes duplication, deletes unnecessary state/work, restores an existing pattern, narrows a boundary, reduces a measurable runtime/re-render/retry cost, or drops a function below the complexity target. Skip false positives and low-value changes without debate. Do not refactor unrelated code just because it is nearby. No new tests unless asked.
 
 After edits, run the smallest relevant verification command available in the project. If no command is obvious, inspect the resulting diff carefully and report that no automated verification was run.
 
 ## Output
 
 Finish with a concise summary:
-- What simplifications or cleanups were made
+- What was simplified or restructured, grouped by principle when it helps (reuse / KISS / DRY / SOLID / complexity / efficiency)
+- Any behavior changes that were made intentionally
 - Which verification command ran, if any
 - Any notable findings intentionally skipped

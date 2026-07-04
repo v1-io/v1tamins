@@ -30,7 +30,7 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 ## Fixing and improving code
 
 - Broken: `/v1-debug` (root-cause errors), `/v1-fix-tests` (failing suite), `/v1-e2e-testing` (browser/E2E and flakes).
-- Working but rough: `/v1-refactor` (structure), `/v1-complexity` (nesting), `/v1-deslop` (AI slop), `/v1-hindsight-refactor` (delete the messy fix, reimplement cleanly), `/v1-simplify` (quality pass on the recent diff).
+- Working but rough: `/v1-simplify` (reuse/quality/efficiency + KISS/DRY/SOLID + cognitive complexity, on the diff or named files), `/v1-deslop` (AI slop), `/v1-hindsight-refactor` (delete the messy fix, reimplement cleanly).
 
 ## Research and analysis
 
