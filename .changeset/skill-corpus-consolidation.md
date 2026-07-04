@@ -10,4 +10,6 @@ Consolidate the skill corpus: merge genuine duplicates and sharpen trigger bound
 
 - **U4 — Trigger sharpening:** narrow `v1-diagnosing-constraints` to non-code throughput bottlenecks (software "diagnose this" yields to `v1-debug`); disambiguate `v1-shared-language` (conversation → `LANGUAGE.md` glossary) from the external domain-modeling skill; make `v1-docs-freshness` defer release-note *generation* to `v1-changelog`; and flip `v1-menu` to `explicit_only`, the single canonical roster.
 
-Removes `v1-prompt-engineering-v1tamins`, `v1-refactor`, `v1-complexity`, and `v1-code-review` as standalone skills.
+- **U5–U6 — Body-health & DRY (no merges):** dedupe `v1-prove-work`'s repeated `SKILL_DIR` bash and trim `v1-interview-me`'s cross-family posture rows; lift the shared review scaffolding (posture, output format, severity tiers) used by `v1-reviewing-usability` and `v1-reviewing-data-graphics` into one `references/review-skeleton.md`; point `v1-fix-tests` at `v1-write-tests` (mock discipline) and `v1-debug` (flaky handling). The two visual reviewers and `fix-tests`/`write-tests` stay separate.
+
+Removes `v1-prompt-engineering-v1tamins`, `v1-refactor`, `v1-complexity`, and `v1-code-review` as standalone skills (41 → 37).

@@ -11,7 +11,7 @@ allowed-tools:
 
 Review charts, dashboards, and quantitative displays for truth, evidence, comparison, and clarity.
 
-Default mode is review-only. Recommend redesigns, but do not edit source files unless the user explicitly asks for implementation.
+This is a review-only skill: follow the shared [review skeleton](../v1-reviewing-usability/references/review-skeleton.md) for posture, the findings-first output format, and severity tiers. This skill's lens is quantitative integrity (Tufte/Few) — is the display telling the truth?
 
 ## Quick Start
 
@@ -70,39 +70,16 @@ Avoid generic advice such as "make it cleaner" or "use better colors." Tie every
 
 ## Output Format
 
-Use this structure unless the user asks for a different format:
+Use the Output Format in the [review skeleton](../v1-reviewing-usability/references/review-skeleton.md); this skill adds no extra section.
 
-```markdown
-## Findings
-
-[Severity] Surface - Short title
-Problem: What the display gets wrong.
-Impact: How it can mislead or slow the viewer.
-Fix: Concrete redesign.
-Validation: How to verify the redesign works.
-Confidence: N/5.
-
-## What Works
-
-- Useful strengths worth preserving.
-
-## Redesign Sketch
-
-- Minimal sequence of changes.
-
-## Data Gaps
-
-- Missing source data, unavailable rendering, unreadable labels, or assumptions.
-```
-
-Severity model:
+Severity tiers follow the skeleton; in this skill:
 
 - **Critical:** likely to cause a materially false conclusion.
 - **High:** hides essential context, scale, denominator, or comparison.
 - **Medium:** meaningfully slows interpretation or buries the main comparison.
 - **Low:** polish issue with a clear readability benefit.
 
-If no findings are found, say so and list the residual risks, such as unavailable data source, uninspected responsive state, or missing source notes.
+Residual risks to list when there are no findings: unavailable data source, uninspected responsive state, or missing source notes.
 
 ## Review Checks
 

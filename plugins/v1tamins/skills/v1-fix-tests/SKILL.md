@@ -52,8 +52,8 @@ Use this after you've pasted test failure output into the conversation.
 - Don't stop after fixing one failure - check for multiple failing groups
 - Always re-run full test suite after fixes
 - Parse entire error output - summary AND detailed sections
-- Prefer fixing code over weakening assertions; only change tests when the test is wrong or the intended behavior changed
-- If the failure is flaky, improve the reproduction rate before patching: loop the focused command, isolate time/randomness/filesystem/network, and record the observed failure rate
+- Prefer fixing code over weakening assertions; only change tests when the test is wrong or the intended behavior changed. When a test itself must change, follow the mock-discipline and assertion rules in `v1-write-tests` rather than restating them here.
+- If the failure is flaky rather than a real regression, hand off to `v1-debug` to stabilize the reproduction (measure the failure rate; isolate time, randomness, filesystem, and network) before patching.
 
 ## Testing Commands
 
