@@ -38,7 +38,7 @@ Use when the user wants to look back over recent activity and identify what is w
 Do not use for:
 - Documenting a problem solved in the **current** session — use `/ce-compound` directly.
 - Auditing or refreshing existing solution docs — use `/ce-compound-refresh`.
-- Reviewing PRs for code quality — use `/v1-code-review`.
+- Reviewing PRs for code quality — use `/v1-deep-review`.
 
 ## Inputs
 

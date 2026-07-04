@@ -35,7 +35,7 @@ Examples:
 
 ## Decision Path
 
-1. Use a direct in-agent skill instead when independence is not needed: `v1-code-review` for ordinary PR review, `v1-deep-review` for harsh maintainability review, and `v1-deep-research` for in-agent sourced research.
+1. Use a direct in-agent skill instead when independence is not needed: `v1-deep-review` for in-agent PR review (merge-risk and structural), and `v1-deep-research` for in-agent sourced research.
 2. Prefer a counterpart runtime by default: Codex -> Claude Code, Claude Code -> Codex, Cursor -> Claude Code or Codex, unknown host -> best authenticated coding peer not already in use.
 3. Override the counterpart default only for a named user preference or a real specialist fit: ChatGPT Pro Deep Research, Antigravity/Gemini long-context or multimodal review, Cursor Agent/Cloud Agent, or Oracle/browser-mode review.
 4. Use the decision matrix to pick one work type and one permission mode.

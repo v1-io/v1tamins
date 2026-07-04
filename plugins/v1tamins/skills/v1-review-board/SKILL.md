@@ -40,7 +40,7 @@ See [references/review-contract.md](references/review-contract.md) for the brief
 ## When Not to Use
 
 - A single counterpart review — use `/v1-phone-a-friend` directly.
-- An in-agent review with no second runtime — use `/v1-code-review` (merge-risk) or `/v1-deep-review` (maintainability).
+- An in-agent review with no second runtime — use `/v1-deep-review` (merge-risk and structural).
 - Addressing already-posted GitHub review threads — use `/v1-address-review` directly.
 
 ## Inputs

@@ -21,8 +21,7 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 
 ## Reviewing code
 
-- `/v1-code-review` — merge-risk review of a branch or PR.
-- `/v1-deep-review` — structural maintainability audit, not merge review.
+- `/v1-deep-review` — review a branch or PR (code, docs, or config) for merge risk and structural maintainability.
 - `/v1-review-board` **(explicit)** — fan review out to multiple peer agents.
 - `/v1-address-review` — resolve review comments that already exist.
 - `/v1-phone-a-friend` — one second opinion from a counterpart agent.

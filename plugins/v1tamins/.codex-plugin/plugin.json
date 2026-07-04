@@ -46,8 +46,7 @@
     "websiteURL": "https://github.com/v1-io/v1tamins",
     "defaultPrompt": [
       "/v1-pr prepare this branch",
-      "/v1-code-review review this PR",
-      "/v1-deep-review audit this branch for maintainability",
+      "/v1-deep-review review this PR for merge risk and maintainability",
       "/v1-address-review address PR feedback",
       "/v1-phone-a-friend get a counterpart review",
       "/v1-review-board convene a multi-agent review board on this PR",
