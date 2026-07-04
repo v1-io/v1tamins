@@ -269,7 +269,7 @@ Keep an instruction only when it changes behavior in at least one concrete way:
 
 Rewrite generic quality language into one of those forms. Delete it when no concrete form exists.
 
-This is the **no-op test** by another name — keep a line only if it changes behaviour versus the model's default. It's model-relative: settle "is this a no-op?" by running the skill, not by debating. See [references/diagnosis.md](references/diagnosis.md) for the full review vocabulary.
+This is the **no-op test** by another name — keep a line only if it changes behaviour versus the model's default. It's model-relative: settle "is this a no-op?" by running the skill, not by debating. See [references/diagnosis.md](references/diagnosis.md) for the full review vocabulary. This is the canonical Instruction-Value-Gate definition for the v1 corpus; sibling skills such as `v1-prompt-engineering` reference it rather than restating it.
 
 ```markdown
 # BAD: no observable decision

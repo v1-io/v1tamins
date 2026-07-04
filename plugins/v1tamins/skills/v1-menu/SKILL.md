@@ -46,5 +46,5 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 ## Working on skills and prompts
 
 - `/v1-skilling-it` — write or improve a skill. `/v1-canon2skill` — mine source material for skill ideas. `/v1-goldpan` **(explicit)** — pan recent PRs and sessions for compound-worthy lessons.
-- `/v1-prompt-engineering` — general prompt work; `/v1-prompt-engineering-v1tamins` for GPT-5.5/OpenRouter specifics.
+- `/v1-prompt-engineering` — prompt/system-prompt/hook/skill work for any model or host, including GPT-5.5 and OpenRouter specifics.
 - `/v1-shared-language` — extract a domain glossary from the conversation.
