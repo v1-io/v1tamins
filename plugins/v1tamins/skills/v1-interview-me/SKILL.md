@@ -44,9 +44,7 @@ Classify the session before asking the first question:
 | **Implementation spec** | User already knows this should be built | Decisions, constraints, edge cases, integration, validation |
 | **Socratic operational diagnostic** | Bottleneck, queue, WIP, throughput, "everything is urgent", process failure, handoff delay, or stuck team language appears | Clarify the system boundary; switch to `v1-diagnosing-constraints` for constraint diagnosis |
 
-Default to **Startup diagnostic** when the user asks whether something is worth building. Default to **Builder exploration** when the user wants to riff before committing. Switch postures mid-interview if the user's answers reveal a different job.
-
-For startup-diagnostic sessions, ask only enough to identify the learning decision, target customer slice, and current evidence gap. If the user wants a discovery plan, question audit, interview synthesis, demand assessment, or JTBD job spec, switch to `v1-learning-from-customers`.
+Default to **Startup diagnostic** when the user asks whether something is worth building. Default to **Builder exploration** when the user wants to riff before committing. Switch postures mid-interview if the user's answers reveal a different job. The two diagnostic postures are thin hand-offs: clarify the decision, then route to the skill named in the table.
 
 **Builder exploration prompts:**
 - What's the version you would be excited to show someone this week?
@@ -54,8 +52,6 @@ For startup-diagnostic sessions, ask only enough to identify the learning decisi
 - What's the fastest path to something usable?
 - What existing thing is closest, and what should be different?
 - What would the 10x version include if time were free?
-
-For operational-diagnostic sessions, ask only enough to identify the system goal, boundary, and visible symptom. If the user wants the diagnosis rather than interview notes, switch to `v1-diagnosing-constraints`.
 
 End every posture with one concrete assignment: the next thing the user or agent should do.
 

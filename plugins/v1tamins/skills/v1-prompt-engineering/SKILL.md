@@ -1,16 +1,16 @@
 ---
 name: v1-prompt-engineering
-description: Use when writing or reviewing prompts, commands, hooks, skills, system prompts, or sub-agent instructions. Triggers on "optimize prompt", "improve LLM output", "prompt template", "system prompt". Use `v1-prompt-engineering-v1tamins` for GPT-5.5-specific work.
+description: Use when writing, reviewing, or migrating prompts, system prompts, hooks, skills, or sub-agent instructions for any model or host. Triggers on "optimize prompt", "system prompt", "GPT-5.5 prompt", "OpenRouter prompt", "reasoning effort", "prompt migration".
 ---
 # Prompt Engineering
 
 Improve prompts by tying every instruction to a concrete failure mode, output contract, or evaluation result.
 
-For GPT-5.5, OpenAI Responses API, OpenRouter, `reasoning_effort`, `reasoning_details`, or model-migration work, use `v1-prompt-engineering-v1tamins` instead.
+For GPT-5.5, the OpenAI Responses API, OpenRouter, `reasoning_effort`, or model-migration specifics, load `references/gpt-5-5-patterns.md` (or `references/gpt-5-4-patterns.md` for GPT-5.4 compatibility).
 
 ## Quick Start
 
-1. Identify the host, model family, tool surface, and output consumer.
+1. Identify the host, model family, tool surface, and output consumer. For GPT-5.5, OpenAI Responses API, or OpenRouter hosts, load `references/gpt-5-5-patterns.md` (GPT-5.4: `references/gpt-5-4-patterns.md`).
 2. Write the smallest prompt that can pass the task.
 3. Add only blocks that fix a named failure mode.
 4. Test against representative inputs before adding more instruction text.
@@ -37,6 +37,8 @@ Before keeping an instruction, classify it:
 - **Keep:** trigger, gate, artifact, command, threshold, example, failure mode, or stop rule.
 - **Rewrite:** vague advice that can become one of those forms.
 - **Delete:** generic quality language with no observable decision.
+
+This is the Instruction-Value-Gate / no-op test; `v1-skilling-it` holds the canonical treatment and the full skill failure-mode vocabulary (sediment, sprawl, leading words).
 
 ```markdown
 # Weak
@@ -133,3 +135,5 @@ Then prune:
 ## Reference Files
 
 - `references/advanced.md` - Carry-forward patterns for context management, degrees of freedom, and prompt discipline.
+- `references/gpt-5-5-patterns.md` - GPT-5.5 ready-to-paste blocks, the reasoning-effort ladder, OpenAI Responses API and OpenRouter chat-completions runtime notes, and migration defaults.
+- `references/gpt-5-4-patterns.md` - GPT-5.4 compatibility blocks and migration defaults.

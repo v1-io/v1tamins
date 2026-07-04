@@ -1,209 +1,219 @@
 ---
 name: v1-deep-review
-description: Use when a branch needs structural maintainability review rather than merge-risk review. Triggers on "deep review", "maintainability audit", "architecture review", "file-size growth", "abstraction quality", "too complex".
+description: Use when reviewing a pull request or branch for merge risk and structural maintainability, or posting review feedback to GitHub. Triggers on "review this PR", "code review", "review my branch", "check this pull request", "maintainability audit", "architecture review".
+allowed-tools:
+  - Bash
+  - Read
+  - Grep
+  - Glob
+  - Edit
+  - Skill
 ---
+# Deep Review
 
-## Deep Code Review
+Review any pull request, branch, or change — code, docs, config, or mixed — on two bars:
 
-Use this skill for structural maintainability review: whether the diff leaves the codebase simpler to change, or adds avoidable concepts, branches, files, casts, wrappers, and ownership leaks.
+- **Merge risk:** is it correct, complete, and safe to merge? Bugs, regressions, missing requirements, security, data, tests, scope drift.
+- **Structural maintainability:** does it leave the codebase simpler to change? Abstraction quality, spaghetti/branching growth, file-size boundaries, type/ownership cleanliness.
+
+Default mode is review-only. Apply fixes only when the user explicitly asks for "review and fix", "fix review findings", or a shipping workflow clearly requested code changes.
 
 ## Usage
 
 Typical invocations:
-- Claude Code: `/v1-deep-review`
-- Codex: invoke `v1-deep-review` from the skills menu or use `$v1-deep-review`
+- Claude Code: `/v1-deep-review <PR_URL_or_NUMBER>` or `/v1-deep-review` to review the current branch
+- Codex: invoke `v1-deep-review` from the skills menu or use `$v1-deep-review <PR_URL_or_NUMBER>`
 
-Apply to the current branch diff, a named PR, or files the user points at. For merge-risk review (bugs, regressions, security, tests, scope), use **v1-code-review** instead.
-
-Do not use this skill for ordinary merge-risk review. If the main question is bugs, regressions, security, tests, or missing requirements, use `v1-code-review`.
-
-## Review Contract
-
-For every changed area, decide whether the current structure should merge as-is. A finding is valid only when it names:
-
-- the concrete structural problem;
-- the future change or reader task made harder;
-- the simpler ownership, model, module, or flow that should replace it;
-- the behavior-preservation check needed after the rewrite.
-
-## Non-Negotiable Additional Standards
-
-Apply these review rules:
-
-1. **Look for structural simplification.**
-   - Do not stop at "this could be a bit cleaner."
-   - Look for opportunities to reframe the change so that whole branches, helpers, modes, conditionals, or layers disappear entirely.
-   - If there is a concrete path to delete complexity rather than rearrange it, describe that path.
-
-2. **Do not allow random spaghetti growth in existing code.**
-   - If a change adds "weird if statements in random places", treat that as a design problem, not a stylistic nit.
-   - Prefer pushing the logic into a dedicated abstraction, helper, state machine, policy object, or separate module instead of tangling an existing path.
-   - Call out changes that make the surrounding code harder to reason about, even if they technically work.
-
-3. **Bias toward cleaning the design, not just accepting working code.**
-   - If behavior can stay the same while the structure becomes meaningfully cleaner, push for the cleaner version.
-   - Do not rubber-stamp "it works" implementations that leave the codebase messier.
-   - Strongly prefer simplifications that remove moving pieces altogether over refactors that merely spread the same complexity around.
-
-4. **Prefer direct, boring, maintainable code over hacky or magical code.**
-   - Treat brittle, ad-hoc, or "magic" behavior as a code-quality problem.
-   - Flag generic mechanisms that hide simple data-shape assumptions.
-   - Flag thin abstractions, identity wrappers, or pass-through helpers that add indirection without buying clarity.
-
-5. **Push hard on type and boundary cleanliness when they affect maintainability.**
-   - Question unnecessary optionality, `unknown`, `any`, or cast-heavy code when a clearer type boundary could exist.
-   - Prefer explicit typed models or shared contracts over loosely-shaped ad-hoc objects.
-   - If a branch relies on silent fallback to paper over an unclear invariant, ask whether the boundary should be made explicit instead.
-
-6. **Keep logic in the canonical layer and reuse existing helpers.**
-   - Call out feature logic leaking into shared paths or implementation details leaking through APIs.
-   - Prefer existing canonical utilities/helpers over bespoke one-offs.
-   - Push code toward the right package, service, or module instead of normalizing architectural drift.
-
-7. **Treat unnecessary sequential orchestration and non-atomic updates as design smells when the cleaner structure is obvious.**
-   - If independent work is serialized for no good reason, ask whether the flow should run in parallel instead.
-   - If related updates can leave state half-applied, push for a more atomic structure.
-   - Do not over-index on micro-optimizations, but do flag avoidable orchestration complexity that makes the implementation more brittle.
-
-8. **Prefer a few deep modules over a lot of shallow ones.**
-   - Question new modules whose interface is complex relative to the implementation they hide.
-   - Prefer deep modules that have a simple interface and hide implementation details from the caller.
-   - Look for opportunities to combine multiple shallow modules into a single deep module.
-
-9.  **Define errors out of existence.**
-  - Flag error-handling branches that exist because ownership, validation, or state modeling is unclear.
-  - Classes that expose lots of exceptions have complex interfaces and are shallow.
-  - Recommend structural changes that will handle errors internally instead of exposing them to the caller.
-
-## Primary Review Questions
-
-For every meaningful change, ask:
-
-- Is there a "code judo" move that would make this dramatically simpler?
-- Can this change be reframed so fewer concepts, branches, or helper layers are needed?
-- Does this improve or worsen the local architecture?
-- Did the diff add branching complexity where a better abstraction should exist?
-- Did a previously cohesive module become more coupled, more stateful, or harder to scan?
-- Is this logic living in the right file and layer?
-- Did this change enlarge a file or component past a healthy size boundary?
-- Are there repeated conditionals that signal a missing model or missing helper?
-- Is the implementation direct and legible, or does it rely on special cases and incidental control flow?
-- Is this abstraction actually earning its keep, or is it just a wrapper?
-- Did the diff introduce casts, optionality, or ad-hoc object shapes that obscure the real invariant?
-- Is this logic living in the canonical layer, or did the diff leak details across a boundary?
-- Is this orchestration more sequential or less atomic than it needs to be?
-
-## What to Flag Aggressively
-
-Escalate findings when you see:
-
-- A complicated implementation where a cleaner reframing could delete whole categories of complexity.
-- Refactors that move code around but fail to reduce the number of concepts a reader must hold in their head.
-- A file crossing 1000 lines due to the PR, especially if the new code could be split out.
-- New conditionals bolted onto unrelated code paths.
-- One-off booleans, nullable modes, or flags that complicate existing control flow.
-- Feature-specific logic leaking into general-purpose modules.
-- Generic "magic" handling that hides simple structure and makes the code harder to reason about.
-- Thin wrappers or identity abstractions that add indirection without simplifying anything.
-- Unnecessary casts, `any`, `unknown`, or optional params that muddy the real contract.
-- Copy-pasted logic instead of extracted helpers.
-- Narrow edge-case handling implemented in the middle of an already busy function.
-- Refactors that technically pass tests but make the code less modular or less readable.
-- "Temporary" branching that is likely to become permanent debt.
-- Bespoke helpers where the codebase already has a canonical utility for the job.
-- Logic added in the wrong layer/package when it should live somewhere more central.
-- Sequential async flow where obviously independent work could stay simpler and clearer with parallel execution.
-- Partial-update logic that leaves state less atomic than necessary.
-
-## Preferred Remedies
-
-When you identify a code-quality problem, prefer suggestions like:
-
-- Delete a whole layer of indirection rather than polishing it.
-- Reframe the state model so conditionals disappear instead of getting centralized.
-- Change the ownership boundary so the feature becomes a natural extension of an existing abstraction.
-- Turn special-case logic into a simpler default flow with fewer exceptions.
-- Extract a helper or pure function.
-- Split a large file into smaller focused modules.
-- Move feature-specific logic behind a dedicated abstraction.
-- Replace condition chains with a typed model or explicit dispatcher.
-- Separate orchestration from business logic.
-- Collapse duplicate branches into a single clearer flow.
-- Delete wrappers that do not meaningfully clarify the API.
-- Reuse the existing canonical helper instead of introducing a near-duplicate.
-- Make type boundaries more explicit so the control flow gets simpler.
-- Move the logic to the package/module/layer that already owns the concept.
-- Parallelize independent work when that also simplifies the orchestration.
-- Restructure related updates into a more atomic flow when partial state would be harder to reason about.
-
-Do not be satisfied with "maybe rename this" feedback when the real issue is structural.
-Do not be satisfied with a merely cleaner version of the same messy idea if there is a plausible path to a much simpler idea.
-
-## Review Tone
-
-Use direct technical language.
-Do not soften major maintainability issues into mild suggestions.
-If the code is making the codebase messier, say so clearly.
-If the implementation missed an opportunity for a dramatic simplification, say that clearly too.
-
-Good phrases:
-
-- `this pushes the file past 1k lines. can we decompose this first?`
-- `this adds another special-case branch into an already busy flow. can we move this behind its own abstraction?`
-- `this works, but it makes the surrounding code more spaghetti. let's keep the behavior and restructure the implementation.`
-- `this feels like feature logic leaking into a shared path. can we isolate it?`
-- `this abstraction seems unnecessary. can we just keep the direct flow?`
-- `why does this need a cast / optional here? can we make the boundary more explicit instead?`
-- `this looks like a bespoke helper for something we already have elsewhere. can we reuse the canonical one?`
-- `i think there's a code-judo move here that makes this much simpler. can we reframe this so these branches disappear?`
-- `this refactor moves complexity around, but doesn't really delete it. is there a way to make the model itself simpler?`
-
-## Output Expectations
-
-Prioritize findings in this order:
-
-1. Structural code-quality regressions
-2. Missed opportunities for dramatic simplification / code-judo restructuring
-3. Spaghetti / branching complexity increases
-4. Boundary / abstraction / type-contract problems that make the code harder to reason about
-5. File-size and decomposition concerns
-6. Modularity and abstraction issues
-7. Legibility and maintainability concerns
-
-Do not flood the review with low-value nits if there are larger structural issues.
-Prefer a smaller number of high-conviction comments over a long list of cosmetic notes.
-
-Each finding must use this shape:
-
-```markdown
-[Severity] file_path:line_number - Short title
-Structural problem: What concept, branch, boundary, file, or abstraction got worse.
-Change cost: What future change or reader task becomes harder.
-Rewrite path: The smaller ownership/model/module/flow to use instead.
-Proof: Test, diff check, or behavior-preservation command that should pass after the rewrite.
+Examples:
+```bash
+/v1-deep-review https://github.com/your-org/your-repo/pull/123
+/v1-deep-review 123
+/v1-deep-review
+/v1-deep-review --post
+/v1-deep-review --fix
 ```
 
-## Approval Bar
+For a multi-agent review across peer runtimes, use `v1-review-board`. To respond to review comments already posted on a PR, use `v1-address-review`.
 
-Do not approve merely because behavior seems correct.
-The bar for approval is:
+## Operating Rules
 
-- no clear structural regression
-- no obvious missed opportunity to make the implementation dramatically simpler when such a path is visible
-- no unjustified file-size explosion
-- no obvious spaghetti-growth from special-case branching
-- no obviously hacky or magical abstraction that makes the code harder to reason about
-- no unnecessary wrapper/cast/optionality churn obscuring the real design
-- no clear architecture-boundary leak or avoidable canonical-helper duplication
-- no missed opportunity for an obvious decomposition that would materially improve maintainability
+- Lead with findings, ordered by severity. Keep summaries secondary.
+- Cite exact `file_path:line_number` for every finding.
+- Review the full diff before commenting. Do not flag issues already fixed elsewhere in the same diff.
+- Only report real, actionable problems. Skip style preferences unless they hide a bug or maintainability risk.
+- Verify claims by reading code. Do not say "probably", "likely handled", or "should be fine" without evidence.
+- Do not post to GitHub unless the user used `--post`, explicitly asked to post, or the existing workflow clearly expects posting. Otherwise return review text in chat.
+- Do not modify code in default review mode.
 
-Treat these as presumptive blockers unless the author can justify them clearly:
+## The Two Bars
 
-- the PR preserves a lot of incidental complexity when there is a plausible code-judo move that would delete it
-- the PR pushes a file from below 1000 lines to above 1000 lines
-- the PR adds ad-hoc branching that makes an existing flow more tangled
-- the PR solves a local problem by scattering feature checks across shared code
-- the PR adds an unnecessary abstraction, wrapper, or cast-heavy contract that makes the design more indirect
-- the PR duplicates an existing helper or puts logic in the wrong layer when there is a clear canonical home
+Both bars run by default on code changes. Steps 1-5 below establish context and cover the **merge-risk** bar. Step 6 applies the **structural** bar. For a pure docs/config PR, run the merge-risk bar adapted (correctness, completeness vs intent, broken links/refs, cross-doc consistency) and skip the structural bar.
 
-If those conditions are not met, leave explicit, actionable feedback and push for a cleaner decomposition.
+If the user's request is explicitly and only about structure ("maintainability audit", "architecture review"), lead with the structural bar but still sanity-check merge risk. If it is explicitly and only about merge risk ("review for bugs before merge"), lead with merge risk and apply structure as a secondary lens.
+
+## Workflow
+
+### 1. Resolve Target
+
+Determine whether the target is a PR or the current branch.
+
+For a PR argument:
+```bash
+gh pr view <PR> --json title,body,author,baseRefName,headRefName,commits,files,labels,additions,deletions
+gh pr view <PR> --comments
+gh pr diff <PR> --name-only
+gh pr diff <PR>
+```
+
+For the current branch:
+```bash
+git status --short
+git branch --show-current
+BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+BASE_BRANCH=${BASE_BRANCH:-main}
+git diff --name-only origin/$BASE_BRANCH...HEAD
+git diff origin/$BASE_BRANCH...HEAD
+git log --oneline origin/$BASE_BRANCH..HEAD
+```
+
+If the default branch is not available locally, fetch it before reviewing. Never use destructive git commands.
+
+### 2. Establish Stated Intent
+
+Extract what the work claims to do from the PR title/body, commit messages, branch name, `TODOS.md`, recent files in `docs/plans/` or `docs/brainstorms/`, and any Linear/Jira references. Produce a one-line intent summary before reviewing:
+
+```markdown
+Intent: <what this branch appears to be trying to accomplish>
+Changed surface: <main files/modules touched>
+Risk flags: <auth/data/API/async/UI/migrations/external services/tests/docs>
+```
+
+### 3. Scope Drift And Completion Audit
+
+Compare stated intent against the diff. Check for scope creep (unrelated refactors, unmentioned behavior, files outside the expected surface), missing requirements, partial implementation (code not wired, tests without production code, UI without backend or vice versa), and test gaps.
+
+If a plan file is found, classify each actionable item as `[DONE]` / `[PARTIAL]` / `[NOT DONE]` / `[CHANGED]`. Keep this audit concise — informational unless a missing item causes a real bug or user-facing gap.
+
+### 4. Build Repo-Aware Understanding
+
+For each meaningful changed file: read surrounding code, imports, callers, and contracts; search repo-wide for usage (`rg "<Symbol>" -n`); read nearby tests and fixtures; check `AGENTS.md`, `CLAUDE.md`, README, and local docs. Align findings with existing patterns before proposing new abstractions.
+
+### 5. Merge-Risk Passes
+
+Run these as lenses, not separate reports.
+
+**Always run:**
+- **Correctness:** logic errors, boundary cases, state transitions, idempotency, error propagation
+- **Testing:** missing negative-path tests, edge cases, isolation, flakiness, weak assertions
+- **Maintainability (surface):** dead code, stale comments, unnecessary abstractions, duplicated logic, unclear naming (deep structural review is step 6)
+
+**Run when applicable:**
+- **Security:** auth/authz, input validation, secrets, injection, SSRF, unsafe rendering
+- **Data/migrations:** rollback safety, data loss, locking, backfills, indexes, mixed-version deploys
+- **Performance:** N+1 queries, unbounded loops/queries, algorithmic complexity, bundle size, blocking I/O
+- **API contracts:** response shape changes, status codes, versioning, pagination, webhook payloads
+- **Frontend/UI:** async races, loading/error/empty states, accessibility, responsive behavior, console errors
+- **External services/LLM:** trust boundaries, schema validation, retries, timeouts, rate limits, cost controls
+
+When a UI change crosses an API, service client, state hook, or server route boundary, build a contract matrix before writing findings:
+
+| Layer | File(s) | Contract to verify | Tests/evidence |
+| --- | --- | --- | --- |
+| API route or handler | `...` | auth, status codes, request/response shape, pagination, timeout/abort behavior | `...` |
+| Service client | `...` | typed inputs/outputs, error mapping, retry/abort behavior | `...` |
+| State hook/store | `...` | loading, empty, stale, error, optimistic update, cancellation | `...` |
+| Component/view | `...` | rendered states, accessibility, responsive layout, destructive-action affordances | `...` |
+
+Use the matrix to catch half-wired work. After the passes, do one adversarial pass:
+
+> Think like an attacker, a chaos engineer, and a hostile QA tester. What fails under load, bad input, retries, concurrency, stale state, partial failure, or confused users?
+
+### 6. Structural Pass
+
+For code changes, apply the structural maintainability bar. **Load [references/structural-review.md](references/structural-review.md)** and use it as a lens: does the change leave the codebase simpler to change, or add avoidable concepts, branches, files, casts, wrappers, and ownership leaks? It carries the deep-module / code-judo rubric, the >1000-line file blocker, "define errors out of existence", the structural finding shape, and the structural approval bar. Skip for pure docs/config PRs.
+
+### 7. Finding Gates
+
+Severity: **Critical** (likely production bug, security, data loss, broken core flow, unsafe migration, or a structural regression that will force a costly rewrite) · **High** (serious edge case, regression, missing required behavior, or file-size/spaghetti explosion) · **Medium** (maintainability/test/UX gap that can cause future bugs) · **Low/Nit** (minor, clearly actionable, low-noise only).
+
+Confidence gates: 4-5/5 include in main findings; 3/5 include only with explicit uncertainty; 1-2/5 do not include.
+
+Merge-risk findings use this shape:
+```markdown
+[Severity] file_path:line_number - Short title
+Problem: What is wrong and when it fails.
+Impact: Why it matters.
+Fix: Concrete change to make.
+Test: Specific test or verification to add/run.
+Confidence: N/5.
+```
+
+Structural findings use the shape in `references/structural-review.md`. If no issues are found, say so clearly and mention residual risk or unverified areas.
+
+### 8. Fix-First Mode
+
+Only when the user explicitly asks to fix findings. Classify: **AUTO-FIX** (mechanical, local, low-risk, no product judgment) vs **ASK** (behavior change, architecture choice, migration, public API change, security-sensitive, broad refactor, or uncertain). Apply AUTO-FIX items with `Edit`, then report `[AUTO-FIXED] file_path:line_number - Problem -> fix applied`. Batch ASK items in one concise question. Do not commit, push, or create PRs from this skill.
+
+If tests are already failing, invoke or recommend `v1-fix-tests`. If the issue is missing coverage, invoke or recommend `v1-write-tests` after the user approves adding tests.
+
+### 9. Output
+
+```markdown
+## Findings
+
+<severity-ordered findings across both bars, or "No findings.">
+
+## Open Questions
+
+<only questions that affect review confidence or implementation safety>
+
+## Scope Check
+
+Intent: ...
+Delivered: ...
+Drift/missing work: ...
+
+## Verification
+
+Tests/checks reviewed or run:
+- ...
+
+Residual risk:
+- ...
+```
+
+Keep the final summary short. Findings are the product.
+
+### 10. Posting To GitHub
+
+When posting is requested:
+
+1. If any Critical or High findings remain, request changes.
+2. Otherwise post a comment review.
+3. Post only high-confidence findings. Do not post speculative notes.
+4. Prefer one consolidated review body over many noisy comments unless line-level comments are specifically useful.
+
+```bash
+gh pr review <PR> --request-changes -b "$(cat /tmp/review.md)"
+gh pr review <PR> --comment -b "$(cat /tmp/review.md)"
+```
+
+## Confidence Scoring Guide
+
+- **5/5**: Trivial change, well-tested, no risk
+- **4/5**: Standard change, good coverage, minor concerns
+- **3/5**: Non-trivial change, needs attention in specific areas
+- **2/5**: Significant concerns, missing tests, risky patterns
+- **1/5**: Likely bugs, security issues, or major problems
+
+Reduce score for: migrations, auth/permissions, concurrency, broad refactors, missing tests.
+
+## Anti-Patterns
+
+- Do not rubber-stamp because CI passes.
+- Do not list every possible improvement. Review for merge risk and genuine structural regressions.
+- Do not ask for large refactors unless the current change creates real risk or a clear structural regression.
+- Do not request tests without naming the behavior that must be protected.
+- Do not leave vague comments like "consider handling errors" without a concrete failure mode.
+- Do not soften a major maintainability regression into a mild suggestion.
+- Do not post secrets, private logs, or sensitive data in GitHub comments.

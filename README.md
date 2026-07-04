@@ -131,8 +131,6 @@ mindmap
     Quality
       ("v1-simplify")
       ("v1-deslop")
-      ("v1-refactor")
-      ("v1-complexity")
       ("v1-hindsight-refactor")
       ("v1-deep-review")
       ("v1-diagnosing-constraints")
@@ -140,7 +138,6 @@ mindmap
       ("v1-pr")
       ("v1-pr-description")
       ("v1-land-pr")
-      ("v1-code-review")
       ("v1-address-review")
       ("v1-review-board")
       ("v1-prove-work")
@@ -237,12 +234,10 @@ Agents over-build. Extra try/except. Unused helpers. Premature abstractions. Def
 > [!IMPORTANT]
 > Ship that diff once and the next change inherits its shape. Run a quality pass *before* marking work as done.
 
-- [`/v1-simplify`](./plugins/v1tamins/skills/v1-simplify/SKILL.md) — review recent changes for reuse, unnecessary complexity, and efficiency before considering the work shippable
+- [`/v1-simplify`](./plugins/v1tamins/skills/v1-simplify/SKILL.md) — review or restructure the current diff or named files for reuse, simplicity, duplication, cognitive complexity, and efficiency (KISS / DRY / SOLID / YAGNI), preserving behavior
 - [`/v1-deslop`](./plugins/v1tamins/skills/v1-deslop/SKILL.md) — strip AI-generated boilerplate, defensive checks, and verbose comments that add nothing
-- [`/v1-refactor`](./plugins/v1tamins/skills/v1-refactor/SKILL.md) — apply KISS / DRY / SOLID / YAGNI to a working diff
-- [`/v1-complexity`](./plugins/v1tamins/skills/v1-complexity/SKILL.md) — flatten nested code and reduce cognitive complexity in specific functions
 - [`/v1-hindsight-refactor`](./plugins/v1tamins/skills/v1-hindsight-refactor/SKILL.md) — when the first-pass fix is exploratory or overbuilt, delete it and reimplement a clean version using what the first pass taught you
-- [`/v1-deep-review`](./plugins/v1tamins/skills/v1-deep-review/SKILL.md) — unusually strict maintainability audit: abstraction quality, file-size boundaries, spaghetti branching, and ambitious structural simplification before merge
+- [`/v1-deep-review`](./plugins/v1tamins/skills/v1-deep-review/SKILL.md) — review any PR or branch (code, docs, config) on both bars: merge risk (bugs, regressions, security, tests, scope) and structural maintainability (abstraction quality, file-size boundaries, spaghetti branching); posts to GitHub only when requested
 
 </details>
 
@@ -258,7 +253,6 @@ These skills compress the ship phase into one chained workflow.
 - [`/v1-pr`](./plugins/v1tamins/skills/v1-pr/SKILL.md) — turn local work into a draft PR with a sensible title and body
 - [`/v1-pr-description`](./plugins/v1tamins/skills/v1-pr-description/SKILL.md) — generate or refresh a PR title/body from metadata, diff, and validation evidence (use standalone or chained inside `/v1-pr`)
 - [`/v1-land-pr`](./plugins/v1tamins/skills/v1-land-pr/SKILL.md) — the full hand-off: commit → push → open as draft → monitor `gh pr checks` → fix failed checks (up to 3 retries) → mark ready → move linked Linear ticket to Human Review
-- [`/v1-code-review`](./plugins/v1tamins/skills/v1-code-review/SKILL.md) — review the current branch or a specific PR with actionable, file-anchored feedback; posts to GitHub only when requested
 - [`/v1-address-review`](./plugins/v1tamins/skills/v1-address-review/SKILL.md) — work through unresolved review threads from Copilot, Code Factory, bots, or humans and reply with the right diff or context
 - [`/v1-review-board`](./plugins/v1tamins/skills/v1-review-board/SKILL.md) — convene a parallel read-only review board across several peer agents (deep-review + thermo-nuclear lenses), compile one cross-validated finding ledger, then address it — composes `/v1-phone-a-friend`, `/v1-deep-review`, and `/v1-address-review`
 - [`/v1-prove-work`](./plugins/v1tamins/skills/v1-prove-work/SKILL.md) — record a browser GIF of the new behaviour to drop into the PR description
@@ -299,7 +293,7 @@ flowchart LR
   D --> E([/v1-prd])
   E --> F{{... build ...}}
   F --> G([/v1-simplify])
-  G --> H([/v1-code-review])
+  G --> H([/v1-deep-review])
   H --> I([/v1-pr])
   I --> J([/v1-prove-work])
   J --> K([/v1-land-pr])
@@ -311,7 +305,7 @@ flowchart LR
   click D href "./plugins/v1tamins/skills/v1-learning-from-customers/SKILL.md"
   click E href "./plugins/v1tamins/skills/v1-prd/SKILL.md"
   click G href "./plugins/v1tamins/skills/v1-simplify/SKILL.md"
-  click H href "./plugins/v1tamins/skills/v1-code-review/SKILL.md"
+  click H href "./plugins/v1tamins/skills/v1-deep-review/SKILL.md"
   click I href "./plugins/v1tamins/skills/v1-pr/SKILL.md"
   click J href "./plugins/v1tamins/skills/v1-prove-work/SKILL.md"
   click K href "./plugins/v1tamins/skills/v1-land-pr/SKILL.md"
@@ -335,9 +329,9 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  A([/v1-code-review]) --> B([/v1-address-review])
+  A([/v1-deep-review]) --> B([/v1-address-review])
   B --> C([/v1-land-pr])
-  click A href "./plugins/v1tamins/skills/v1-code-review/SKILL.md"
+  click A href "./plugins/v1tamins/skills/v1-deep-review/SKILL.md"
   click B href "./plugins/v1tamins/skills/v1-address-review/SKILL.md"
   click C href "./plugins/v1tamins/skills/v1-land-pr/SKILL.md"
 ```
@@ -393,12 +387,10 @@ flowchart LR
 
 | Skill | When to use |
 |-------|-------------|
-| [`/v1-simplify`](./plugins/v1tamins/skills/v1-simplify/SKILL.md) | Review recent changes for reuse, unnecessary complexity, and efficiency before declaring done |
+| [`/v1-simplify`](./plugins/v1tamins/skills/v1-simplify/SKILL.md) | Review or restructure the diff or named files for reuse, simplicity, duplication, complexity, and efficiency (KISS / DRY / SOLID / YAGNI) |
 | [`/v1-deslop`](./plugins/v1tamins/skills/v1-deslop/SKILL.md) | Strip AI-generated boilerplate, defensive checks, and dead comments |
-| [`/v1-refactor`](./plugins/v1tamins/skills/v1-refactor/SKILL.md) | Apply KISS / DRY / SOLID / YAGNI to a working diff |
-| [`/v1-complexity`](./plugins/v1tamins/skills/v1-complexity/SKILL.md) | Reduce cognitive complexity in specific functions |
 | [`/v1-hindsight-refactor`](./plugins/v1tamins/skills/v1-hindsight-refactor/SKILL.md) | Throw away the messy first-pass fix and reimplement cleanly using what it taught you |
-| [`/v1-deep-review`](./plugins/v1tamins/skills/v1-deep-review/SKILL.md) | Harsh maintainability and structure audit on a large PR, new feature, or architecture change |
+| [`/v1-deep-review`](./plugins/v1tamins/skills/v1-deep-review/SKILL.md) | Review any PR or branch (code, docs, config) for merge risk and structural maintainability; `--post` or ask to post to GitHub |
 | [`/v1-diagnosing-constraints`](./plugins/v1tamins/skills/v1-diagnosing-constraints/SKILL.md) | Find the bottleneck or constraint governing throughput in a stuck process, team, queue, or roadmap |
 
 ### Ship
@@ -408,7 +400,6 @@ flowchart LR
 | [`/v1-pr`](./plugins/v1tamins/skills/v1-pr/SKILL.md) | Turn local work into a draft PR |
 | [`/v1-pr-description`](./plugins/v1tamins/skills/v1-pr-description/SKILL.md) | Generate or refresh a PR title and body from metadata, diff, and validation |
 | [`/v1-land-pr`](./plugins/v1tamins/skills/v1-land-pr/SKILL.md) | Full hand-off: commit → push → CI → fix → mark ready → update Linear |
-| [`/v1-code-review`](./plugins/v1tamins/skills/v1-code-review/SKILL.md) | Multi-angle review on the current branch or a specific PR; use `--post` or ask explicitly to post to GitHub |
 | [`/v1-address-review`](./plugins/v1tamins/skills/v1-address-review/SKILL.md) | Resolve unresolved threads from Copilot, Code Factory, bots, or humans |
 | [`/v1-prove-work`](./plugins/v1tamins/skills/v1-prove-work/SKILL.md) | Record a browser GIF for the PR description or Slack |
 
@@ -443,8 +434,7 @@ flowchart LR
 |-------|-------------|
 | [`/v1-phone-a-friend`](./plugins/v1tamins/skills/v1-phone-a-friend/SKILL.md) | Route work to another agent or model for counterpart review, steelmanning, delegation, or deep research |
 | [`/v1-skilling-it`](./plugins/v1tamins/skills/v1-skilling-it/SKILL.md) | Create or improve a shared agent skill (this repo's own toolchain) |
-| [`/v1-prompt-engineering`](./plugins/v1tamins/skills/v1-prompt-engineering/SKILL.md) | Write or improve prompts, system prompts, hooks, or sub-agent briefs |
-| [`/v1-prompt-engineering-v1tamins`](./plugins/v1tamins/skills/v1-prompt-engineering-v1tamins/SKILL.md) | Same, specialised for GPT-5.5 / OpenAI Responses API / OpenRouter migrations |
+| [`/v1-prompt-engineering`](./plugins/v1tamins/skills/v1-prompt-engineering/SKILL.md) | Write, improve, or migrate prompts, system prompts, hooks, or sub-agent briefs for any model or host, including GPT-5.5 / OpenAI Responses API / OpenRouter |
 
 ---
 

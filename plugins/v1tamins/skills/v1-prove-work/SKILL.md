@@ -159,21 +159,7 @@ gh pr view --json number --jq .number 2>/dev/null
 **If a PR exists**, upload and embed:
 
 ```bash
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-
-for dir in \
-  "$REPO_ROOT/plugins/v1tamins/skills/v1-prove-work" \
-  "${CLAUDE_PLUGIN_ROOT:-}" \
-  "$HOME/.codex/skills/v1-prove-work" \
-  "$HOME/.claude/skills/v1-prove-work"; do
-  [ -n "$dir" ] && [ -f "$dir/scripts/video_to_gif.py" ] && SKILL_DIR="$dir" && break
-done
-
-if [ -z "${SKILL_DIR:-}" ]; then
-  echo "ERROR: Could not find scripts/video_to_gif.py" >&2
-  exit 1
-fi
-
+# Reuse the $SKILL_DIR resolved in Step 5 (re-run that resolver block first if this is a fresh shell).
 python3 "$SKILL_DIR/scripts/video_to_gif.py" \
   --input /tmp/prove-work/ \
   --output /tmp/prove-work/demo.gif \

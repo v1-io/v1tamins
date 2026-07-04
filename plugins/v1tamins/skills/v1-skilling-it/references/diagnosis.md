@@ -82,4 +82,4 @@ Granularity spends one of the two loads, so split only when the cut earns it:
 
 ## Using this in a review
 
-Name the failure mode, cite the observable symptom, and prescribe the paired cure. Prefer a few high-conviction diagnoses over a long list of nits — the same bar `v1-code-review` and `v1-deep-review` hold.
+Name the failure mode, cite the observable symptom, and prescribe the paired cure. Prefer a few high-conviction diagnoses over a long list of nits — the same bar `v1-deep-review` holds.

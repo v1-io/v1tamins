@@ -1,7 +1,10 @@
 interface:
   display_name: "Deep Review"
-  short_description: "Review structural maintainability risks"
-  default_prompt: "Use $v1-deep-review to find structural maintainability regressions, ownership leaks, branching growth, and simpler rewrite paths."
+  short_description: "Review a PR for merge risk and structural maintainability"
+  default_prompt: "Use $v1-deep-review to review this pull request for bugs, regressions, missing requirements, test gaps, merge risk, and structural maintainability."
 
 policy:
   allow_implicit_invocation: true
+  invocation_posture: selective_implicit
+  side_effects:
+    - external_write

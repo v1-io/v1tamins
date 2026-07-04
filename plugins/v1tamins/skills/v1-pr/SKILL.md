@@ -162,7 +162,7 @@ Invoke the **compound-engineering workflows:review** skill, or the equivalent pl
 
 This runs parallel review agents covering architecture, security, performance, patterns, and more.
 
-If that workflow is not available, fall back to the shared `v1-code-review` skill instead. Do not block on failure -- inform the user and continue.
+If that workflow is not available, fall back to the shared `v1-deep-review` skill instead. Do not block on failure -- inform the user and continue.
 
 ### Step 10: Prove Work (Optional)
 

@@ -11,7 +11,7 @@ allowed-tools:
 
 Review an interaction for whether a real user can discover what to do, do it correctly, understand what happened, and recover when things go wrong.
 
-Default mode is review-only. Recommend fixes, but do not edit source files unless the user explicitly asks for implementation.
+This is a review-only skill: follow the shared [review skeleton](references/review-skeleton.md) for posture, the findings-first output format, and severity tiers. This skill's lens is Norman's action cycle — can a real user discover what to do, do it correctly, understand what happened, and recover when things go wrong?
 
 ## Quick Start
 
@@ -73,44 +73,23 @@ Avoid generic advice such as "make it intuitive" or "improve UX." Tie every fix 
 
 ## Output Format
 
-Use this structure unless the user asks for a different format:
+Use the Output Format in the [review skeleton](references/review-skeleton.md). This skill adds one section after **What Works**:
 
 ```markdown
-## Findings
-
-[Severity] Surface / step - Short title
-Problem: What makes the interaction hard to discover, execute, interpret, or recover from.
-Impact: How this affects task success, trust, time, or error risk.
-Fix: Concrete redesign.
-Validation: How to verify the redesign works.
-Confidence: N/5.
-
-## What Works
-
-- Useful strengths worth preserving.
-
 ## Action-Cycle Map
 
 | Stage | User Expectation | Surface Signal | Risk |
 | --- | --- | --- | --- |
-
-## Redesign Sketch
-
-- Minimal sequence of changes.
-
-## Data Gaps
-
-- Unavailable rendering, untested device size, missing user context, inaccessible prototype state, or assumptions.
 ```
 
-Severity model:
+Severity tiers follow the skeleton; in this skill:
 
-- **Critical:** likely to cause irreversible harm, data loss, security/privacy error, money movement error, or dangerous misuse.
+- **Critical:** likely to cause irreversible harm, data loss, security/privacy error, money-movement error, or dangerous misuse.
 - **High:** blocks the primary task or causes a likely serious mistake.
 - **Medium:** creates confusion, hesitation, wrong turns, or avoidable support burden.
 - **Low:** polish issue with a clear readability or learnability benefit.
 
-If no findings are found, say so and list residual risks, such as uninspected mobile state, unavailable permissions, missing analytics, or untested novice users.
+Residual risks to list when there are no findings: uninspected mobile state, unavailable permissions, missing analytics, or untested novice users.
 
 ## Review Checks
 

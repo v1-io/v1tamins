@@ -1,6 +1,7 @@
 ---
 name: v1-menu
-description: Use when unsure which v1tamins skill fits the current situation, or when the user asks which skill to use. A menu of every v1 skill, which one to reach for, and how they chain together.
+description: Use when the user explicitly asks which v1tamins skill fits the current situation. The single canonical roster of every v1 skill, which one to reach for, and how they chain together. Triggers on "which v1 skill", "v1 menu", "/v1-menu".
+disable-model-invocation: true
 allowed-tools:
   - Read
   - Grep
@@ -21,8 +22,7 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 
 ## Reviewing code
 
-- `/v1-code-review` — merge-risk review of a branch or PR.
-- `/v1-deep-review` — structural maintainability audit, not merge review.
+- `/v1-deep-review` — review a branch or PR (code, docs, or config) for merge risk and structural maintainability.
 - `/v1-review-board` **(explicit)** — fan review out to multiple peer agents.
 - `/v1-address-review` — resolve review comments that already exist.
 - `/v1-phone-a-friend` — one second opinion from a counterpart agent.
@@ -30,7 +30,7 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 ## Fixing and improving code
 
 - Broken: `/v1-debug` (root-cause errors), `/v1-fix-tests` (failing suite), `/v1-e2e-testing` (browser/E2E and flakes).
-- Working but rough: `/v1-refactor` (structure), `/v1-complexity` (nesting), `/v1-deslop` (AI slop), `/v1-hindsight-refactor` (delete the messy fix, reimplement cleanly), `/v1-simplify` (quality pass on the recent diff).
+- Working but rough: `/v1-simplify` (reuse/quality/efficiency + KISS/DRY/SOLID + cognitive complexity, on the diff or named files), `/v1-deslop` (AI slop), `/v1-hindsight-refactor` (delete the messy fix, reimplement cleanly).
 
 ## Research and analysis
 
@@ -46,5 +46,5 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 ## Working on skills and prompts
 
 - `/v1-skilling-it` — write or improve a skill. `/v1-canon2skill` — mine source material for skill ideas. `/v1-goldpan` **(explicit)** — pan recent PRs and sessions for compound-worthy lessons.
-- `/v1-prompt-engineering` — general prompt work; `/v1-prompt-engineering-v1tamins` for GPT-5.5/OpenRouter specifics.
+- `/v1-prompt-engineering` — prompt/system-prompt/hook/skill work for any model or host, including GPT-5.5 and OpenRouter specifics.
 - `/v1-shared-language` — extract a domain glossary from the conversation.
