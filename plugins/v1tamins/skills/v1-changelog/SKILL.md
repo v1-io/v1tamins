@@ -9,7 +9,7 @@ allowed-tools:
 ---
 # Write Changelog
 
-Generate a changelog for recent changes by reviewing merged PRs since the last changelog.
+Generate a changelog for recent changes by reviewing merged PRs since the last changelog. This skill *generates* release notes; to sync existing docs (README, AGENTS.md, guides) with what shipped, use `v1-docs-freshness`.
 
 ## Usage
 

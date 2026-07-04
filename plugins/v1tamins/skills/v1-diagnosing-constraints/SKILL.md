@@ -1,6 +1,6 @@
 ---
 name: v1-diagnosing-constraints
-description: Use when a process, team, roadmap, funnel, queue, or operation is stuck and needs bottleneck diagnosis. Triggers on "find the bottleneck", "diagnose the constraint", "too much WIP", "where should we focus", "throughput is stuck".
+description: Use when a non-code process, funnel, queue, or delivery pipeline is stuck and needs throughput-bottleneck diagnosis (Theory of Constraints). Triggers on "find the bottleneck", "too much WIP", "throughput is stuck", "where is the constraint", "our funnel is stuck". For a software error or regression, use v1-debug.
 allowed-tools:
   - Bash
   - Read

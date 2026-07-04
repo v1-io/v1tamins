@@ -4,5 +4,5 @@ interface:
   default_prompt: "Use $v1-menu to recommend which v1tamins skill fits this task."
 
 policy:
-  allow_implicit_invocation: true
-  invocation_posture: selective_implicit
+  allow_implicit_invocation: false
+  invocation_posture: explicit_only
