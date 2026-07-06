@@ -85,13 +85,13 @@ Use repo search for every meaningful production symbol, route, component, handle
 
 Completion criterion: every touched file is classified, every meaningful code file has role/change/interactions/evidence, and every unknown is listed instead of silently skipped.
 
-### 3. Draw The Touched-File Map
+### 3. Build The Touched-File Table And Connection Flowchart
 
-Create a graph model for the HTML page:
+Create two distinct data models for the HTML page:
 
 ```text
-node: file path, layer, role, change size, risk flags
-edge: from file, to file, relationship type, evidence, confidence
+touched-file row: file path, layer, role, change summary, connected files, evidence, risk flags
+flowchart edge: from file or layer, to file or layer, relationship type, evidence, confidence
 ```
 
 Layer nodes from highest to lowest applicable level:
@@ -102,9 +102,11 @@ Layer nodes from highest to lowest applicable level:
 - Data/storage/external-service boundary
 - Tests/fixtures/tooling/docs
 
-Draw edges for imports, calls, request/response contracts, shared types, configuration, data flow, test coverage, or documentation links. Mark inferred edges as inferred and isolated files as isolated.
+The touched-file map is a **table**, not cards. Make one row per touched file so reviewers can scan paths, roles, changes, interactions, evidence, and risk flags without opening separate blocks.
 
-Completion criterion: every touched file appears exactly once as a node, every meaningful connection has an edge or an isolation note, and each edge has evidence or is marked inferred.
+The connection view is a **visual flowchart**, not a table. Draw imports, calls, request/response contracts, shared types, configuration, data flow, test coverage, or documentation links as arrows or lines between layer/file nodes. Use inline SVG, positioned HTML/CSS, or another self-contained browser-native technique. Label edges with the relationship type, mark inferred edges as inferred, and show isolated files as isolated nodes.
+
+Completion criterion: every touched file appears exactly once in the touched-file table, every meaningful connection appears as a visual flowchart edge or an isolation note, and each edge has evidence or is marked inferred. A connection-edge table alone does not satisfy this step.
 
 ### 4. Walk Layers In Execution Order
 
@@ -116,11 +118,14 @@ For each layer, write:
 - Changed behavior: what now happens differently.
 - Contract: what this layer receives from the layer above and passes down.
 - Interaction: which untouched code, services, data, config, or tests it depends on.
+- PR snippet: a small changed-code excerpt from the most representative touched file in this layer, with file path and line numbers when available.
 - Reviewer focus: questions or risks a reviewer should inspect.
 
 Start at the highest user-visible or runtime entry point and move down through execution order. For docs-only, test-only, or tooling-only changes, replace runtime execution with the actual reader/test/tool execution sequence.
 
-Completion criterion: the walkthrough starts at the highest changed entry point, moves downward in execution order, and mentions every changed production file in a layer or explicitly explains why no production layer exists.
+Keep snippets short enough to scan, usually 5-20 lines. Prefer changed lines plus the minimum surrounding context needed to understand the layer. If a layer has no useful changed snippet, state why instead of fabricating one.
+
+Completion criterion: the walkthrough starts at the highest changed entry point, moves downward in execution order, includes a relevant PR snippet or no-snippet reason for each layer, and mentions every changed production file in a layer or explicitly explains why no production layer exists.
 
 ### 5. Build The Throw-Away HTML File
 
@@ -140,24 +145,27 @@ The first viewport must contain:
 
 The body must contain:
 - Overview: what the PR tries to accomplish, what changed, what seems most important to review.
-- Touched-file map: inline SVG, CSS grid graph, or other direct HTML visualization with every touched file node.
-- File ledger: one card or row per touched file with role, change, interactions, and evidence.
-- Layer walkthrough: highest layer to lowest layer, in execution order.
+- Touched-file map: a dense table with one row per touched file and columns for layer, role, change, interactions, evidence, and risk flags. Do not render touched files as cards.
+- Connection flowchart: a visual flowchart with arrows or lines showing execution/data/config/test relationships between touched files or layers. Do not reduce connection edges to only a table.
+- Layer walkthrough: highest layer to lowest layer, in execution order, with a small relevant PR snippet inside each layer.
 - Evidence snippets: short excerpts only, with file paths and line numbers where available.
 - Unknowns and assumptions: blocked sources, inferred links, generated files, or unverified behavior.
 - Provenance: commands and sources used to build the page.
 
-Add local interactions that help review dense diffs: layer filters, file search, map highlighting, collapsible detail, and a copy button for a Markdown summary. Keep the default state useful if JavaScript fails.
+Add local interactions that help review dense diffs: layer filters, file search, table sorting, flowchart highlighting, collapsible layer details, and a copy button for a Markdown summary. Keep the default state useful if JavaScript fails.
 
-Completion criterion: the HTML opens directly from disk, contains every requested section, has no external dependencies, and every file-map node links to its file ledger entry or layer section.
+Completion criterion: the HTML opens directly from disk, contains every requested section, has no external dependencies, every touched-file table row links to its layer section, and every flowchart node links to the relevant table row or layer section.
 
 ### 6. Validate The Walkthrough
 
 Before responding:
 - Check the file exists at the reported path.
 - Scan for external URLs in `src=`, `href=`, `script`, `link`, or `import` unless they are explicit source links in provenance.
-- Check that every touched file from the diff appears in the map and file ledger.
+- Check that every touched file from the diff appears in the touched-file table.
+- Check that touched files are rendered as table rows, not cards.
+- Check that meaningful connection edges render as a visual flowchart with arrows or lines, not only as a table.
 - Check that every production file appears in the layer walkthrough or has an explicit non-runtime classification.
+- Check that every layer has a small relevant PR snippet or an explicit no-snippet reason.
 - Check that search/filter/copy controls do not throw obvious JavaScript syntax errors.
 - Check that the artifact distinguishes sourced facts, inferences, and unknowns.
 
