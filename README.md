@@ -138,6 +138,7 @@ mindmap
       ("v1-pr")
       ("v1-pr-description")
       ("v1-land-pr")
+      ("v1-pr-walkthrough")
       ("v1-address-review")
       ("v1-review-board")
       ("v1-prove-work")
@@ -253,6 +254,7 @@ These skills compress the ship phase into one chained workflow.
 - [`/v1-pr`](./plugins/v1tamins/skills/v1-pr/SKILL.md) — turn local work into a draft PR with a sensible title and body
 - [`/v1-pr-description`](./plugins/v1tamins/skills/v1-pr-description/SKILL.md) — generate or refresh a PR title/body from metadata, diff, and validation evidence (use standalone or chained inside `/v1-pr`)
 - [`/v1-land-pr`](./plugins/v1tamins/skills/v1-land-pr/SKILL.md) — the full hand-off: commit → push → open as draft → monitor `gh pr checks` → fix failed checks (up to 3 retries) → mark ready → move linked Linear ticket to Human Review
+- [`/v1-pr-walkthrough`](./plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md) — create a throw-away HTML walkthrough that maps touched files, explains each change, and walks the PR layer by layer
 - [`/v1-address-review`](./plugins/v1tamins/skills/v1-address-review/SKILL.md) — work through unresolved review threads from Copilot, Code Factory, bots, or humans and reply with the right diff or context
 - [`/v1-review-board`](./plugins/v1tamins/skills/v1-review-board/SKILL.md) — convene a parallel read-only review board across several peer agents (deep-review + thermo-nuclear lenses), compile one cross-validated finding ledger, then address it — composes `/v1-phone-a-friend`, `/v1-deep-review`, and `/v1-address-review`
 - [`/v1-prove-work`](./plugins/v1tamins/skills/v1-prove-work/SKILL.md) — record a browser GIF of the new behaviour to drop into the PR description
@@ -294,6 +296,7 @@ flowchart LR
   E --> F{{... build ...}}
   F --> G([/v1-simplify])
   G --> H([/v1-deep-review])
+  H -.explain.-> W([/v1-pr-walkthrough])
   H --> I([/v1-pr])
   I --> J([/v1-prove-work])
   J --> K([/v1-land-pr])
@@ -306,6 +309,7 @@ flowchart LR
   click E href "./plugins/v1tamins/skills/v1-prd/SKILL.md"
   click G href "./plugins/v1tamins/skills/v1-simplify/SKILL.md"
   click H href "./plugins/v1tamins/skills/v1-deep-review/SKILL.md"
+  click W href "./plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md"
   click I href "./plugins/v1tamins/skills/v1-pr/SKILL.md"
   click J href "./plugins/v1tamins/skills/v1-prove-work/SKILL.md"
   click K href "./plugins/v1tamins/skills/v1-land-pr/SKILL.md"
@@ -330,10 +334,12 @@ flowchart LR
 ```mermaid
 flowchart LR
   A([/v1-deep-review]) --> B([/v1-address-review])
+  A -.walkthrough.-> D([/v1-pr-walkthrough])
   B --> C([/v1-land-pr])
   click A href "./plugins/v1tamins/skills/v1-deep-review/SKILL.md"
   click B href "./plugins/v1tamins/skills/v1-address-review/SKILL.md"
   click C href "./plugins/v1tamins/skills/v1-land-pr/SKILL.md"
+  click D href "./plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md"
 ```
 
 ### Weekly compounding
@@ -400,6 +406,7 @@ flowchart LR
 | [`/v1-pr`](./plugins/v1tamins/skills/v1-pr/SKILL.md) | Turn local work into a draft PR |
 | [`/v1-pr-description`](./plugins/v1tamins/skills/v1-pr-description/SKILL.md) | Generate or refresh a PR title and body from metadata, diff, and validation |
 | [`/v1-land-pr`](./plugins/v1tamins/skills/v1-land-pr/SKILL.md) | Full hand-off: commit → push → CI → fix → mark ready → update Linear |
+| [`/v1-pr-walkthrough`](./plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md) | Create a browser walkthrough that maps touched files and explains the PR in execution order |
 | [`/v1-address-review`](./plugins/v1tamins/skills/v1-address-review/SKILL.md) | Resolve unresolved threads from Copilot, Code Factory, bots, or humans |
 | [`/v1-prove-work`](./plugins/v1tamins/skills/v1-prove-work/SKILL.md) | Record a browser GIF for the PR description or Slack |
 
