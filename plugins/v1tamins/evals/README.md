@@ -52,6 +52,27 @@ Run:
 scripts/validate-plugin.sh --verbose
 ```
 
+## Harness Quality Checklist
+
+Use this checklist when reviewing whether a skill, routing rule, or runtime
+adapter is failing because of the agent harness rather than the model alone.
+Keep the review concrete: name the artifact under test, cite the fixture or
+trace that proves the behavior, and decide which layer owns the fix.
+
+| Layer | Responsibility | Review question | Common evidence |
+| --- | --- | --- | --- |
+| Orchestration | Decides which work steps should happen and in what order. | Did the agent choose a sensible workflow, stop point, and escalation boundary? | Plan/checklist drift, skipped required read, premature final answer, unsafe continuation. |
+| Context | Assembles instructions and information that steer the model. | Did the prompt include the right repo, file, policy, source, and task state without stale or irrelevant baggage? | Missing AGENTS guidance, stale summaries, untrusted-source bleed-through, conflicting instructions. |
+| Routing | Selects the runtime, model, skill, adapter, or provider that should handle the request. | Did the request land on the right skill or runtime path, and did near misses stay quiet? | `skill-routing.jsonl` cases, trigger inventory rows, live routing summaries. |
+| Transport | Moves messages, tool calls, and streamed output reliably between components. | Did requests, responses, cancellation, retries, and partial output preserve intent and ordering? | Truncated payloads, duplicate sends, lost tool output, malformed JSON, timeout behavior. |
+| State | Persists and resumes conversation, filesystem, git, cache, and task state. | Did the harness preserve the right state across turns, workers, model switches, or restarts? | Resume logs, dirty worktree checks, cached metadata, thread/worktree ids, replay evidence. |
+| Execution | Lets the agent interact with the environment through tools. | Did tool contracts, permissions, validation, and error classes help the agent act correctly? | Exit codes, structured tool errors, permission denials, failed edits, lint/test proof. |
+
+Apply the checklist as a diagnosis aid, not as a new mandatory gate. For small
+skill metadata edits, the routing row plus `scripts/validate-plugin.sh` may be
+enough. For runtime or adapter changes, cover all six layers before calling the
+change verified.
+
 ## Live Routing Evals
 
 The static fixture is the required CI-safe contract. It proves that trigger
