@@ -18,6 +18,8 @@
     "agent-consultation",
     "counterpart-review",
     "code-review",
+    "pr-walkthrough",
+    "code-walkthrough",
     "pull-requests",
     "testing",
     "documentation",
