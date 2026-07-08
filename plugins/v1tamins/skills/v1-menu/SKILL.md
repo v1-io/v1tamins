@@ -38,6 +38,10 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 - `/v1-learning-from-customers` — demand evidence and discovery. `/v1-testing-prototypes` — user tests for prototypes. `/v1-diagnosing-constraints` — find the bottleneck in a stuck system.
 - `/v1-reviewing-data-graphics` — audit charts and dashboards. `/v1-reviewing-usability` — review a UI or flow for user error.
 
+## Personal effectiveness
+
+- `/v1-designing-habit-systems` — design a habit, routine, or schedule system from the behavior-change research, or diagnose why an existing one keeps failing.
+
 ## Communicating and documenting
 
 - `/v1-stickify` — make copy memorable. `/v1-html-it` — self-contained HTML page or report. `/v1-md2docs` **(explicit)** — markdown to Google Doc.
