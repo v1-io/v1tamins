@@ -9,7 +9,9 @@ The evidence base for habit-system design. Citations verified against primary so
 3. [The formation runway](#3-the-formation-runway)
 4. [Temptation bundling](#4-temptation-bundling)
 5. [Fresh starts and habit discontinuity](#5-fresh-starts-and-habit-discontinuity)
-6. [Supporting concepts](#6-supporting-concepts)
+6. [Commitment devices](#6-commitment-devices)
+7. [Friction asymmetry](#7-friction-asymmetry)
+8. [Objective review over nudges](#8-objective-review-over-nudges)
 
 ## 1. Implementation intentions
 
@@ -61,10 +63,29 @@ The evidence base for habit-system design. Citations verified against primary so
 
 **Design implication:** launch on a landmark; treat major life transitions as the highest-leverage design windows; write a re-entry plan before every planned disruption.
 
-## 6. Supporting concepts
+## 6. Commitment devices
 
-Secondary but evidence-aligned levers:
+**Milkman et al. (2014)** temptation-bundling study: 61% of participants later willing to pay for device-enforced restriction — evidence that people value pre-commitment when stakes are real.
 
-- **Commitment devices** — booked/prepaid slots, filled carts, social commitments. Cancelling must cost more than ignoring; a bare calendar block has no stakes.
-- **Friction asymmetry** — remove steps from the desired path, add steps to the undesired one. Follows directly from pillar 2: context triggers beat intentions.
-- **Objective review over nudges** — reminder notifications habituate quickly; a periodic review of measured data (wearable, transactions, receipts) sustains self-monitoring where pings fail.
+- Booked/prepaid slots, filled carts, and social commitments work because cancelling must cost more than ignoring.
+- A bare calendar block has no stakes; it is a floating intention (pillar 1), not a commitment device.
+
+**Design implication:** add a commitment device wherever stakes matter; never treat a calendar block alone as sufficient.
+
+## 7. Friction asymmetry
+
+Follows directly from pillar 2: context triggers beat intentions.
+
+- Remove steps from the desired path (gear pre-staged, order pre-placed, app on home screen).
+- Add steps to the undesired path (app off home screen, snack out of reach, card left at home).
+
+**Design implication:** redesign the environment so the good path is the path of least resistance.
+
+## 8. Objective review over nudges
+
+**Lally et al. (2010)** and self-monitoring literature: sustained behavior change depends on feedback loops, not one-time motivation.
+
+- Reminder notifications habituate quickly; pings are ignored after days or weeks.
+- A periodic review of measured data (wearable, transactions, receipts) sustains self-monitoring where nudges fail.
+
+**Design implication:** schedule a weekly review against objective adherence data; do not rely on push reminders as the primary sustain mechanism.
