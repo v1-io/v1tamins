@@ -135,7 +135,23 @@ Create one self-contained HTML file in `/tmp` by default:
 /tmp/pr-walkthrough-<repo-or-pr-slug>.html
 ```
 
-Use inline CSS and inline JavaScript. Do not require a dev server, build step, package install, CDN, or external network request. If the repository has an explicit temporary artifact convention, use it only when it is clearly throw-away and not committed by default.
+Use the bundled template and renderer instead of creating the page shell from scratch:
+
+1. Resolve `SKILL_DIR` to the directory containing this `SKILL.md`.
+2. Read [references/walkthrough-data.example.json](references/walkthrough-data.example.json) for the required data shape.
+3. Write a PR-specific JSON file to `/tmp/pr-walkthrough-<repo-or-pr-slug>.json`. Replace all example values; do not leave example repository names, paths, counts, snippets, or evidence in the output.
+4. Keep flowchart node labels at 30 characters or fewer and details at 38 characters or fewer. Assign each node a non-negative `column` and `row` in execution order.
+5. Render the artifact:
+
+```bash
+python3 "$SKILL_DIR/scripts/render_walkthrough.py" \
+  --input "/tmp/pr-walkthrough-<repo-or-pr-slug>.json" \
+  --output "/tmp/pr-walkthrough-<repo-or-pr-slug>.html"
+```
+
+The renderer validates file/layer/node identities, flowchart edges, edge evidence, and per-layer snippets before writing static semantic HTML. Treat a renderer error as a data error: fix the JSON and rerun it. Do not bypass the validation or hand-author a different page shell.
+
+The bundled template supplies inline CSS and inline JavaScript. It requires no dev server, build step, package install, CDN, or external network request. If the repository has an explicit temporary artifact convention, use it only when it is clearly throw-away and not committed by default.
 
 The first viewport must contain:
 - PR or branch title, source, base/head, author when available, and generated timestamp.
@@ -152,7 +168,7 @@ The body must contain:
 - Unknowns and assumptions: blocked sources, inferred links, generated files, or unverified behavior.
 - Provenance: commands and sources used to build the page.
 
-Add local interactions that help review dense diffs: layer filters, file search, table sorting, flowchart highlighting, collapsible layer details, and a copy button for a Markdown summary. Keep the default state useful if JavaScript fails.
+Preserve the template's native controls, visible focus states, internal table/flowchart scrolling, static no-JavaScript content, responsive layout, layer filters, file search, accessible table sorting, flowchart highlighting, collapsible layer details, copy feedback, and source links.
 
 Completion criterion: the HTML opens directly from disk, contains every requested section, has no external dependencies, every touched-file table row links to its layer section, and every flowchart node links to the relevant table row or layer section.
 
@@ -167,6 +183,11 @@ Before responding:
 - Check that every production file appears in the layer walkthrough or has an explicit non-runtime classification.
 - Check that every layer has a small relevant PR snippet or an explicit no-snippet reason.
 - Check that search/filter/copy controls do not throw obvious JavaScript syntax errors.
+- Check that table sort controls are keyboard reachable and expose `aria-sort`.
+- Check that copy success or failure appears beside the controls through the live status region.
+- Check at desktop and mobile widths that the page itself has no horizontal overflow; wide tables, flowcharts, paths, and snippets must scroll or wrap inside their own containers.
+- Check that the first viewport contains the title, source, base/head, author, generated timestamp, intent, summary counts, and primary controls.
+- When browser automation is available, visually inspect the first viewport, touched-file table, flowchart, and one expanded layer at desktop and mobile widths. Check contrast, clipping, text overlap, focus visibility, and readable code snippets.
 - Check that the artifact distinguishes sourced facts, inferences, and unknowns.
 
 If private snippets, secrets, tokens, or credentials appear in the diff, omit the snippet and replace it with a redaction note in the artifact.
@@ -190,3 +211,9 @@ Validation:
 ```
 
 Do not post review findings to GitHub from this skill. If the walkthrough reveals merge-blocking issues, mention them as reviewer focus areas and recommend `v1-deep-review` for a findings pass.
+
+## Bundled Resources
+
+- [assets/pr-walkthrough-template.html](assets/pr-walkthrough-template.html) - Accessible, responsive, self-contained artifact shell.
+- [scripts/render_walkthrough.py](scripts/render_walkthrough.py) - Standard-library renderer and data validator.
+- [references/walkthrough-data.example.json](references/walkthrough-data.example.json) - Public-safe example of the complete input contract.
