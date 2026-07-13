@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8fafc">
+  <title>@@PAGE_TITLE@@</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-subtle: #f1f5f9;
+      --surface-accent: #ecfdf5;
+      --ink: #172033;
+      --muted: #5b6878;
+      --line: #d8e0e8;
+      --line-strong: #aeb9c6;
+      --accent: #047857;
+      --accent-strong: #065f46;
+      --accent-ink: #064e3b;
+      --risk-bg: #fff7ed;
+      --risk-line: #fed7aa;
+      --risk-ink: #9a3412;
+      --code-bg: #111827;
+      --code-ink: #e5edf7;
+      --focus: #0284c7;
+      --shadow: 0 1px 2px rgb(15 23 42 / 0.08);
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: auto;
+      background: var(--bg);
+    }
+
+    body {
+      margin: 0;
+      overflow-x: hidden;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.55;
+      text-rendering: optimizeLegibility;
+      -webkit-tap-highlight-color: rgb(4 120 87 / 0.16);
+    }
+
+    a {
+      color: var(--accent-strong);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    a:hover { color: var(--accent-ink); }
+
+    button,
+    input,
+    select,
+    summary,
+    a { touch-action: manipulation; }
+
+    button,
+    input,
+    select { font: inherit; }
+
+    :focus-visible {
+      outline: 3px solid rgb(2 132 199 / 0.42);
+      outline-offset: 2px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p { margin-top: 0; }
+
+    h1,
+    h2,
+    h3 {
+      text-wrap: balance;
+      scroll-margin-top: 88px;
+    }
+
+    p,
+    li,
+    dd { text-wrap: pretty; }
+
+    code,
+    .mono,
+    .path-link,
+    .snippet-path {
+      font-family: var(--mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .skip-link {
+      position: fixed;
+      z-index: 30;
+      top: 10px;
+      left: 10px;
+      padding: 8px 12px;
+      transform: translateY(-160%);
+      background: var(--ink);
+      color: #ffffff;
+      border-radius: 4px;
+    }
+
+    .skip-link:focus { transform: translateY(0); }
+
+    .page-shell {
+      width: min(100%, 1480px);
+      margin-inline: auto;
+      padding-inline: max(24px, env(safe-area-inset-left)) max(24px, env(safe-area-inset-right));
+    }
+
+    .hero {
+      padding-block: max(28px, env(safe-area-inset-top)) 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hero-topline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 16px;
+      align-items: center;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .hero-topline a {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    h1 {
+      max-width: 1000px;
+      margin-bottom: 12px;
+      font-size: 38px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    .intent {
+      max-width: 940px;
+      margin-bottom: 20px;
+      color: #344256;
+      font-size: 17px;
+    }
+
+    .metadata {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 18px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .metadata div {
+      display: flex;
+      min-width: 0;
+      gap: 6px;
+    }
+
+    .metadata dt { font-weight: 700; }
+    .metadata dd { margin: 0; overflow-wrap: anywhere; }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: 22px;
+      border-block: 1px solid var(--line);
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 14px 18px;
+      border-right: 1px solid var(--line);
+    }
+
+    .metric:first-child { padding-left: 0; }
+    .metric:last-child { border-right: 0; }
+
+    .metric-label,
+    .eyebrow {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    .metric-value {
+      display: block;
+      overflow-wrap: anywhere;
+      color: var(--ink);
+      font-size: 20px;
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.25;
+    }
+
+    .metric-detail {
+      display: block;
+      margin-top: 2px;
+      overflow-wrap: anywhere;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .toolbar {
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .toolbar-inner {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) minmax(190px, 280px) auto;
+      gap: 10px;
+      align-items: end;
+      padding-block: 12px;
+    }
+
+    .field {
+      min-width: 0;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    input,
+    select,
+    .button {
+      min-height: 40px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--ink);
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 8px 10px;
+    }
+
+    input:hover,
+    select:hover { border-color: #788697; }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .button {
+      padding: 8px 12px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .button:hover { background: var(--surface-subtle); }
+    .button:active { transform: translateY(1px); }
+
+    .button-primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .button-primary:hover {
+      border-color: var(--accent-strong);
+      background: var(--accent-strong);
+    }
+
+    .control-status {
+      min-height: 20px;
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      grid-column: 1 / -1;
+    }
+
+    main { padding-block: 10px 64px; }
+
+    .section {
+      padding-block: 30px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section:last-child { border-bottom: 0; }
+
+    .section-heading {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    h2 {
+      margin-bottom: 0;
+      font-size: 23px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin-bottom: 10px;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .section-meta {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .overview-copy {
+      max-width: 980px;
+      font-size: 16px;
+    }
+
+    .overview-copy p:last-child { margin-bottom: 0; }
+
+    .table-scroll,
+    .flow-scroll {
+      max-width: 100%;
+      overflow: auto;
+      overscroll-behavior: contain;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
+      scrollbar-gutter: stable;
+    }
+
+    .table-scroll:focus-visible,
+    .flow-scroll:focus-visible { outline-offset: -3px; }
+
+    table {
+      width: 100%;
+      min-width: 1180px;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      padding: 11px 12px;
+      vertical-align: top;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+    }
+
+    thead th {
+      position: sticky;
+      z-index: 4;
+      top: 0;
+      background: var(--surface-subtle);
+      color: #334155;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    tbody tr:last-child > * { border-bottom: 0; }
+    tbody tr:hover > * { background: #f8fafc; }
+    tbody tr.is-highlighted > * { background: var(--surface-accent); }
+
+    .file-path-cell {
+      position: sticky;
+      z-index: 2;
+      left: 0;
+      width: 250px;
+      max-width: 250px;
+      background: var(--surface);
+      box-shadow: 1px 0 var(--line);
+    }
+
+    thead .file-path-cell {
+      z-index: 5;
+      background: var(--surface-subtle);
+    }
+
+    .path-link {
+      display: block;
+      overflow-wrap: anywhere;
+      color: var(--accent-ink);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .layer-label { font-weight: 700; }
+
+    .sort-button {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 750;
+    }
+
+    .sort-button:hover { color: var(--accent-strong); }
+
+    .sort-indicator {
+      min-width: 10px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .tag {
+      display: inline-flex;
+      padding: 2px 7px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-subtle);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .tag-risk {
+      border-color: var(--risk-line);
+      background: var(--risk-bg);
+      color: var(--risk-ink);
+    }
+
+    .flow-scroll { padding: 12px; }
+
+    .flowchart {
+      display: block;
+      max-width: none;
+      background: var(--surface);
+    }
+
+    .flow-node rect {
+      fill: var(--surface);
+      stroke: var(--line-strong);
+      stroke-width: 1.5;
+    }
+
+    .flow-node-primary rect {
+      fill: #ecfdf5;
+      stroke: var(--accent);
+    }
+
+    .flow-node-data rect {
+      fill: #eff6ff;
+      stroke: #2563eb;
+    }
+
+    .flow-node-test rect {
+      fill: #fffbeb;
+      stroke: #b45309;
+    }
+
+    .flow-node-link:hover rect,
+    .flow-node-link:focus rect,
+    .flow-node-link.is-highlighted rect {
+      stroke: var(--focus);
+      stroke-width: 3;
+    }
+
+    .flow-node-title,
+    .flow-node-detail,
+    .flow-edge text {
+      font-family: var(--sans);
+      pointer-events: none;
+    }
+
+    .flow-node-title {
+      fill: var(--ink);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .flow-node-detail {
+      fill: var(--muted);
+      font-size: 11px;
+    }
+
+    .flow-edge path {
+      fill: none;
+      stroke: #64748b;
+      stroke-width: 1.6;
+    }
+
+    .flow-edge text {
+      fill: #475569;
+      stroke: var(--surface);
+      stroke-width: 6px;
+      paint-order: stroke;
+      font-size: 11px;
+    }
+
+    .flow-edge.is-inferred path { stroke-dasharray: 6 5; }
+    #arrowhead path { fill: #64748b; }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend span { display: inline-flex; gap: 6px; align-items: center; }
+
+    .legend-swatch {
+      width: 18px;
+      height: 10px;
+      border: 1px solid var(--line-strong);
+      border-radius: 2px;
+      background: var(--surface);
+    }
+
+    .legend-primary { background: #ecfdf5; border-color: var(--accent); }
+    .legend-data { background: #eff6ff; border-color: #2563eb; }
+    .legend-test { background: #fffbeb; border-color: #b45309; }
+
+    .layer {
+      border-top: 1px solid var(--line);
+      scroll-margin-top: 88px;
+    }
+
+    .layer:last-child { border-bottom: 1px solid var(--line); }
+
+    .layer summary {
+      position: relative;
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      padding: 15px 4px;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .layer summary::-webkit-details-marker { display: none; }
+
+    .layer summary:hover .summary-title { color: var(--accent-strong); }
+
+    .layer summary::after {
+      position: absolute;
+      right: 4px;
+      content: "+";
+      color: var(--muted);
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    .layer[open] summary::after { content: "-"; }
+
+    .step-number {
+      display: grid;
+      width: 30px;
+      height: 30px;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 50%;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .summary-title {
+      display: block;
+      padding-right: 28px;
+      font-size: 17px;
+      font-weight: 750;
+      line-height: 1.3;
+    }
+
+    .layer-body {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: 28px;
+      padding: 4px 4px 24px 46px;
+    }
+
+    .layer-contract { margin: 0; }
+
+    .layer-contract div {
+      display: grid;
+      grid-template-columns: 118px minmax(0, 1fr);
+      gap: 12px;
+      padding-block: 8px;
+      border-bottom: 1px solid #e8edf2;
+    }
+
+    .layer-contract div:last-child { border-bottom: 0; }
+
+    .layer-contract dt {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .layer-contract dd {
+      min-width: 0;
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .snippet-stack { min-width: 0; }
+
+    .code-snippet {
+      min-width: 0;
+      margin: 0 0 12px;
+      overflow: hidden;
+      border: 1px solid #28364c;
+      border-radius: 6px;
+      background: var(--code-bg);
+    }
+
+    .code-snippet:last-child { margin-bottom: 0; }
+
+    .code-snippet figcaption {
+      display: flex;
+      min-width: 0;
+      gap: 12px;
+      justify-content: space-between;
+      padding: 8px 11px;
+      border-bottom: 1px solid #34435a;
+      color: #cbd5e1;
+      font-size: 11px;
+    }
+
+    .snippet-path {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .snippet-lines {
+      flex: 0 0 auto;
+      font-variant-numeric: tabular-nums;
+    }
+
+    pre {
+      margin: 0;
+      overflow: auto;
+      overscroll-behavior: contain;
+      padding: 12px;
+      background: var(--code-bg);
+      color: var(--code-ink);
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.55;
+      tab-size: 2;
+    }
+
+    pre:focus-visible { outline-offset: -3px; }
+
+    .evidence-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 32px;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    li + li { margin-top: 7px; }
+
+    .empty-state {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .is-filtered { display: none; }
+
+    @media (max-width: 900px) {
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric:nth-child(2) { border-right: 0; }
+      .metric:nth-child(-n + 2) { border-bottom: 1px solid var(--line); }
+      .metric:nth-child(3) { padding-left: 0; }
+      .toolbar-inner { grid-template-columns: minmax(0, 1fr) minmax(190px, 0.7fr); }
+      .button-group { grid-column: 1 / -1; }
+      .layer-body { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 620px) {
+      .page-shell {
+        padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right));
+      }
+
+      .hero { padding-block: max(20px, env(safe-area-inset-top)) 18px; }
+      h1 { font-size: 27px; }
+      .intent { font-size: 15px; }
+      .metadata { display: grid; grid-template-columns: 1fr; gap: 4px; }
+      .metrics { margin-top: 16px; }
+      .metric { padding: 10px 12px; }
+      .metric-value { font-size: 17px; }
+      .metric-detail {
+        display: block;
+        max-height: 2.7em;
+        overflow: hidden;
+        font-size: 10px;
+        line-height: 1.35;
+      }
+      .toolbar-inner { grid-template-columns: 1fr; }
+      .button-group { grid-column: auto; }
+      .button { flex: 1 1 auto; }
+      .section { padding-block: 24px; }
+      h2 { font-size: 21px; }
+      .file-path-cell { width: 210px; max-width: 210px; }
+      .flow-scroll { padding: 8px; }
+      .layer summary { grid-template-columns: 30px minmax(0, 1fr); gap: 9px; }
+      .layer-body { padding-left: 0; }
+      .layer-contract div { grid-template-columns: 1fr; gap: 2px; }
+      .evidence-grid { grid-template-columns: 1fr; gap: 24px; }
+    }
+
+    @media print {
+      .skip-link,
+      .toolbar { display: none; }
+      body { background: #ffffff; }
+      .page-shell { width: 100%; padding-inline: 0; }
+      .section { break-inside: avoid; }
+      .table-scroll,
+      .flow-scroll,
+      pre { overflow: visible; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to Main Content</a>
+
+  <header class="hero">
+    <div class="page-shell">
+      <div class="hero-topline">
+        <span>Pull Request Walkthrough</span>
+        <span>Source: @@SOURCE_LINK@@</span>
+      </div>
+      <h1>@@PAGE_TITLE@@</h1>
+      <p class="intent">@@INTENT@@</p>
+      <dl class="metadata">
+        <div><dt>Base / Head</dt><dd><span class="mono">@@BASE@@</span> &rarr; <span class="mono">@@HEAD@@</span></dd></div>
+        <div><dt>Head SHA</dt><dd class="mono">@@HEAD_OID@@</dd></div>
+        <div><dt>Author</dt><dd>@@AUTHOR@@</dd></div>
+        <div><dt>Generated</dt><dd><time data-local-time datetime="@@GENERATED_AT@@">@@GENERATED_AT@@</time></dd></div>
+      </dl>
+      <div class="metrics" aria-label="Pull request summary">
+        <div class="metric"><span class="metric-label">Changed Files</span><span class="metric-value">@@FILE_COUNT@@</span><span class="metric-detail">@@LAYER_BREAKDOWN@@</span></div>
+        <div class="metric"><span class="metric-label">Diff</span><span class="metric-value">+@@ADDITIONS@@ / -@@DELETIONS@@</span><span class="metric-detail">Additions and deletions</span></div>
+        <div class="metric"><span class="metric-label">Risk Flags</span><span class="metric-value">@@RISK_COUNT@@</span><span class="metric-detail">@@RISK_BREAKDOWN@@</span></div>
+        <div class="metric"><span class="metric-label">Execution Layers</span><span class="metric-value">@@LAYER_COUNT@@</span><span class="metric-detail">@@EXECUTION_RANGE@@</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="toolbar" aria-label="Walkthrough controls">
+    <div class="page-shell toolbar-inner">
+      <div class="field">
+        <label for="file-search">Search Files</label>
+        <input id="file-search" name="file-search" type="search" autocomplete="off" placeholder="Search path, role, or evidence&hellip;">
+      </div>
+      <div class="field">
+        <label for="layer-filter">Filter by Layer</label>
+        <select id="layer-filter" name="layer-filter" autocomplete="off">
+          <option value="">All Layers</option>
+          @@LAYER_OPTIONS@@
+        </select>
+      </div>
+      <div class="button-group">
+        <button class="button button-primary" id="copy-summary" type="button">Copy Summary</button>
+        <button class="button" id="expand-all" type="button">Expand All</button>
+        <button class="button" id="collapse-all" type="button">Collapse All</button>
+      </div>
+      <p class="control-status" id="control-status" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <main id="main-content" class="page-shell">
+    <section class="section" id="overview">
+      <div class="section-heading"><h2>Overview</h2></div>
+      <div class="overview-copy">@@OVERVIEW_PARAGRAPHS@@</div>
+    </section>
+
+    <section class="section" id="touched-files">
+      <div class="section-heading">
+        <h2>Touched-File Map</h2>
+        <p class="section-meta"><span id="visible-file-count">@@FILE_COUNT@@</span> of @@FILE_COUNT@@ files</p>
+      </div>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Touched files table">
+        <table id="file-table">
+          <thead>
+            <tr>
+              <th class="file-path-cell" scope="col" data-sort-key="path" aria-sort="none"><button class="sort-button" type="button" data-sort="path">Path <span class="sort-indicator" aria-hidden="true">&#8597;</span></button></th>
+              <th scope="col" data-sort-key="layer" aria-sort="none"><button class="sort-button" type="button" data-sort="layer">Layer <span class="sort-indicator" aria-hidden="true">&#8597;</span></button></th>
+              <th scope="col">Role</th>
+              <th scope="col">Change</th>
+              <th scope="col">Interactions</th>
+              <th scope="col">Evidence</th>
+              <th scope="col">Risk Flags</th>
+            </tr>
+          </thead>
+          <tbody>@@FILE_ROWS@@</tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" id="flowchart-section">
+      <div class="section-heading"><h2>Connection Flowchart</h2></div>
+      <div class="legend" aria-label="Flowchart legend">
+        <span><i class="legend-swatch legend-primary" aria-hidden="true"></i>Execution</span>
+        <span><i class="legend-swatch legend-data" aria-hidden="true"></i>Data / Contract</span>
+        <span><i class="legend-swatch legend-test" aria-hidden="true"></i>Test / Tooling</span>
+      </div>
+      <div class="flow-scroll" tabindex="0" role="region" aria-label="Changed file connection flowchart">@@FLOWCHART@@</div>
+    </section>
+
+    <section class="section" id="walkthrough">
+      <div class="section-heading"><h2>Layer Walkthrough</h2></div>
+      @@LAYER_DETAILS@@
+    </section>
+
+    <section class="section" id="evidence">
+      <div class="section-heading"><h2>Evidence</h2></div>
+      <div class="evidence-grid">
+        <div><h3>Validation Reviewed</h3><ul>@@VALIDATION_ITEMS@@</ul></div>
+        <div><h3>Command Sources</h3><ul>@@SOURCE_ITEMS@@</ul></div>
+      </div>
+    </section>
+
+    <section class="section" id="unknowns">
+      <div class="section-heading"><h2>Unknowns &amp; Assumptions</h2></div>
+      <ul>@@UNKNOWNS@@</ul>
+    </section>
+
+    <section class="section" id="provenance">
+      <div class="section-heading"><h2>Provenance</h2></div>
+      <ul>@@PROVENANCE_ITEMS@@</ul>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const search = document.getElementById("file-search");
+      const layerFilter = document.getElementById("layer-filter");
+      const rows = Array.from(document.querySelectorAll("#file-table tbody tr"));
+      const status = document.getElementById("control-status");
+      const visibleCount = document.getElementById("visible-file-count");
+      const details = Array.from(document.querySelectorAll(".layer"));
+      const markdownSummary = @@MARKDOWN_SUMMARY@@;
+
+      function updateUrl() {
+        try {
+          const url = new URL(window.location.href);
+          search.value ? url.searchParams.set("q", search.value) : url.searchParams.delete("q");
+          layerFilter.value ? url.searchParams.set("layer", layerFilter.value) : url.searchParams.delete("layer");
+          window.history.replaceState(null, "", url);
+        } catch (_) {
+          // Local file history may be unavailable; filtering still works.
+        }
+      }
+
+      function applyFilters({ announce = true } = {}) {
+        const query = search.value.trim().toLowerCase();
+        const layer = layerFilter.value;
+        let count = 0;
+        rows.forEach((row) => {
+          const matchesQuery = !query || row.dataset.search.includes(query);
+          const matchesLayer = !layer || row.dataset.layer === layer;
+          const visible = matchesQuery && matchesLayer;
+          row.classList.toggle("is-filtered", !visible);
+          if (visible) count += 1;
+        });
+        visibleCount.textContent = String(count);
+        if (announce) status.textContent = `${count} ${count === 1 ? "file" : "files"} shown.`;
+        updateUrl();
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      search.value = params.get("q") || "";
+      const requestedLayer = params.get("layer") || "";
+      if (Array.from(layerFilter.options).some((option) => option.value === requestedLayer)) {
+        layerFilter.value = requestedLayer;
+      }
+      applyFilters({ announce: false });
+
+      search.addEventListener("input", () => applyFilters());
+      layerFilter.addEventListener("change", () => applyFilters());
+
+      document.getElementById("expand-all").addEventListener("click", () => {
+        details.forEach((detail) => { detail.open = true; });
+        status.textContent = "All walkthrough layers expanded.";
+      });
+
+      document.getElementById("collapse-all").addEventListener("click", () => {
+        details.forEach((detail) => { detail.open = false; });
+        status.textContent = "All walkthrough layers collapsed.";
+      });
+
+      async function copyText(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          return;
+        }
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand("copy");
+        textarea.remove();
+        if (!copied) throw new Error("Copy failed");
+      }
+
+      document.getElementById("copy-summary").addEventListener("click", async () => {
+        try {
+          await copyText(markdownSummary);
+          status.textContent = "Markdown summary copied.";
+        } catch (_) {
+          status.textContent = "Copy failed. Select the summary from the Overview section instead.";
+        }
+      });
+
+      document.querySelectorAll(".sort-button").forEach((button) => {
+        button.addEventListener("click", () => {
+          const header = button.closest("th");
+          const key = button.dataset.sort;
+          const nextDirection = header.getAttribute("aria-sort") === "ascending" ? "descending" : "ascending";
+          document.querySelectorAll("th[aria-sort]").forEach((item) => {
+            item.setAttribute("aria-sort", "none");
+            item.querySelector(".sort-indicator").textContent = "\u2195";
+          });
+          header.setAttribute("aria-sort", nextDirection);
+          header.querySelector(".sort-indicator").textContent = nextDirection === "ascending" ? "\u2191" : "\u2193";
+          rows.sort((a, b) => {
+            const aValue = key === "path" ? a.querySelector(".path-link").textContent : a.dataset.layerLabel;
+            const bValue = key === "path" ? b.querySelector(".path-link").textContent : b.dataset.layerLabel;
+            const result = aValue.localeCompare(bValue);
+            return nextDirection === "ascending" ? result : -result;
+          });
+          const body = document.querySelector("#file-table tbody");
+          rows.forEach((row) => body.appendChild(row));
+          status.textContent = `Sorted by ${key}, ${nextDirection}.`;
+        });
+      });
+
+      function clearHighlights() {
+        document.querySelectorAll(".is-highlighted").forEach((element) => element.classList.remove("is-highlighted"));
+      }
+
+      function highlightTarget(target) {
+        clearHighlights();
+        const row = document.getElementById(target);
+        if (row) row.classList.add("is-highlighted");
+        document.querySelectorAll(`.flow-node-link[data-target="${CSS.escape(target)}"]`).forEach((node) => node.classList.add("is-highlighted"));
+      }
+
+      document.querySelectorAll(".flow-node-link").forEach((node) => {
+        node.addEventListener("mouseenter", () => highlightTarget(node.dataset.target));
+        node.addEventListener("focusin", () => highlightTarget(node.dataset.target));
+        node.addEventListener("mouseleave", clearHighlights);
+        node.addEventListener("focusout", clearHighlights);
+      });
+
+      rows.forEach((row) => {
+        row.addEventListener("mouseenter", () => highlightTarget(row.id));
+        row.addEventListener("focusin", () => highlightTarget(row.id));
+        row.addEventListener("mouseleave", clearHighlights);
+        row.addEventListener("focusout", clearHighlights);
+      });
+
+      document.querySelectorAll("time[data-local-time]").forEach((time) => {
+        const value = new Date(time.dateTime);
+        if (!Number.isNaN(value.getTime())) {
+          time.textContent = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(value);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

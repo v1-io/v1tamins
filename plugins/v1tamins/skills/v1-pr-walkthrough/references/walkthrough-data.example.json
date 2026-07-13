@@ -1,0 +1,225 @@
+{
+  "meta": {
+    "title": "PR 123: Add queued report delivery",
+    "source_url": "https://github.com/example/example/pull/123",
+    "base": "main",
+    "head": "feature/queued-report-delivery",
+    "head_oid": "0123456789abcdef",
+    "author": "example-author",
+    "generated_at": "2026-01-15T14:30:00Z",
+    "intent": "Queue completed reports for durable delivery while preserving retry and tenant boundaries."
+  },
+  "summary": {
+    "additions": 284,
+    "deletions": 37
+  },
+  "overview": [
+    "This change moves report delivery out of the request path and into a durable queue. The API now records a delivery request, the worker claims queued items, and the storage layer tracks attempts and terminal outcomes.",
+    "The primary review path is the lifecycle contract: one tenant must not claim another tenant's report, retries must remain bounded, and completed deliveries must not be processed again."
+  ],
+  "files": [
+    {
+      "id": "report-route",
+      "path": "src/http/report_routes.py",
+      "layer_id": "api",
+      "role": "Receives report delivery requests.",
+      "change": "Replaces synchronous delivery with queue submission and returns an accepted response.",
+      "interactions": "Calls ReportDeliveryService and maps service results to HTTP responses.",
+      "evidence": "Changed handler and response contract at lines 42-71.",
+      "risks": ["API contract"]
+    },
+    {
+      "id": "delivery-service",
+      "path": "src/services/report_delivery.py",
+      "layer_id": "service",
+      "role": "Coordinates queue submission and worker claims.",
+      "change": "Adds idempotent enqueue, claim, success, and retry transitions.",
+      "interactions": "Uses DeliveryRepository and the existing mail provider adapter.",
+      "evidence": "New lifecycle methods at lines 18-126.",
+      "risks": ["Concurrency", "Idempotency"]
+    },
+    {
+      "id": "delivery-model",
+      "path": "src/models/report_delivery.py",
+      "layer_id": "data",
+      "role": "Defines the durable delivery record.",
+      "change": "Adds tenant scope, attempt count, status, and delivery timestamps.",
+      "interactions": "Persisted by DeliveryRepository and created by the migration.",
+      "evidence": "New model and status constraint at lines 9-58.",
+      "risks": ["Tenant scope", "Schema"]
+    },
+    {
+      "id": "delivery-contract-test",
+      "path": "tests/integration/test_report_delivery.py",
+      "layer_id": "tests",
+      "role": "Exercises the delivery lifecycle against the test database.",
+      "change": "Covers idempotency, tenant isolation, retry limits, and terminal claims.",
+      "interactions": "Drives the route and worker through the real repository contract.",
+      "evidence": "New integration cases at lines 31-204.",
+      "risks": []
+    }
+  ],
+  "flowchart": {
+    "description": "The request enters through the report route, moves through delivery orchestration into durable storage, and is verified by the integration contract.",
+    "nodes": [
+      {
+        "id": "route-node",
+        "label": "Report Route",
+        "detail": "Accepts delivery request",
+        "kind": "primary",
+        "target": "file-report-route",
+        "column": 0,
+        "row": 0
+      },
+      {
+        "id": "service-node",
+        "label": "Delivery Service",
+        "detail": "Queues and claims work",
+        "kind": "primary",
+        "target": "file-delivery-service",
+        "column": 1,
+        "row": 0
+      },
+      {
+        "id": "model-node",
+        "label": "Delivery Record",
+        "detail": "Persists lifecycle state",
+        "kind": "data",
+        "target": "file-delivery-model",
+        "column": 2,
+        "row": 0
+      },
+      {
+        "id": "test-node",
+        "label": "Integration Contract",
+        "detail": "Verifies full lifecycle",
+        "kind": "test",
+        "target": "file-delivery-contract-test",
+        "column": 1,
+        "row": 1
+      }
+    ],
+    "edges": [
+      {
+        "from": "route-node",
+        "to": "service-node",
+        "label": "submits",
+        "evidence": "The route calls ReportDeliveryService.enqueue.",
+        "confidence": "high"
+      },
+      {
+        "from": "service-node",
+        "to": "model-node",
+        "label": "persists",
+        "evidence": "The service writes through DeliveryRepository.",
+        "confidence": "high"
+      },
+      {
+        "from": "test-node",
+        "to": "service-node",
+        "label": "drives",
+        "evidence": "The integration suite exercises enqueue and claim transitions.",
+        "confidence": "high"
+      }
+    ]
+  },
+  "layers": [
+    {
+      "id": "api",
+      "label": "API Boundary",
+      "title": "Accept the Delivery Request",
+      "purpose": "Translate an authenticated HTTP request into a durable delivery command.",
+      "changed_behavior": "The endpoint returns an accepted response after enqueue instead of waiting for the provider.",
+      "contract": "Receives a report identifier and tenant context, then passes a normalized enqueue command to the service.",
+      "interaction": "Depends on existing authentication, report lookup, and HTTP error mapping.",
+      "reviewer_focus": "Confirm the response contract and error mapping remain compatible with callers.",
+      "snippets": [
+        {
+          "path": "src/http/report_routes.py",
+          "start_line": 54,
+          "end_line": 61,
+          "language": "python",
+          "code": "delivery = await delivery_service.enqueue(\n    tenant_id=request.tenant_id,\n    report_id=report_id,\n    idempotency_key=request.idempotency_key,\n)\nreturn JSONResponse({\"delivery_id\": delivery.id}, status_code=202)"
+        }
+      ]
+    },
+    {
+      "id": "service",
+      "label": "Application Service",
+      "title": "Queue and Claim Delivery Work",
+      "purpose": "Centralize idempotency, claim, retry, and completion rules.",
+      "changed_behavior": "Workers now claim one eligible delivery atomically and record provider outcomes.",
+      "contract": "Receives tenant-scoped commands and emits repository transitions plus provider calls.",
+      "interaction": "Coordinates the delivery repository and existing mail provider adapter.",
+      "reviewer_focus": "Inspect competing claims, retry eligibility, and terminal-state guards.",
+      "snippets": [
+        {
+          "path": "src/services/report_delivery.py",
+          "start_line": 73,
+          "end_line": 81,
+          "language": "python",
+          "code": "delivery = await self.repository.claim_next(\n    tenant_id=tenant_id,\n    eligible_statuses={\"queued\", \"retryable\"},\n)\nif delivery is None:\n    return None\nawait self.provider.send(delivery.payload)"
+        }
+      ]
+    },
+    {
+      "id": "data",
+      "label": "Data Boundary",
+      "title": "Persist the Delivery Lifecycle",
+      "purpose": "Store tenant ownership, attempt state, and terminal outcomes.",
+      "changed_behavior": "The new record constrains statuses and gives each tenant an idempotency boundary.",
+      "contract": "Persists service transitions and exposes claimable records to workers.",
+      "interaction": "Relies on the database transaction boundary and migration-created indexes.",
+      "reviewer_focus": "Compare model constraints, migration DDL, and repository query predicates.",
+      "snippets": [
+        {
+          "path": "src/models/report_delivery.py",
+          "start_line": 17,
+          "end_line": 25,
+          "language": "python",
+          "code": "class ReportDeliveryRecord(SQLModel, table=True):\n    tenant_id: UUID = Field(index=True)\n    report_id: UUID\n    idempotency_key: str\n    status: str = Field(default=\"queued\", index=True)\n    attempt_count: int = 0"
+        }
+      ]
+    },
+    {
+      "id": "tests",
+      "label": "Tests and Fixtures",
+      "title": "Verify the Cross-Layer Contract",
+      "purpose": "Prove tenant isolation and lifecycle behavior against a migrated database.",
+      "changed_behavior": "The suite now covers duplicate enqueue, competing claims, retries, and terminal records.",
+      "contract": "Seeds reports and delivery records, drives route and worker behavior, then asserts persisted outcomes.",
+      "interaction": "Uses the integration database fixture and a deterministic provider fake.",
+      "reviewer_focus": "Check that each risk has a failing-path assertion, not only a happy-path assertion.",
+      "snippets": [
+        {
+          "path": "tests/integration/test_report_delivery.py",
+          "start_line": 142,
+          "end_line": 149,
+          "language": "python",
+          "code": "first_claim, second_claim = await asyncio.gather(\n    worker.claim_next(tenant_id),\n    worker.claim_next(tenant_id),\n)\nassert sum(item is not None for item in (first_claim, second_claim)) == 1"
+        }
+      ]
+    }
+  ],
+  "evidence": {
+    "validation": [
+      "Focused integration suite passed.",
+      "Schema migration upgraded and downgraded in the test database.",
+      "Formatter and static checks passed for touched files."
+    ],
+    "sources": [
+      "Pull request metadata and raw diff.",
+      "Repository searches for route, service, model, and test symbols.",
+      "Local validation output recorded during the walkthrough run."
+    ]
+  },
+  "unknowns": [
+    "Provider rate-limit behavior was inferred from the existing adapter and not exercised in this change.",
+    "Production queue depth and retry timing were not available from repository evidence."
+  ],
+  "provenance": [
+    "Built from pull request metadata, the fetched head revision, and repository-local source files.",
+    "Facts are sourced from the diff unless explicitly described as inferred or unknown."
+  ],
+  "markdown_summary": "PR 123: Add queued report delivery\n\nIntent: Queue completed reports for durable delivery while preserving retry and tenant boundaries.\nFiles: 4 changed, +284/-37.\nMain flow: report route -> delivery service -> delivery record -> integration contract.\nKey risks: API contract, concurrency, idempotency, tenant scope, and schema consistency."
+}
