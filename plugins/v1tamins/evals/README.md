@@ -113,6 +113,7 @@ production destinations.
 scripts/run-skilling-it-behavior-eval.py --runtime codex
 scripts/run-skilling-it-behavior-eval.py --runtime claude --case-id audit-read-only
 scripts/run-skilling-it-behavior-eval.py --runtime codex --dry-run
+scripts/run-skilling-it-behavior-eval.py --self-test
 ```
 
 Interpret `inconclusive` as missing evidence, never success. Raw prompts,
