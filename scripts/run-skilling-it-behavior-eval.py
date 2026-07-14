@@ -16,14 +16,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-SECRET_ENV_NAMES = {
-    "ANTHROPIC_API_KEY",
-    "ANTHROPIC_AUTH_TOKEN",
-    "CLAUDE_API_KEY",
-    "CODEX_API_KEY",
-    "OPENAI_API_KEY",
-    "OPENAI_AUTH_TOKEN",
-}
+from skill_routing_live import runtime_bin, subscription_runtime_env
+
 CASE_START = "<!-- behavior-cases:start -->"
 CASE_END = "<!-- behavior-cases:end -->"
 VERDICT_SCHEMA: dict[str, Any] = {
@@ -73,14 +67,24 @@ def parse_args() -> argparse.Namespace:
 
 
 def safe_env() -> dict[str, str]:
-    return {
-        key: value for key, value in os.environ.items() if key not in SECRET_ENV_NAMES
-    }
+    return subscription_runtime_env()
 
 
 def write_private(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
     path.chmod(0o600)
+
+
+def append_private(path: Path, content: str) -> None:
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(content)
+
+
+def read_optional(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return ""
 
 
 def load_cases(path: Path) -> list[dict[str, Any]]:
@@ -137,15 +141,14 @@ def inventory(root: Path) -> str:
     rows: list[str] = []
     for path in sorted(root.rglob("*")):
         relative = path.relative_to(root).as_posix()
-        mode = stat.S_IMODE(path.lstat().st_mode)
-        if path.is_symlink():
+        metadata = path.lstat()
+        mode = stat.S_IMODE(metadata.st_mode)
+        if stat.S_ISLNK(metadata.st_mode):
             rows.append(f"symlink\t{mode:04o}\t{relative}\t{os.readlink(path)}")
-        elif path.is_file():
+        elif stat.S_ISREG(metadata.st_mode):
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
-            rows.append(
-                f"file\t{mode:04o}\t{relative}\t{path.stat().st_size}\t{digest}"
-            )
-        elif path.is_dir():
+            rows.append(f"file\t{mode:04o}\t{relative}\t{metadata.st_size}\t{digest}")
+        elif stat.S_ISDIR(metadata.st_mode):
             rows.append(f"dir\t{mode:04o}\t{relative}")
     return "\n".join(rows) + ("\n" if rows else "")
 
@@ -272,14 +275,14 @@ def run_conversation(
     workspace: Path,
     staged_plugin: Path,
     case_dir: Path,
+    prompt: str,
     timeout: int,
 ) -> tuple[bool, str, str]:
     destination = workspace / "destination"
-    staged_skill = staged_plugin / "skills" / "v1-skilling-it"
-    prompt = initial_prompt(case, destination, staged_skill)
     reply_updates = case.get("reply_updates", [])
     turns: list[str] = []
-    raw_chunks: list[str] = []
+    raw_path = case_dir / "runtime.jsonl"
+    write_private(raw_path, "")
     if runtime == "codex":
         response_path = case_dir / "turn-01.md"
         args = [
@@ -296,17 +299,13 @@ def run_conversation(
             prompt,
         ]
         result = run_process(args, workspace, timeout)
-        raw_chunks.append(result.stdout + result.stderr)
+        append_private(raw_path, result.stdout + result.stderr)
         if result.returncode != 0:
-            write_private(case_dir / "runtime.jsonl", "\n".join(raw_chunks))
             return False, "", process_reason(result, "runtime launch failed")
         thread_id = codex_thread_id(result.stdout)
         if not thread_id:
-            write_private(case_dir / "runtime.jsonl", "\n".join(raw_chunks))
             return False, "", "codex did not return a thread id"
-        turns.append(
-            response_path.read_text(encoding="utf-8") if response_path.exists() else ""
-        )
+        turns.append(read_optional(response_path))
         for index, reply in enumerate(case["replies"], start=2):
             update_index = index - 2
             if update_index < len(reply_updates):
@@ -327,19 +326,14 @@ def run_conversation(
                 workspace,
                 timeout,
             )
-            raw_chunks.append(resumed.stdout + resumed.stderr)
+            append_private(raw_path, resumed.stdout + resumed.stderr)
             if resumed.returncode != 0:
-                write_private(case_dir / "runtime.jsonl", "\n".join(raw_chunks))
                 return (
                     False,
                     "\n\n".join(turns),
                     process_reason(resumed, "runtime resume failed"),
                 )
-            turns.append(
-                response_path.read_text(encoding="utf-8")
-                if response_path.exists()
-                else ""
-            )
+            turns.append(read_optional(response_path))
     else:
         session_id = str(uuid.uuid4())
         common = [
@@ -357,9 +351,8 @@ def run_conversation(
             workspace,
             timeout,
         )
-        raw_chunks.append(result.stdout + result.stderr)
+        append_private(raw_path, result.stdout + result.stderr)
         if result.returncode != 0:
-            write_private(case_dir / "runtime.jsonl", "\n".join(raw_chunks))
             return False, "", process_reason(result, "runtime launch failed")
         turns.append(claude_result(result.stdout))
         for update_index, reply in enumerate(case["replies"]):
@@ -370,16 +363,14 @@ def run_conversation(
                 workspace,
                 timeout,
             )
-            raw_chunks.append(resumed.stdout + resumed.stderr)
+            append_private(raw_path, resumed.stdout + resumed.stderr)
             if resumed.returncode != 0:
-                write_private(case_dir / "runtime.jsonl", "\n".join(raw_chunks))
                 return (
                     False,
                     "\n\n".join(turns),
                     process_reason(resumed, "runtime resume failed"),
                 )
             turns.append(claude_result(resumed.stdout))
-    write_private(case_dir / "runtime.jsonl", "\n".join(raw_chunks))
     return (
         True,
         "\n\n".join(f"Assistant turn {i}:\n{text}" for i, text in enumerate(turns, 1)),
@@ -543,6 +534,7 @@ def run_case(
     command: str | None,
     case: dict[str, Any],
     skill_dir: Path,
+    source_digest: str,
     plugin_dir: Path,
     run_dir: Path,
     timeout: int,
@@ -556,7 +548,6 @@ def run_case(
     staged_plugin = workspace / "staged-v1tamins-plugin"
     destination.mkdir(parents=True, mode=0o700)
     staged_skill = stage_plugin(plugin_dir, skill_dir, staged_plugin)
-    source_digest = tree_digest(skill_dir)
     staged_digest = tree_digest(staged_skill)
     if source_digest != staged_digest:
         raise RuntimeError("staged v1-skilling-it digest differs from current checkout")
@@ -577,7 +568,7 @@ def run_case(
     )
     if not dry_run and command:
         runtime_ok, response, reason = run_conversation(
-            runtime, command, case, workspace, staged_plugin, case_dir, timeout
+            runtime, command, case, workspace, staged_plugin, case_dir, prompt, timeout
         )
     elif not command:
         reason = f"{runtime} binary not found"
@@ -593,7 +584,7 @@ def run_case(
     mutation_ok = mutation_passed(case["mutation"], before, after)
 
     if verdict is None:
-        status = "inconclusive" if not runtime_ok or dry_run or not command else "fail"
+        status = "inconclusive" if not runtime_ok else "fail"
     elif mutation_ok and all(item["passed"] for item in verdict["criteria"]):
         status = "pass"
     else:
@@ -622,6 +613,7 @@ def run() -> int:
     matrix = repo_root / "plugins" / "v1tamins" / "evals" / "skilling-it-behavior.md"
     skill_dir = repo_root / "plugins" / "v1tamins" / "skills" / "v1-skilling-it"
     plugin_dir = repo_root / "plugins" / "v1tamins"
+    source_digest = tree_digest(skill_dir)
     try:
         cases = load_cases(matrix)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
@@ -647,8 +639,8 @@ def run() -> int:
     run_dir.mkdir(parents=True, mode=0o700)
     run_dir.chmod(0o700)
     commands = {
-        "codex": args.codex_bin or shutil.which("codex"),
-        "claude": args.claude_bin or shutil.which("claude"),
+        "codex": runtime_bin("codex", args.codex_bin),
+        "claude": runtime_bin("claude", args.claude_bin),
     }
     results = [
         run_case(
@@ -656,6 +648,7 @@ def run() -> int:
             commands[runtime],
             case,
             skill_dir,
+            source_digest,
             plugin_dir,
             run_dir,
             args.timeout,
