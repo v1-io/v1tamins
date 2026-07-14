@@ -157,6 +157,17 @@ def run_conversation(
             capture_snapshot(case_dir, label, workspace, targets, target_state)
         )
 
+    def apply_turn_updates(update_index: int, label: str) -> None:
+        if update_index < len(reply_updates):
+            seed_files(destination, reply_updates[update_index])
+        target_updates = case.get("synthetic_target_updates", [])
+        if update_index < len(target_updates):
+            for name, state in target_updates[update_index].items():
+                target_state[name].update(state)
+        snapshots.append(
+            capture_snapshot(case_dir, label, workspace, targets, target_state)
+        )
+
     if runtime == "codex":
         response_path = case_dir / "turn-01.md"
         args = [
@@ -193,18 +204,7 @@ def run_conversation(
         turns.append(read_optional(response_path))
         for index, reply in enumerate(case["replies"], start=2):
             update_index = index - 2
-            if update_index < len(reply_updates):
-                seed_files(destination, reply_updates[update_index])
-            if update_index < len(case.get("synthetic_target_updates", [])):
-                for name, state in case["synthetic_target_updates"][
-                    update_index
-                ].items():
-                    target_state[name].update(state)
-            snapshots.append(
-                capture_snapshot(
-                    case_dir, f"turn-{index:02d}-pre", workspace, targets, target_state
-                )
-            )
+            apply_turn_updates(update_index, f"turn-{index:02d}-pre")
             response_path = case_dir / f"turn-{index:02d}.md"
             resumed = run_process(
                 [
@@ -259,22 +259,7 @@ def run_conversation(
             )
         turns.append(claude_result(result.stdout))
         for update_index, reply in enumerate(case["replies"]):
-            if update_index < len(reply_updates):
-                seed_files(destination, reply_updates[update_index])
-            if update_index < len(case.get("synthetic_target_updates", [])):
-                for name, state in case["synthetic_target_updates"][
-                    update_index
-                ].items():
-                    target_state[name].update(state)
-            snapshots.append(
-                capture_snapshot(
-                    case_dir,
-                    f"turn-{update_index + 2:02d}-pre",
-                    workspace,
-                    targets,
-                    target_state,
-                )
-            )
+            apply_turn_updates(update_index, f"turn-{update_index + 2:02d}-pre")
             continuation = "\n\n".join(
                 [
                     "Continue this synthetic behavior-evaluation conversation.",
@@ -309,6 +294,24 @@ def run_conversation(
     )
 
 
+def uncovered_runtime_cases(
+    results: list[dict[str, Any]],
+    cases: list[dict[str, Any]],
+    runtimes: list[str],
+) -> list[str]:
+    passed = {
+        (item["runtime"], item["case_id"])
+        for item in results
+        if item["status"] == "pass"
+    }
+    return [
+        f"{runtime}/{case['case_id']}"
+        for runtime in runtimes
+        for case in cases
+        if (runtime, case["case_id"]) not in passed
+    ]
+
+
 def run_self_test() -> int:
     criterion = {"id": "c1", "passed": True, "evidence": "observed"}
     good_verdict = {"criteria": [criterion], "summary": "passed"}
@@ -317,10 +320,20 @@ def run_self_test() -> int:
     env_ok = all(
         name in CHILD_ENV_NAMES or name.startswith("LC_") for name in child_env()
     )
+    mixed_runtime_results = [
+        {"runtime": "claude", "case_id": "example", "status": "pass"},
+        {"runtime": "codex", "case_id": "example", "status": "inconclusive"},
+    ]
+    runtime_coverage_ok = uncovered_runtime_cases(
+        mixed_runtime_results,
+        [{"case_id": "example"}],
+        ["claude", "codex"],
+    ) == ["codex/example"]
     if not (
         verdict_error(good_verdict, 1) is None
         and verdict_error(duplicate_verdict, 1) is not None
         and env_ok
+        and runtime_coverage_ok
         and support_self_test()
     ):
         print("ERROR: adapter evidence self-test failed", file=sys.stderr)
@@ -426,6 +439,15 @@ def run_case(
         )
         for name, target in targets.items()
     }
+    target_content_matches = {
+        name: tree_digest(target) == tree_digest(destination)
+        for name, target in targets.items()
+    }
+    existing_source_unchanged = (
+        not targets
+        or not case["initial_files"]
+        or before_destination == after_destination
+    )
     execution_ok = execution_receipt_matches(
         execution_receipt, command_argv, execution_expectation or {}
     )
@@ -439,6 +461,8 @@ def run_case(
         "runtime_read_staged_skill": staged_read,
         "staged_skill_unchanged": staged_unchanged,
         "target_mutation_counts": target_mutations,
+        "target_content_matches_source": target_content_matches,
+        "existing_source_unchanged_during_deployment": existing_source_unchanged,
         "unexpected_workspace_entries": unexpected,
     }
     mechanical_ok = (
@@ -448,6 +472,8 @@ def run_case(
         and execution_ok
         and staged_unchanged
         and (not targets or all(count == 1 for count in target_mutations.values()))
+        and (not targets or all(target_content_matches.values()))
+        and existing_source_unchanged
     )
     artifacts = bounded_artifacts({"destination": destination, **targets})
     judge_input = judge_prompt(
@@ -609,10 +635,7 @@ def run() -> int:
         status: sum(item["status"] == status for item in results)
         for status in ("pass", "fail", "inconclusive")
     }
-    passed_case_ids = {item["case_id"] for item in results if item["status"] == "pass"}
-    uncovered = [
-        case["case_id"] for case in cases if case["case_id"] not in passed_case_ids
-    ]
+    uncovered = uncovered_runtime_cases(results, cases, runtimes)
     summary = (
         "\n".join(
             [
@@ -621,7 +644,7 @@ def run() -> int:
                 f"- Pass: {counts['pass']}",
                 f"- Fail: {counts['fail']}",
                 f"- Inconclusive: {counts['inconclusive']}",
-                f"- Cases without a pass: {', '.join(uncovered) or 'none'}",
+                f"- Runtime cases without a pass: {', '.join(uncovered) or 'none'}",
                 f"- Results: `{results_path}`",
             ]
         )
