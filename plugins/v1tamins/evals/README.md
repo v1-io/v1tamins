@@ -94,3 +94,27 @@ Evidence classes matter. `observed_invocation` means the adapter saw a concrete
 skill-like runtime event. `structured_decision` means the runtime returned a
 routing decision in the requested JSON shape. `inconclusive` means no reliable
 decision was available.
+
+## v1-skilling-it Behavior Adapter
+
+Routing evidence proves selection, not workflow execution. The committed
+[`skilling-it-behavior.md`](skilling-it-behavior.md) matrix and
+`scripts/run-skilling-it-behavior-eval.py` exercise the multi-turn authoring
+contract in isolated synthetic workspaces.
+
+The adapter stages the current skill into each case, scripts user replies,
+inventories only the declared `destination/`, and asks a separate fresh judge
+for a structured verdict. It writes ignored evidence under
+`.v1tamins/behavior/v1-skilling-it/`. Case directories and files use restrictive
+local permissions. Do not use private inputs, credentials, customer data, or
+production destinations.
+
+```bash
+scripts/run-skilling-it-behavior-eval.py --runtime codex
+scripts/run-skilling-it-behavior-eval.py --runtime claude --case-id audit-read-only
+scripts/run-skilling-it-behavior-eval.py --runtime codex --dry-run
+```
+
+Interpret `inconclusive` as missing evidence, never success. Raw prompts,
+responses, inventories, and verdicts may contain model output; retain them only
+for the review window, then delete the run directory documented by the matrix.
