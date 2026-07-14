@@ -1,7 +1,11 @@
 interface:
   display_name: "Skilling It"
-  short_description: "Create, edit, audit, and validate Agent Skills"
-  default_prompt: "Use $v1-skilling-it to create, edit, audit, or validate an Agent Skill, resolving who should use it and where its Canonical Source belongs before writing files."
+  short_description: "Manage Agent Skills through gated deployment"
+  default_prompt: "Use $v1-skilling-it to create, edit, audit, validate, package, install, or publish an Agent Skill. Resolve who should use it and where its Canonical Source belongs before writing, then gate each requested deployment action separately."
 
 policy:
   allow_implicit_invocation: true
+  invocation_posture: selective_implicit
+  side_effects:
+    - external_write
+    - git_remote

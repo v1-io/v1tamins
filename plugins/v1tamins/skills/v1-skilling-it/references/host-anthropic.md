@@ -109,8 +109,12 @@ before changing a managed installation or uploading through an API.
   controls, substitutions, permissions, and fork behavior used by this skill.
 - **[Anthropic]** Validate Claude.ai or API deployment separately and record the
   deployed version or checksum when the interface exposes one.
-- **[General guidance]** Mark an unavailable surface or unverifiable read-back as
-  inconclusive or unknown rather than silently treating it as verified.
+- **[General guidance]** Report Claude Code, Claude.ai, API, and managed targets
+  using the host-neutral action and verification fields in the Sources and
+  Deployment reference loaded directly from `SKILL.md`; do not add
+  Anthropic-only statuses. Map an unavailable surface to
+  `action_status: blocked` and unverifiable read-back after a completed action to
+  `verification_status: unknown`.
 
 ## Official sources
 

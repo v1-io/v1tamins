@@ -90,11 +90,14 @@ extension of the Agent Skills protocol. Apply this conflict classification:
 - **[OpenAI]** Validate `agents/openai.yaml`, invocation behavior, discovery,
   and the actual requested OpenAI deployment separately.
 - **[General guidance]** Record the Canonical Source path or identifier and its
-  digest or revision, then list every ChatGPT, Codex, API, or plugin target as
-  created, validated, deployed, verified, blocked, failed, unknown, or not
-  requested.
-- **[General guidance]** If target provenance or read-back cannot be verified,
-  report `unknown`; do not convert absence of evidence into a pass.
+  digest or revision, then report every ChatGPT, Codex, API, or plugin target
+  using the action and verification fields in the Sources and Deployment
+  reference loaded directly from `SKILL.md`. Map creation, upload, installation,
+  publication, and sharing to the named action; do not invent OpenAI-only
+  statuses.
+- **[General guidance]** A completed upload with unavailable target read-back is
+  `action_status: succeeded` and `verification_status: unknown`; do not convert
+  absence of evidence into `verified`.
 
 ## Official sources
 

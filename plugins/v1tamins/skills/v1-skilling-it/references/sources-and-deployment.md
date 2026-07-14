@@ -54,17 +54,42 @@ deployment, remote push, destructive replacement, or any target not requested.
 Audit mode is always read-only. Edit mode may mutate only the selected
 Canonical Source.
 
-## Status and Drift
+## Target Results and Drift
 
-Report every target independently with one status:
+This section is the host-neutral result model. Report every Canonical Source and
+Deployment Target independently with an action, an `action_status`, and a
+`verification_status`. Host adapters map their operations to these fields; they
+do not add status vocabularies.
 
-- `created`: Canonical Source written and re-read successfully.
-- `validated`: named validation passed against the current source digest.
-- `deployed`: target mutation completed and provenance was verified.
-- `failed`: attempted action failed; include the corrective action.
-- `inconclusive`: verification was unavailable; never summarize as success.
-- `not_requested`: lifecycle stage intentionally not performed.
-- `unpersisted`: complete artifact exists only in the response or handoff.
+Action status:
+
+- `not_requested`: the lifecycle action was not requested.
+- `blocked`: the action was requested but a permission, dependency, approval, or
+  capability gate prevented an attempt.
+- `succeeded`: the named action completed. This says nothing about read-back or
+  provenance.
+- `failed`: the named action was attempted and failed; include the corrective
+  action.
+- `unpersisted`: a complete source artifact exists only in the response or
+  handoff because the interface could not write the Canonical Source.
+
+Verification status:
+
+- `not_requested`: verification was outside the requested stopping point.
+- `verified`: read-back or another named check matched the expected source,
+  digest, revision, or behavior.
+- `unknown`: verification evidence was unavailable. Never summarize this as
+  verified.
+- `drifted`: observed target state differs from the expected Canonical Source or
+  recorded deployment revision.
+- `failed`: the named verification ran and failed; include the failed check and
+  corrective action.
+
+Reserve `inconclusive` for behavior-evaluation evidence, where a runtime, judge,
+or adapter could not produce an assessable verdict. It is not a source or target
+status. A completed deployment with unavailable read-back is
+`action_status: succeeded` plus `verification_status: unknown`, never
+`verified`.
 
 Record source identity or digest before editing or deploying. Re-read it before
 write, compare with the captured state, and surface a conflict when it changed.
