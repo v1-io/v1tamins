@@ -1,0 +1,10 @@
+interface:
+  display_name: "Drafting Email"
+  short_description: "Create verified, unsent Gmail drafts for review"
+  default_prompt: "Use $v1-drafting-email to create verified, unsent Gmail drafts and return connector-provided review links."
+
+policy:
+  allow_implicit_invocation: false
+  invocation_posture: explicit_only
+  side_effects:
+    - external_write

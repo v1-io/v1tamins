@@ -41,7 +41,8 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 
 ## Communicating and documenting
 
-- `/v1-stickify` — make copy memorable. `/v1-html-it` — self-contained HTML page or report. `/v1-md2docs` **(explicit)** — markdown to Google Doc.
+- `/v1-stickify` — make copy memorable. `/v1-drafting-email` **(explicit)** — create verified, unsent Gmail drafts with review links.
+- `/v1-html-it` — self-contained HTML page or report. `/v1-md2docs` **(explicit)** — markdown to Google Doc.
 - `/v1-changelog` — what shipped, from merged PRs. `/v1-docs-freshness` — sync docs after changes.
 
 ## Working on skills and prompts
