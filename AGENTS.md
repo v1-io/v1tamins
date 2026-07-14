@@ -58,6 +58,14 @@ Skill names use the `v1-` prefix in both directory names and frontmatter names (
 
 Private plugin skill directories named `v1-_*` are gitignored — they can exist locally but are not distributed.
 
+### General Skill Workflow
+
+Use `v1-skilling-it` to create, edit, audit, or validate an Agent Skill and to
+resolve whether its authoritative Canonical Source belongs in a personal
+workspace, a project, a durable managed source, or a shared plugin. The
+contribution steps below apply only when that Canonical Source is this v1tamins
+repository.
+
 ### Autonomous Routing Evals
 
 Skill metadata is runtime behavior. Codex and Claude Code select skills from

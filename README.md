@@ -440,7 +440,7 @@ flowchart LR
 | Skill | When to use |
 |-------|-------------|
 | [`/v1-phone-a-friend`](./plugins/v1tamins/skills/v1-phone-a-friend/SKILL.md) | Route work to another agent or model for counterpart review, steelmanning, delegation, or deep research |
-| [`/v1-skilling-it`](./plugins/v1tamins/skills/v1-skilling-it/SKILL.md) | Create or improve a shared agent skill (this repo's own toolchain) |
+| [`/v1-skilling-it`](./plugins/v1tamins/skills/v1-skilling-it/SKILL.md) | Create, edit, audit, or validate an Agent Skill; resolve its Canonical Source for personal, project, managed, or shared-plugin use |
 | [`/v1-prompt-engineering`](./plugins/v1tamins/skills/v1-prompt-engineering/SKILL.md) | Write, improve, or migrate prompts, system prompts, hooks, or sub-agent briefs for any model or host, including GPT-5.5 / OpenAI Responses API / OpenRouter |
 
 ---
@@ -465,6 +465,10 @@ This package uses a plugin-native source layout. The committed skill source is `
 Marketplace/plugin consumers already invoking `/v1-*` skills should not need to change anything.
 
 ## Contributing
+
+`/v1-skilling-it` is the general workflow entry point for Agent Skills wherever
+their Canonical Source belongs. The steps below are narrower: they are the
+repository-specific rules for contributing a skill to the v1tamins plugin.
 
 1. Fork and clone, add upstream:
    ```bash
