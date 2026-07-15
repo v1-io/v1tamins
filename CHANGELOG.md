@@ -1,5 +1,22 @@
 # v1tamins
 
+## 0.8.0
+
+### Minor Changes
+
+- c7c7e4f: Add `v1-designing-habit-systems`, an evidence-based skill for designing habit, routine, and cadence systems for a person, team, or process — or diagnosing why an existing one keeps failing — from the primary behavior-change research.
+- 3713ab5: Add `v1-pr-walkthrough`, a PR explanation skill that generates a throw-away HTML map of touched files and walks the change in execution order.
+
+  Refine the artifact contract so touched files render as a table, connections render as a visual flowchart, and each walkthrough layer includes a relevant PR snippet.
+
+  Add an accessible, responsive HTML template with a validated JSON renderer so future walkthroughs reuse the audited layout and interactions.
+
+- 6ec5646: Redesign `v1-skilling-it` around an explicit Canonical Source, project and managed ownership choices, and separately gated deployment targets.
+
+  Add a ten-option naming slate for unnamed skills, split portable protocol guidance from OpenAI, Anthropic, and v1tamins conventions, and replace unsafe evaluation and executable-resource examples with bounded, fail-closed guidance.
+
+  Add committed workflow cases and a bounded behavior adapter so routing and loaded-skill behavior are verified as separate contracts.
+
 ## 0.7.0
 
 ### Minor Changes
