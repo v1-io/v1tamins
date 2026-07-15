@@ -6,7 +6,10 @@ This file provides guidance to Codex when working with code in this repository.
 
 **v1tamins** is a public-facing shared collection of reusable AI development skills, distributed as a plugin for Claude Code and Codex.
 
-This is a **configuration distribution repository**, not an application. It contains no build system or tests — quality is maintained through git review, lightweight validation scripts, and usage feedback.
+This is a **configuration distribution repository**, not an application. It has
+no application build system or conventional test suite; quality is maintained
+through the static plugin validator, committed routing fixtures, bounded
+behavior evals, git review, and usage feedback.
 
 ## Public-Safe Requirement
 
@@ -58,6 +61,14 @@ Skill names use the `v1-` prefix in both directory names and frontmatter names (
 
 Private plugin skill directories named `v1-_*` are gitignored — they can exist locally but are not distributed.
 
+### General Skill Workflow
+
+Use `v1-skilling-it` to create, edit, audit, or validate an Agent Skill and to
+resolve whether its authoritative Canonical Source belongs in a personal
+workspace, a project, a durable managed source, or a shared plugin. The
+contribution steps below apply only when that Canonical Source is this v1tamins
+repository.
+
 ### Autonomous Routing Evals
 
 Skill metadata is runtime behavior. Codex and Claude Code select skills from
@@ -85,7 +96,7 @@ The canonical source moved from `.agents/skills/<skill-name>/` to `plugins/v1tam
 Before proposing a new skill, check `.out-of-scope/` for a prior rejection of the concept.
 
 1. Create `plugins/v1tamins/skills/v1-<skill-name>/SKILL.md`
-2. Add required `agents/openai.yaml` Codex metadata. Include `policy.invocation_posture` and `policy.side_effects` when a skill can publish externally, push to git remotes, launch peer agents, or record browser proof. Use `invocation_posture: explicit_only` (with `disable-model-invocation: true` in `SKILL.md`) both for those side-effectful skills and for deliberate rituals the user always summons by name.
+2. Add required `agents/openai.yaml` Codex metadata. Include `policy.invocation_posture` and `policy.side_effects` when a skill can publish externally, push to git remotes, launch peer agents, or record browser proof. Use `invocation_posture: explicit_only` with `disable-model-invocation: true` in `SKILL.md` for deliberate rituals and for invocations that can automatically perform outward side effects. Use `selective_implicit` with `allow_implicit_invocation: true` for high-recall workflows whose outward mutations remain separately explicit and user-gated; `policy.side_effects` is still required.
 3. Add YAML frontmatter with `name` and `description`; `name` must match the `v1-*` directory. `allowed-tools` is recommended when the skill needs tool restrictions
 4. Update `plugins/v1tamins/evals/trigger-inventory.md` and `plugins/v1tamins/evals/skill-routing.jsonl` with the intended trigger and near-miss behavior. Update `v1-menu` when a skill is added, renamed, removed, or changes invocation posture
 5. Document usage, workflow steps, and examples

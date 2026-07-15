@@ -1,0 +1,13 @@
+{
+  "executable-missing-input": {
+    "exit_code": 2,
+    "error_code": "missing_input",
+    "corrective_action": "Pass --input <path>"
+  },
+  "executable-permission-denied": {
+    "exit_code": 13,
+    "error_code": "permission_denied",
+    "path_suffix": "protected-input.txt",
+    "corrective_action": "Grant read permission to the input"
+  }
+}

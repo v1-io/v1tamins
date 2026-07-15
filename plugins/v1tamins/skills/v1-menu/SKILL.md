@@ -46,6 +46,6 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 
 ## Working on skills and prompts
 
-- `/v1-skilling-it` — write or improve a skill. `/v1-canon2skill` — mine source material for skill ideas. `/v1-goldpan` **(explicit)** — pan recent PRs and sessions for compound-worthy lessons.
-- `/v1-prompt-engineering` — prompt/system-prompt/hook/skill work for any model or host, including GPT-5.5 and OpenRouter specifics.
+- `/v1-skilling-it` — manage an Agent Skill from Canonical Source creation, editing, audit, and validation through separately gated packaging, installation, or publication. `/v1-canon2skill` — mine source material for candidate skill ideas before authoring. `/v1-goldpan` **(explicit)** — pan recent PRs and sessions for compound-worthy lessons.
+- `/v1-prompt-engineering` — work on general prompts, system prompts, hooks, or sub-agent briefs for any model or host, including GPT-5.5 and OpenRouter specifics; use `/v1-skilling-it` when the artifact is an Agent Skill.
 - `/v1-shared-language` — extract a domain glossary from the conversation.
