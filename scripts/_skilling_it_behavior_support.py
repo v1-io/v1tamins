@@ -36,6 +36,7 @@ CHILD_ENV_NAMES = set(
         "CLAUDE_CONFIG_DIR",
     ]
 )
+SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 MAX_DIAGNOSTIC_CHARS = 200_000
 MAX_ARTIFACT_CHARS = 48_000
 
@@ -180,17 +181,7 @@ def run_synthetic_command(
     sandbox = shutil.which("sandbox-exec")
     if not sandbox:
         raise RuntimeError("sandbox-exec is required for synthetic execution")
-    source = str(destination.resolve()).replace("\\", "\\\\").replace('"', '\\"')
-    profile = (
-        "(version 1) (allow default) (deny network*) "
-        '(deny file-read* (subpath "/Users")) '
-        '(deny file-read* (subpath "/Volumes")) '
-        '(deny file-read* (subpath "/Network")) '
-        '(deny file-read* (subpath "/private/tmp")) '
-        '(deny file-read* (subpath "/private/var/folders")) '
-        f'(allow file-read* (subpath "{source}")) '
-        "(deny file-write*)"
-    )
+    profile = synthetic_sandbox_profile(command[0], destination)
     with tempfile.NamedTemporaryFile(
         mode="w", encoding="utf-8", dir="/private/tmp", delete=False
     ) as handle:
@@ -209,11 +200,22 @@ def run_synthetic_command(
         timeout,
     )
     outside.unlink(missing_ok=True)
-    probe_denied = (
-        "PermissionError" in probe.stderr or "Operation not permitted" in probe.stderr
-    )
-    if probe.returncode == 0 or "outside-secret" in probe.stdout or not probe_denied:
+    if probe.returncode <= 0 or "outside-secret" in probe.stdout:
         raise RuntimeError("synthetic execution read-scope probe failed")
+    system_probe = run_process(
+        [
+            sandbox,
+            "-p",
+            profile,
+            command[0],
+            "-c",
+            "print(open('/etc/hosts', encoding='utf-8').read())",
+        ],
+        destination,
+        timeout,
+    )
+    if system_probe.returncode <= 0 or system_probe.stdout:
+        raise RuntimeError("synthetic execution system-read probe failed")
     result = run_process([sandbox, "-p", profile, *command], destination, timeout)
     script = Path(command[1])
     return {
@@ -223,6 +225,38 @@ def run_synthetic_command(
         "stdout": _bounded_diagnostic(result.stdout),
         "stderr": _bounded_diagnostic(result.stderr),
     }
+
+
+def synthetic_sandbox_profile(command: str, destination: Path) -> str:
+    """Deny data-bearing host namespaces while allowing the declared fixture."""
+    resolved_command = Path(shutil.which(command) or command).resolve()
+    runtime_root = resolved_command.parent.parent
+    readable_roots = [runtime_root, destination]
+
+    def quoted(path: Path) -> str:
+        return str(path.resolve()).replace("\\", "\\\\").replace('"', '\\"')
+
+    allow_rules = " ".join(
+        f'(allow file-read* (subpath "{quoted(root)}"))' for root in readable_roots
+    )
+    denied_roots = [
+        Path("/Applications"),
+        Path("/Network"),
+        Path("/Users"),
+        Path("/Volumes"),
+        Path("/cores"),
+        Path("/home"),
+        Path("/opt"),
+        Path("/private"),
+    ]
+    deny_rules = " ".join(
+        f'(deny file-read* (subpath "{quoted(root)}"))' for root in denied_roots
+    )
+    return (
+        "(version 1) (allow default) (deny network*) (deny file-write*) "
+        f'{deny_rules} (allow file-read* (subpath "/private/var/db/timezone")) '
+        f"{allow_rules}"
+    )
 
 
 def claude_permission_args(
@@ -461,7 +495,12 @@ def artifact_report(destination: Path) -> dict[str, Any]:
                 f"frontmatter is not a mapping: {skill_file.relative_to(destination)}"
             )
             continue
-        if fields.get("name") != skill_file.parent.name:
+        name = fields.get("name")
+        if not is_protocol_skill_name(name):
+            issues.append(
+                f"invalid protocol name: {skill_file.relative_to(destination)}"
+            )
+        if name != skill_file.parent.name:
             issues.append(f"name mismatch: {skill_file.relative_to(destination)}")
         if (
             not isinstance(fields.get("description"), str)
@@ -490,6 +529,15 @@ def artifact_report(destination: Path) -> dict[str, Any]:
         "skill_files": [str(path.relative_to(destination)) for path in skill_files],
         "issues": issues,
     }
+
+
+def is_protocol_skill_name(value: Any) -> bool:
+    """Return whether a name satisfies the Agent Skills protocol shape."""
+    return (
+        isinstance(value, str)
+        and len(value) <= 64
+        and SKILL_NAME_PATTERN.fullmatch(value) is not None
+    )
 
 
 def bounded_artifacts(roots: dict[str, Path]) -> str:
@@ -641,7 +689,8 @@ def support_self_test() -> bool:
         seed_files(
             destination,
             {
-                "self-test/SKILL.md": "---\nname: self-test\ndescription: Test.\n---\n# Test\n"
+                "self-test/SKILL.md": "---\nname: self-test\ndescription: Test.\n---\n# Test\n",
+                "Bad_Name/SKILL.md": "---\nname: Bad_Name\ndescription: Test.\n---\n# Test\n",
             },
         )
         seed_files(target, {"receipt.txt": "before\n"})
@@ -655,7 +704,14 @@ def support_self_test() -> bool:
         return all(
             [
                 before != after,
-                artifact_report(destination)["passed"],
+                not artifact_report(destination)["passed"],
+                is_protocol_skill_name("self-test"),
+                not is_protocol_skill_name("Bad_Name"),
+                not is_protocol_skill_name("bad--name"),
+                '(deny file-read* (subpath "/private"))'
+                in synthetic_sandbox_profile("/usr/bin/python3", destination),
+                '(allow file-read* (subpath "/private/var/db/timezone"))'
+                in synthetic_sandbox_profile("/usr/bin/python3", destination),
                 "Write" not in " ".join(read_only),
                 "Write,Edit" in " ".join(writable),
                 f"Read({workspace}/**)" in " ".join(writable),

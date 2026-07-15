@@ -312,6 +312,27 @@ def uncovered_runtime_cases(
     ]
 
 
+def undeclared_target_names(
+    declared: dict[str, Path], actual_names: list[str]
+) -> list[str]:
+    """Return target directory names that were not declared by the case."""
+    return sorted(name for name in actual_names if name not in declared)
+
+
+def result_status(
+    runtime_outcome: str,
+    verdict: dict[str, Any] | None,
+    observed_violation: bool,
+    pass_conditions: bool,
+) -> str:
+    """Classify evidence gaps separately from deterministic violations."""
+    if runtime_outcome == "failed_assessable" or observed_violation:
+        return "fail"
+    if verdict is None:
+        return "inconclusive"
+    return "pass" if pass_conditions else "fail"
+
+
 def run_self_test() -> int:
     criterion = {"id": "c1", "passed": True, "evidence": "observed"}
     good_verdict = {"criteria": [criterion], "summary": "passed"}
@@ -329,11 +350,26 @@ def run_self_test() -> int:
         [{"case_id": "example"}],
         ["claude", "codex"],
     ) == ["codex/example"]
+    status_precedence_ok = all(
+        [
+            result_status("completed", None, True, False) == "fail",
+            result_status("completed", None, False, False) == "inconclusive",
+            result_status("unavailable", None, True, False) == "fail",
+            result_status("unavailable", None, False, False) == "inconclusive",
+            result_status("completed", good_verdict, False, False) == "fail",
+            result_status("completed", good_verdict, False, True) == "pass",
+        ]
+    )
+    target_scope_ok = undeclared_target_names(
+        {"alpha": Path("/tmp/targets/alpha")}, ["alpha", "rogue"]
+    ) == ["rogue"]
     if not (
         verdict_error(good_verdict, 1) is None
         and verdict_error(duplicate_verdict, 1) is not None
         and env_ok
         and runtime_coverage_ok
+        and status_precedence_ok
+        and target_scope_ok
         and support_self_test()
     ):
         print("ERROR: adapter evidence self-test failed", file=sys.stderr)
@@ -426,6 +462,13 @@ def run_case(
     unexpected = sorted(
         path.name for path in workspace.iterdir() if path.name not in allowed_top
     )
+    target_root = workspace / "targets"
+    undeclared_targets = undeclared_target_names(
+        targets,
+        [path.name for path in target_root.iterdir() if path.is_dir()]
+        if target_root.exists()
+        else [],
+    )
     tool_calls = normalized_tool_calls(tool_events)
     staged_read = observed_file_read(tool_events, staged_skill / "SKILL.md")
     target_mutations = {
@@ -464,10 +507,12 @@ def run_case(
         "target_content_matches_source": target_content_matches,
         "existing_source_unchanged_during_deployment": existing_source_unchanged,
         "unexpected_workspace_entries": unexpected,
+        "undeclared_target_directories": undeclared_targets,
     }
     mechanical_ok = (
         report["passed"]
         and not unexpected
+        and not undeclared_targets
         and (report["checked"] or case["mutation"] != "required")
         and execution_ok
         and staged_unchanged
@@ -505,19 +550,37 @@ def run_case(
         case["mutation"], before_destination, after_destination
     )
 
-    if runtime_outcome == "failed_assessable":
-        status = "fail"
-    elif verdict is None:
-        status = "fail" if runtime_outcome == "completed" else "inconclusive"
-    elif (
+    observed_violation = (
+        (not mutation_ok and case["mutation"] == "none")
+        or (not mutation_ok and runtime_outcome == "completed")
+        or (report["checked"] and not report["passed"])
+        or bool(unexpected)
+        or bool(undeclared_targets)
+        or not staged_unchanged
+        or not existing_source_unchanged
+        or any(count > 1 for count in target_mutations.values())
+        or any(
+            count > 0 and not target_content_matches[name]
+            for name, count in target_mutations.items()
+        )
+        or (
+            runtime_outcome == "completed"
+            and bool(targets)
+            and any(count != 1 for count in target_mutations.values())
+        )
+        or (bool(execution_receipt) and not execution_ok)
+    )
+    pass_conditions = (
         mutation_ok
         and mechanical_ok
         and staged_read
         and all(item["passed"] for item in verdict["criteria"])
-    ):
-        status = "pass"
-    else:
-        status = "fail"
+        if verdict is not None
+        else False
+    )
+    status = result_status(
+        runtime_outcome, verdict, observed_violation, pass_conditions
+    )
     result = {
         "schema_version": "v1",
         "case_id": case["case_id"],
