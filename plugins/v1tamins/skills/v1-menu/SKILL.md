@@ -36,7 +36,7 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 ## Research and analysis
 
 - `/v1-deep-research` — multi-source research report. `/v1-autoresearch-skill` **(explicit)** — autonomous optimize-measure-keep loop against a measurable target.
-- `/v1-learning-from-customers` — demand evidence and discovery. `/v1-testing-prototypes` — user tests for prototypes. `/v1-diagnosing-constraints` — find the bottleneck in a stuck system.
+- `/v1-learning-from-customers` — demand evidence and discovery. `/v1-testing-prototypes` — user tests for prototypes. `/v1-diagnosing-constraints` — find the bottleneck in a stuck system. `/v1-designing-habit-systems` — design a habit, routine, or cadence that sticks (person, team, or process), or diagnose why an existing one keeps failing.
 - `/v1-reviewing-data-graphics` — audit charts and dashboards. `/v1-reviewing-usability` — review a UI or flow for user error.
 
 ## Communicating and documenting

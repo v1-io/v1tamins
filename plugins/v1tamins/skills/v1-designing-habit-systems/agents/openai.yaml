@@ -1,0 +1,7 @@
+interface:
+  display_name: "Designing Habit Systems"
+  short_description: "Evidence-based habit, routine, and cadence design"
+  default_prompt: "Use $v1-designing-habit-systems to design a habit, routine, or cadence system that will stick."
+
+policy:
+  allow_implicit_invocation: true
