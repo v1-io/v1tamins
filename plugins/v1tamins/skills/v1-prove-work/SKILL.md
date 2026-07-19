@@ -119,19 +119,17 @@ Run the conversion script:
 
 ```bash
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-
-for dir in \
-  "$REPO_ROOT/plugins/v1tamins/skills/v1-prove-work" \
-  "${CLAUDE_PLUGIN_ROOT:-}" \
-  "$HOME/.codex/skills/v1-prove-work" \
-  "$HOME/.claude/skills/v1-prove-work"; do
-  [ -n "$dir" ] && [ -f "$dir/scripts/video_to_gif.py" ] && SKILL_DIR="$dir" && break
+RESOLVER=""
+for candidate in \
+  "$REPO_ROOT/plugins/v1tamins/scripts/resolve-skill-root.sh" \
+  "${CLAUDE_PLUGIN_ROOT:-}/scripts/resolve-skill-root.sh"; do
+  [ -x "$candidate" ] && RESOLVER="$candidate" && break
 done
-
-if [ -z "${SKILL_DIR:-}" ]; then
-  echo "ERROR: Could not find scripts/video_to_gif.py" >&2
+if [ -z "${RESOLVER:-}" ]; then
+  echo "ERROR: Could not find resolve-skill-root.sh" >&2
   exit 1
 fi
+SKILL_DIR="$("$RESOLVER" v1-prove-work scripts/video_to_gif.py)"
 
 python3 "$SKILL_DIR/scripts/video_to_gif.py" \
   --input /tmp/prove-work/ \

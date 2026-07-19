@@ -16,6 +16,40 @@ VALID_SIDE_EFFECTS = %w[
   git_remote
   peer_launch
 ].freeze
+# Mutation command prefixes scanned only inside fenced ```bash / ```sh blocks.
+# Free-form prose is ignored so this stays a structured contract check, not a
+# substring hunt over narrative text.
+MUTATION_COMMAND_PREFIXES = [
+  "gh pr edit",
+  "gh pr create",
+  "gh pr comment",
+  "gh pr merge",
+  "git push",
+  "gh api "
+].freeze
+MUTATION_HTTP_METHODS = /\s-X\s+(POST|PATCH|PUT|DELETE)\b/i.freeze
+FENCED_SHELL = /```(?:bash|sh)\n(.*?)\n```/m.freeze
+
+def fenced_shell_blocks(markdown)
+  markdown.to_s.scan(FENCED_SHELL).flatten
+end
+
+def mutation_commands_in_skill?(markdown)
+  fenced_shell_blocks(markdown).any? do |block|
+    block.lines.any? do |line|
+      stripped = line.strip
+      next false if stripped.empty? || stripped.start_with?("#")
+
+      MUTATION_COMMAND_PREFIXES.any? do |prefix|
+        if prefix == "gh api "
+          stripped.start_with?(prefix) && stripped.match?(MUTATION_HTTP_METHODS)
+        else
+          stripped.start_with?(prefix) || stripped.include?(" #{prefix}")
+        end
+      end
+    end
+  end
+end
 
 def usage
   warn "Usage: scripts/check-skill-metadata.rb [--side-effect-skills-json] <skills-dir> <repo-root> <verbose>"
@@ -130,6 +164,11 @@ Dir.glob(File.join(skills_dir, "v1-*", "SKILL.md")).sort.each do |skill_path|
 
   if side_effects.any? && invocation_posture == "implicit"
     failures << "#{rel(openai_path, repo_root)}: side-effectful skills must use selective_implicit or explicit_only invocation posture"
+  end
+
+  body = File.read(skill_path).sub(/\A---\s*\n.*?\n---\s*\n/m, "")
+  if side_effects.empty? && mutation_commands_in_skill?(body)
+    failures << "#{rel(openai_path, repo_root)}: SKILL.md fenced bash/sh blocks contain mutation commands but policy.side_effects is empty"
   end
 
   case invocation_posture

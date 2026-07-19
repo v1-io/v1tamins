@@ -1,0 +1,8 @@
+interface:
+  display_name: "Refine"
+  short_description: "Refine working code via quality passes, AI-slop removal, or hindsight rewrite."
+  default_prompt: "Use $v1-refine to refine recent code changes (quality pass, deslop, or hindsight rewrite)."
+
+policy:
+  allow_implicit_invocation: true
+  invocation_posture: selective_implicit

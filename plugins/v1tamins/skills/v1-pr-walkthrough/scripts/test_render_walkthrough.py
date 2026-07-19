@@ -9,7 +9,6 @@ import json
 import unittest
 from pathlib import Path
 
-
 SCRIPT_DIR = Path(__file__).resolve().parent
 SKILL_DIR = SCRIPT_DIR.parent
 SPEC = importlib.util.spec_from_file_location(
@@ -29,9 +28,7 @@ class RenderWalkthroughTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        cls.template = (
-            SKILL_DIR / "assets" / "pr-walkthrough-template.html"
-        ).read_text(encoding="utf-8")
+        cls.template = RENDERER.load_template()
 
     def test_example_renders_static_accessible_content(self) -> None:
         output = RENDERER.render(self.data, self.template)

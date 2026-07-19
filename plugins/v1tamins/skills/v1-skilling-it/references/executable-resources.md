@@ -28,6 +28,11 @@ Use isolated dependencies appropriate to the host and local repository rules.
 Do not assume packages are present, install them globally, or mutate dependency
 manifests without authorization. Explain non-obvious thresholds and retry limits.
 
+When a skill ships a script that must be found across checkout, plugin root, and
+host skill caches, resolve it with
+`plugins/v1tamins/scripts/resolve-skill-root.sh <skill-name> <marker-relpath>`
+rather than copying a search loop into every `SKILL.md`.
+
 For complex or high-impact work, prefer analyze, emit a reviewable plan,
 validate, execute, and verify. Keep intermediate artifacts synthetic or scoped,
 and do not write secrets or private source data into evidence.
