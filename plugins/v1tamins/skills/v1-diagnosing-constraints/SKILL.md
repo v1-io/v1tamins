@@ -1,6 +1,6 @@
 ---
 name: v1-diagnosing-constraints
-description: Use when a non-code process, funnel, queue, or delivery pipeline is stuck and needs throughput-bottleneck diagnosis (Theory of Constraints). Triggers on "find the bottleneck", "too much WIP", "throughput is stuck", "where is the constraint", "our funnel is stuck". For a software error or regression, use v1-debug.
+description: Use when a process, funnel, queue, or delivery system is stuck and needs throughput-bottleneck diagnosis using Theory of Constraints. Triggers on "find the bottleneck", "too much WIP", "throughput is stuck", "where is the constraint", "our funnel is stuck". For a broader expected-versus-actual failure or root-cause question, use v1-debug.
 allowed-tools:
   - Bash
   - Read
@@ -12,6 +12,9 @@ allowed-tools:
 Find the constraint that governs system throughput, then focus improvement work where it can change the whole system.
 
 Default mode is diagnostic and advisory. Do not rewrite plans, change process rules, or edit files unless the user explicitly asks for implementation.
+
+This is a specialized throughput lens. Use `v1-debug` when the problem is an
+observable failure but not specifically about the constraint governing flow.
 
 ## Quick Start
 

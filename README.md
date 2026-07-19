@@ -182,8 +182,8 @@ Each v1tamin is the smallest sharp tool we could build for one of those failures
 | Plan or synthesize observed prototype sessions | `v1-testing-prototypes` | Customer interviews before a prototype exists |
 | Review UI task completion and error risk | `v1-reviewing-usability` | Chart truthfulness or metric-dashboard integrity |
 | Review charts, dashboards, or quantitative displays | `v1-reviewing-data-graphics` | General app usability review |
-| Diagnose a stuck process, queue, funnel, or roadmap | `v1-diagnosing-constraints` | Specific software bug reproduction |
-| Debug a reproducible failure or flaky behavior | `v1-debug` | Broad operational constraint diagnosis |
+| Diagnose a throughput bottleneck, queue, WIP, funnel, or delivery constraint | `v1-diagnosing-constraints` | A broader expected-versus-actual failure |
+| Debug any observable problem to a tested causal explanation | `v1-debug` | Open-ended ideation or explicit throughput-constraint analysis |
 | Get an independent second model/runtime opinion | `v1-phone-a-friend` | First-pass in-agent review or research |
 | Run a parallel multi-agent review board on a PR, then address it | `v1-review-board` | A single counterpart opinion or an in-agent review |
 
@@ -209,16 +209,16 @@ You describe a feature. The agent writes 800 lines. About 60% solves a different
 </details>
 
 <details>
-<summary><b>#2 &mdash; The code doesn't work</b></summary>
+<summary><b>#2 &mdash; Something doesn't work</b></summary>
 
 <br>
 
-Aligned and confident. You hit run. It crashes. The agent's first instinct is to wrap it in a try/except and declare victory.
+Aligned and confident. The result is wrong. The agent's first instinct is to patch the nearest symptom and declare victory.
 
 > [!TIP]
-> Yours should be a failing test that pins the symptom. Short feedback loops beat long debugging sessions — failing tests, real reproductions, instrumentation before guesses.
+> Yours should be the smallest feedback loop that pins the real symptom. Tests, traces, matched cases, controlled probes, and explicit assumptions beat plausible stories.
 
-- [`/v1-debug`](./plugins/v1tamins/skills/v1-debug/SKILL.md) — disciplined diagnosis loop: reproduce → minimise → hypothesise → instrument → fix → regression-test. The skill to reach for first when something is broken or flaky
+- [`/v1-debug`](./plugins/v1tamins/skills/v1-debug/SKILL.md) — general causal debugging loop: frame the gap → build a feedback loop → audit assumptions → test hypotheses → trace cause → validate the correction. Use it for code, systems, operations, workflows, decisions, services, and everyday problems
 - [`/v1-fix-tests`](./plugins/v1tamins/skills/v1-fix-tests/SKILL.md) — systematic loop that fixes failing tests until the suite is green, with feedback at every step
 - [`/v1-write-tests`](./plugins/v1tamins/skills/v1-write-tests/SKILL.md) — generate unit tests for new functionality with sensible coverage and meaningful assertions
 - [`/v1-e2e-testing`](./plugins/v1tamins/skills/v1-e2e-testing/SKILL.md) — Playwright-based browser tests, including a playbook for de-flaking
@@ -384,7 +384,7 @@ flowchart LR
 
 | Skill | When to use |
 |-------|-------------|
-| [`/v1-debug`](./plugins/v1tamins/skills/v1-debug/SKILL.md) | Disciplined diagnosis loop for hard bugs, flakes, and perf regressions |
+| [`/v1-debug`](./plugins/v1tamins/skills/v1-debug/SKILL.md) | General root-cause workflow for any observable problem, from code bugs to broken processes and recurring real-world failures |
 | [`/v1-fix-tests`](./plugins/v1tamins/skills/v1-fix-tests/SKILL.md) | Systematic loop until the test suite is green |
 | [`/v1-write-tests`](./plugins/v1tamins/skills/v1-write-tests/SKILL.md) | Generate meaningful unit tests for new code |
 | [`/v1-e2e-testing`](./plugins/v1tamins/skills/v1-e2e-testing/SKILL.md) | Playwright tests, including a de-flaking playbook |

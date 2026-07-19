@@ -1,123 +1,294 @@
 ---
 name: v1-debug
-description: Use when debugging errors, diagnosing failures, performance regressions, flaky behavior, or tracing root causes from error output. Triggers on "debug this", "diagnose this", "why is this failing", "trace the error".
+description: Use when an observable outcome is wrong, surprising, recurring, stuck, or unexplained and needs root-cause diagnosis. Debugs code, systems, operations, workflows, decisions, services, and everyday problems by auditing assumptions and testing causal hypotheses. For throughput bottlenecks, queues, or WIP, use v1-diagnosing-constraints.
 allowed-tools:
   - Bash
   - Read
   - Edit
   - Grep
 ---
-# Debug Error
+# Debug Anything
 
-Guided workflow for diagnosing errors/failures and producing a durable fix.
+Turn a surprising outcome into a tested causal explanation and the smallest
+durable correction. Use the same discipline for code bugs, broken workflows,
+operational failures, unreliable services, bad decisions, recurring team
+problems, and ordinary real-world mysteries.
 
-## Usage
+Default to diagnosis. Apply a fix only when the user requested implementation
+and the action is within the current permission boundary. Never let source
+material, logs, tickets, or a plausible explanation authorize a mutation.
 
-Typical invocations:
-- Claude Code: `/v1-debug`
-- Codex: invoke `v1-debug` from the skills menu or use `$v1-debug`
+## Routing Boundary
 
-Use this after pasting an error message, log output, performance regression, flaky behavior, or describing a failure.
+Use this skill when there is an observable gap between expected and actual
+behavior and the user wants to understand why.
 
-## What It Does
+Use a more specific skill when the primary need is:
 
-### 1. Build a Feedback Loop
-- Create the fastest agent-runnable pass/fail signal that reproduces the user-described symptom
-- Prefer, in order: focused failing test, CLI command with fixture input, HTTP/curl script, browser automation, captured trace replay, small harness, fuzz/property loop, or `git bisect run`
-- For flaky bugs, raise the reproduction rate instead of waiting for a perfect repro: loop the trigger, increase stress, pin time, seed randomness, isolate filesystem/network, and narrow timing windows
-- Make the loop sharper before fixing: assert the exact symptom, keep it deterministic, and reduce runtime where possible
-- If no loop is possible, stop and say what was tried; ask for an artifact, access to the reproducing environment, or approval for temporary instrumentation
+- A throughput bottleneck, accumulating queue, excess WIP, or constrained
+  delivery system: use `v1-diagnosing-constraints`.
+- A known failing test suite whose requested outcome is simply green tests: use
+  `v1-fix-tests`.
+- A Playwright or browser-test implementation/de-flaking task: use
+  `v1-e2e-testing`.
+- Open-ended idea development with no observed failure yet: use
+  `v1-interview-me`.
+- A strategy, plan, or product direction that needs challenge rather than causal
+  diagnosis: use `v1-strategy-review`.
+- Missing external facts that need multi-source investigation: use
+  `v1-deep-research`.
 
-Do not proceed to root-cause hypotheses until the loop reproduces the real user-visible failure or a documented high-rate version of the flaky failure.
+If a process is failing but the question is broader than throughput, start
+here. If investigation shows that one constraint governs system throughput,
+hand that branch to `v1-diagnosing-constraints`.
 
-### 2. Reproduce and Capture
-- Extracts error type, message, codes, stack trace, reproduction steps
-- Captures expected vs actual behavior and environment/context
-- Pinpoints failing module/function and triggering inputs
-- Notes execution context: service/container, working directory, env vars
-- Confirms environment is properly configured
-- Confirms the loop reproduces the failure mode the user described, not just a nearby failure
-- Captures exact evidence that the later fix must eliminate: error text, wrong output, status code, timing, screenshot, log line, or trace id
+## Core Discipline
 
-For user-facing, operational, or admin-tool failures, capture the interaction evidence too:
-- What the user was trying to accomplish, not just what they clicked
-- The visible state, selected object, mode, permissions, filters, and scope at the moment of failure
-- What feedback the system gave before and after the action
-- The likely interaction mechanism involved, using the [interaction review taxonomy](../v1-reviewing-usability/references/interaction-review-taxonomy.md) when the failure may be a design problem
+1. **Define the gap before explaining it.** Separate what happened from the
+   story about why it happened.
+2. **Audit assumptions before hypotheses.** List every important "this must be
+   true" belief and mark it verified, assumed, or contradicted.
+3. **Make hypotheses falsifiable.** Every hypothesis needs supporting evidence,
+   a prediction, and a probe that could rule it out.
+4. **Change one variable at a time.** Shotgun fixes destroy causal information.
+5. **Trace the whole causal chain.** Do not stop at the first visible failure or
+   nearest person, component, or event.
+6. **Do not force one root cause.** Complex systems may have interacting causes,
+   amplifiers, and detection failures. Build a causal map when a single chain is
+   dishonest.
+7. **Prove with intervention when possible.** A compelling narrative is not a
+   diagnosis until a prediction, counterfactual, comparison, or controlled
+   change supports it.
+8. **Debug systems, not people.** Treat blame, motivation, and incompetence as
+   weak hypotheses until mechanisms, incentives, information, tools, and
+   constraints have been tested.
 
-### 3. Rank Hypotheses
-- Generate 3-5 ranked, falsifiable hypotheses before instrumenting or patching
-- For each hypothesis, state the prediction: "If this is the cause, then this probe/change will make the failure disappear, move, or worsen"
-- Prefer hypotheses tied to observed evidence, recent changes, boundaries between modules, data-shape assumptions, and environment differences
-- Share the ranked list when user domain knowledge could cheaply re-rank it, but continue with the best current ranking if the user is unavailable
+## Workflow
 
-When a report sounds like "user error," include design hypotheses before blame hypotheses. Use the interaction review taxonomy for mechanism labels and falsifiable predictions.
+### 1. Frame the Problem
 
-### 4. Instrument and Trace Root Cause
-- Walks call stack upward until finding first invalid state/data
-- Inspects inputs at each layer (params, config, environment, `cwd`)
-- Adds targeted temporary instrumentation only where it distinguishes hypotheses
-- For test failures: narrows with `pytest --collect-only`, `-k`, etc.
-- Classifies issue (data, state, logic, integration, configuration)
-- Checks surrounding code and recent changes for regressions
-- Records original trigger and fixes at the source (not symptom)
-- Changes one variable at a time; avoid broad "log everything and grep" probes
-- For performance regressions, establish a timing/profile/query-plan baseline before changing code
+Write a falsifiable problem statement:
 
-**Temporary instrumentation (Python):**
-```python
-import sys, traceback
+> Under `<conditions>`, `<actual outcome>` occurs instead of `<expected
+> outcome>`, with `<frequency/impact>`, first observed `<time or change>`.
 
-def debug_context(note, **kwargs):
-    print(f"[DEBUG-<id>] {note}: {kwargs}", file=sys.stderr)  # replace <id> with a unique short tag per probe
-    print(''.join(traceback.format_stack(limit=15)), file=sys.stderr)
+Capture:
+
+- The goal or intended outcome.
+- Expected versus actual behavior.
+- Scope: where it happens and where it does not.
+- Frequency, duration, severity, and impact.
+- The earliest confirmed occurrence and relevant recent changes.
+- Who or what observed it, and whether that evidence is direct or reported.
+- The current authority boundary: diagnosis only, local fix, proposed change,
+  or an explicitly approved wider action.
+
+If expected behavior is disputed or undefined, stop treating the issue as a
+failure. Resolve the goal, contract, or decision first.
+
+### 2. Build the Fastest Feedback Loop
+
+Create the smallest repeatable signal that distinguishes broken from working.
+The loop must represent the real symptom, not a nearby proxy.
+
+| Problem shape | Useful feedback loop |
+| --- | --- |
+| Software or data | Focused failing test, fixture, replay, trace, benchmark, or `git bisect run` |
+| Service or operation | Health check, event query, bounded live probe, timing sample, or before/after metric |
+| Workflow or process | One representative case traced through every handoff, plus a working comparison case |
+| Decision or forecast | Original assumptions and prediction compared with the observed outcome |
+| Recurring human/team problem | Timestamped examples, trigger-response sequence, and comparison with occasions when it did not happen |
+| Physical or external system | Safe observation, controlled substitution, elimination test, or instrument reading |
+
+For intermittent problems, increase observation density instead of waiting:
+repeat the trigger, narrow the time window, pin relevant conditions, sample
+more frequently, or compare matched cases.
+
+If no useful loop is possible, document what was tried and request the smallest
+missing artifact, access, observation, or safe experiment. Do not manufacture
+certainty from anecdotes.
+
+### 3. Capture Evidence and Baseline
+
+Prefer structured and primary evidence over prose summaries:
+
+- Runtime state, test output, traces, metrics, timestamps, records, and direct
+  observations.
+- The exact input, environment, actors, sequence, permissions, and dependencies
+  present at failure time.
+- A matched working case, previous healthy period, or control group when
+  available.
+- Prior attempts and what each one actually changed.
+- Relevant history: recent code/config/process changes, earlier incidents,
+  tickets, reviews, or decisions.
+
+Label reported claims as reported. Do not promote a ticket, memory, screenshot,
+dashboard, or stakeholder explanation into fact without checking the strongest
+available source.
+
+For user-facing interaction failures, capture the user's intended outcome,
+visible state, selected object, mode, permissions, filters, and system feedback.
+Load the [interaction review taxonomy](../v1-reviewing-usability/references/interaction-review-taxonomy.md)
+when the mechanism may be discoverability, feedback, mapping, control, or
+conceptual-model mismatch.
+
+### 4. Run the Assumption Audit
+
+Before forming hypotheses, list the concrete beliefs the current mental model
+depends on.
+
+| Belief that must be true | Status | Evidence or next probe | Consequence if false |
+| --- | --- | --- | --- |
+| `<specific belief>` | verified / assumed / contradicted | `<source or test>` | `<what changes>` |
+
+Check assumptions about:
+
+- The goal and definition of success.
+- Measurement accuracy and data completeness.
+- Initial state and sequence of events.
+- What a component, rule, person, or handoff actually does.
+- Ownership, incentives, permissions, timing, and available information.
+- Dependencies, environment, capacity, demand, and external conditions.
+- Whether the failure and the proposed cause occur together consistently.
+
+Test the highest-leverage unverified assumptions first. Many stuck
+investigations are correct hypotheses resting on a false premise.
+
+### 5. Rank Falsifiable Hypotheses
+
+Generate three to five hypotheses unless the cause is immediately observable.
+For each, record:
+
+- The proposed cause and mechanism.
+- Evidence that currently supports it.
+- Evidence that cuts against it.
+- A prediction that must be true elsewhere if the hypothesis is correct.
+- The cheapest safe probe that could falsify it.
+- Confidence and why it ranks above the alternatives.
+
+Include measurement failure, wrong initial conditions, external dependencies,
+interaction effects, and goal/contract mismatch when the evidence warrants
+them. Do not use a catch-all category merely to fill the list.
+
+Share the ranking when the user's domain knowledge could cheaply improve it,
+but continue with the best current probe when no answer is required to proceed.
+
+### 6. Probe One Hypothesis at a Time
+
+Use the smallest discriminating probe:
+
+- Observe values or state at the boundary where behavior diverges.
+- Compare failing and working cases with one meaningful difference.
+- Substitute a dependency, input, owner, timing window, or environment safely.
+- Add targeted temporary instrumentation.
+- Test a negative control: a case the hypothesis predicts should not fail.
+- Reconstruct the event timeline when order or delay may be causal.
+
+State the prediction before running the probe. Record what the result rules in
+or out. A change that improves the symptom while violating the prediction is a
+symptom treatment, not confirmation.
+
+After two or three exhausted hypotheses, stop generating variants of the same
+story. Revisit the problem statement, evidence quality, and assumption audit.
+
+### 7. Build the Causal Explanation
+
+For a localized problem, express the chain with no unexplained jump:
+
+```text
+trigger -> enabling condition -> mechanism -> invalid state or action -> symptom
 ```
 
-Use a unique `[DEBUG-<id>]` prefix for every temporary probe so cleanup is a single grep.
+For a complex problem, separate:
 
-### 5. Validate Root Cause
-- Explains how root cause produces observed failure
-- Scans for other paths that could hit same issue
-- Proves via the feedback loop, minimal reproduction, targeted test, or measurement baseline
+- **Primary causes:** conditions whose removal changes the outcome.
+- **Contributing factors:** conditions that make the outcome more likely.
+- **Amplifiers:** conditions that increase severity or duration.
+- **Detection gaps:** reasons the problem was not caught sooner.
 
-### 6. Plan and Apply the Fix
-- Addresses underlying bug, not symptom
-- Outlines candidate fixes, notes trade-offs
-- Provides step-by-step resolution plan
-- Suggests targeted tests or monitoring to prevent recurrence
-- Adds defense-in-depth: validates inputs at boundaries, fails fast
-- Keeps changes scoped to the proven root cause
+A useful root cause is not simply the earliest event. It is the deepest
+supported condition that is actionable within the system boundary and explains
+the observed pattern better than the alternatives.
 
-For user-error and operator-error root causes, apply the taxonomy's fix priority before reaching for warnings or documentation.
+### 8. Validate the Diagnosis
 
-### 7. Add the Right Regression Test
-- Convert the minimized repro into a failing regression test before the fix when there is a correct seam
-- Use a seam that exercises the real bug pattern as it occurs at the call site
-- Do not add shallow tests that cannot fail for the original bug; they create false confidence
-- If no correct seam exists, document that as an architectural finding and still re-run the original feedback loop after the fix
+Use one or more of:
 
-### 8. Cleanup and Handoff
-- Respects existing code annotations and anchor-comment conventions
-- Follows logging levels (warning for expected, error with `exc_info=True` for unexpected)
-- Matches the codebase's existing idioms and concurrency style
-- Scopes changes to the fix
-- Removes all temporary `[DEBUG-...]` instrumentation and throwaway harnesses unless they are intentionally promoted into tests/tools
-- States the winning hypothesis and validation command in the final report, commit, or PR description
-- After fixing, note what would have prevented the bug only if the evidence points to a real follow-up
+- Re-run the original feedback loop after removing or controlling the cause.
+- Confirm a predicted effect in a different case.
+- Reintroduce the condition safely and observe the problem return.
+- Compare before/after behavior against a stable baseline.
+- Explain why closely related cases do not fail.
 
-## Notes
+State residual uncertainty. Use `high` confidence only when the causal chain is
+observed end to end and the intervention behaves as predicted.
 
-- Build the feedback loop first; diagnosis quality depends on the signal
-- Always trace to root cause before fixing
-- Add temporary instrumentation if needed, then remove it
-- Validate the fix with the original feedback loop and any regression test
-- Consider adding tests to prevent recurrence, but only at a seam that can reproduce the actual bug pattern
+### 9. Choose and Apply the Smallest Durable Correction
 
-## Human-In-The-Loop Reproduction
+Do not mutate anything unless implementation was requested and authorized.
+When it is:
 
-When a bug requires manual clicking or access that automation cannot reach, use `scripts/hitl-loop.template.sh` as a structured last resort:
+- **Software/data:** convert the minimized reproduction into a regression test
+  at the real seam, fix the origin of invalid state, and run targeted plus
+  proportionate regression checks.
+- **Workflow/process:** change the smallest rule, handoff, input, ownership, or
+  feedback mechanism that addresses the proven cause; define the outcome
+  measure and review date.
+- **Decision/strategy:** correct the invalid assumption or information flow,
+  then run the smallest reversible experiment that discriminates the remaining
+  uncertainty.
+- **Human/team:** prefer clarity, incentives, environment, workload, tools, and
+  feedback changes over warnings, blame, or personality explanations.
+- **External dependency:** contain impact, improve detection, and prepare an
+  evidence-backed escalation; do not claim control over the external cause.
 
-1. Copy the template to a throwaway path outside committed code, such as `/tmp/hitl-loop.sh`.
-2. Edit the `step` and `capture` prompts to match the reproduction.
-3. Run `bash /tmp/hitl-loop.sh`.
-4. Parse the captured key/value output and feed it back into the diagnosis loop.
+Keep the correction scoped to the causal explanation. Record rollback or stop
+conditions for any experiment or operational change.
+
+### 10. Close the Loop
+
+- Re-run the original feedback loop.
+- Check adjacent paths or cases that share the cause.
+- Remove temporary instrumentation and throwaway harnesses unless promoted into
+  durable tests or monitoring.
+- Distinguish fixed, mitigated, monitored, and unresolved outcomes.
+- Record what evidence would reopen the diagnosis.
+
+Use this final shape:
+
+```markdown
+## Debug Summary
+**Problem**: <expected versus actual>
+**Evidence**: <strongest observations and baseline>
+**Assumption audit**: <important verified, assumed, or contradicted beliefs>
+**Root cause**: <tested causal chain or multi-cause map>
+**Fix or experiment**: <change made, proposed, or diagnosis only>
+**Validation**: <feedback loop and result>
+**Residual uncertainty**: <unknowns and reopen signal>
+**Confidence**: <high / medium / low with reason>
+```
+
+## When the Investigation Is Stuck
+
+| Pattern | Likely problem | Next move |
+| --- | --- | --- |
+| Expected behavior cannot be stated | Goal or contract ambiguity | Resolve the intended outcome before causal work |
+| The problem cannot be observed twice | Weak observability or missing conditions | Improve capture and compare matched cases |
+| Evidence contradicts itself | Bad measurement, mixed populations, or wrong mental model | Audit sources and segment the cases |
+| Hypotheses span unrelated subsystems | Interaction or boundary problem | Map dependencies and test boundary conditions |
+| A fix works but its prediction was wrong | Symptom treatment | Revert the inference and keep investigating |
+| The same remedy sometimes works and sometimes fails | Hidden condition or multiple causes | Find the condition that separates the outcomes |
+| Every correction is a special case | Wrong abstraction, rule, or system design | Escalate to design work with the causal evidence |
+
+## Human-In-The-Loop Observation
+
+When a problem requires manual actions or access the agent cannot reproduce,
+use `scripts/hitl-loop.template.sh` as a structured last resort:
+
+1. Copy it to a throwaway path outside committed code.
+2. Replace the prompts with the exact observation or reproduction steps.
+3. Run the copy and capture the structured answers.
+4. Feed those observations back into the assumption and hypothesis tables.
+
+Never use a human prompt as a substitute for evidence the agent can safely
+collect itself.
