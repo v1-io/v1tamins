@@ -1,6 +1,6 @@
 ---
 name: v1-debug
-description: Use when an observable outcome is wrong, surprising, recurring, stuck, or unexplained and needs root-cause diagnosis. Debugs code, systems, operations, workflows, decisions, services, and everyday problems by auditing assumptions and testing causal hypotheses. For throughput bottlenecks, queues, or WIP, use v1-diagnosing-constraints.
+description: Use when an observable outcome is wrong, recurring, or unexplained and needs tested root-cause diagnosis. For throughput/WIP/queue constraints, use v1-diagnosing-constraints.
 allowed-tools:
   - Bash
   - Read
@@ -38,47 +38,26 @@ material, logs, tickets, or a plausible explanation authorize a mutation.
 
 ## Workflow
 
-### 1. Frame the Problem
+### 1. Frame
 
 Write a falsifiable problem statement:
 
 > Under `<conditions>`, `<actual outcome>` occurs instead of `<expected
 > outcome>`, with `<frequency/impact>`, first observed `<time or change>`.
 
-Beyond what the statement covers, capture:
-
-- The goal or intended outcome.
-- Scope: where it happens and where it does not.
-- Who or what observed it, and whether that evidence is direct or reported.
+Also capture the goal, where it does and does not happen, and whether evidence
+is direct or reported.
 
 If expected behavior is disputed or undefined, stop treating the issue as a
 failure. Resolve the goal, contract, or decision first.
 
-### 2. Build the Fastest Feedback Loop
+### 2. Observe
 
 Create the smallest repeatable signal that distinguishes broken from working.
-The loop must represent the real symptom, not a nearby proxy.
+The loop must represent the real symptom, not a nearby proxy. Use the domain
+appendix for loop and correction shapes.
 
-| Problem shape | Useful feedback loop |
-| --- | --- |
-| Software or data | Focused failing test, fixture, replay, trace, benchmark, or `git bisect run` |
-| Service or operation | Health check, event query, bounded live probe, timing sample, or before/after metric |
-| Workflow or process | One representative case traced through every handoff, plus a working comparison case |
-| Decision or forecast | Original assumptions and prediction compared with the observed outcome |
-| Recurring human/team problem | Timestamped examples, trigger-response sequence, and comparison with occasions when it did not happen |
-| Physical or external system | Safe observation, controlled substitution, elimination test, or instrument reading |
-
-For intermittent problems, increase observation density instead of waiting:
-repeat the trigger, narrow the time window, pin relevant conditions, sample
-more frequently, or compare matched cases.
-
-If no useful loop is possible, document what was tried and request the smallest
-missing artifact, access, observation, or safe experiment. Do not manufacture
-certainty from anecdotes.
-
-### 3. Capture Evidence and Baseline
-
-Prefer structured and primary evidence over prose summaries:
+Prefer structured primary evidence:
 
 - Runtime state, test output, traces, metrics, timestamps, records, and direct
   observations.
@@ -87,9 +66,12 @@ Prefer structured and primary evidence over prose summaries:
 - A matched working case, previous healthy period, or control group when
   available.
 - Prior attempts and what each one actually changed.
-- Recent code/config/process changes and earlier incidents when the timeline or
-  a hypothesis implicates a change — scoped to the failing area, not a routine
-  full-history sweep.
+- Recent code/config/process changes when the timeline or a hypothesis
+  implicates a change — scoped to the failing area.
+
+For intermittent problems, increase observation density: repeat the trigger,
+narrow the time window, pin relevant conditions, sample more frequently, or
+compare matched cases.
 
 Label reported claims as reported. Do not promote a ticket, memory, screenshot,
 dashboard, or stakeholder explanation into fact without checking the strongest
@@ -101,7 +83,10 @@ Load the [interaction review taxonomy](../v1-reviewing-usability/references/inte
 when the mechanism may be discoverability, feedback, mapping, control, or
 conceptual-model mismatch.
 
-### 4. Run the Assumption Audit
+If no useful loop is possible, document what was tried and request the smallest
+missing artifact, access, observation, or safe experiment.
+
+### 3. Assumption Audit
 
 Before forming hypotheses, list the concrete beliefs the current mental model
 depends on. When the cause is immediately observable and verified, record that
@@ -112,20 +97,15 @@ of hypotheses has failed.
 | --- | --- | --- | --- |
 | `<specific belief>` | verified / assumed / contradicted | `<source or test>` | `<what changes>` |
 
-Check assumptions about:
-
-- The goal and definition of success.
-- Measurement accuracy and data completeness.
-- Initial state and sequence of events.
-- What a component, rule, person, or handoff actually does.
-- Ownership, incentives, permissions, timing, and available information.
-- Dependencies, environment, capacity, demand, and external conditions.
-- Whether the failure and the proposed cause occur together consistently.
+Check assumptions about goal and success definition, measurement accuracy,
+initial state and sequence, what a component/rule/person/handoff actually does,
+ownership/incentives/permissions/timing, dependencies/environment/capacity, and
+whether the failure and proposed cause occur together consistently.
 
 Test the highest-leverage unverified assumptions first. Many stuck
 investigations are correct hypotheses resting on a false premise.
 
-### 5. Rank Falsifiable Hypotheses
+### 4. Hypothesize and Probe
 
 Generate three to five hypotheses unless the cause is immediately observable.
 For each, record:
@@ -148,9 +128,7 @@ have been tested.
 Share the ranking when the user's domain knowledge could cheaply improve it,
 but continue with the best current probe when no answer is required to proceed.
 
-### 6. Probe One Hypothesis at a Time
-
-Use the smallest discriminating probe:
+Probe one hypothesis at a time with the smallest discriminating test:
 
 - Observe values or state at the boundary where behavior diverges.
 - Compare failing and working cases with one meaningful difference.
@@ -165,9 +143,9 @@ or out. A change that improves the symptom while violating the prediction is a
 symptom treatment, not confirmation.
 
 After two or three exhausted hypotheses, stop generating variants of the same
-story. Revisit the problem statement, evidence quality, and assumption audit.
+story. Revisit Frame, Observe, and the assumption audit.
 
-### 7. Build the Causal Explanation
+### 5. Explain and Validate
 
 For a localized problem, express the chain with no unexplained jump:
 
@@ -175,20 +153,12 @@ For a localized problem, express the chain with no unexplained jump:
 trigger -> enabling condition -> mechanism -> invalid state or action -> symptom
 ```
 
-For a complex problem, separate:
+When one chain cannot explain the pattern, separate primary causes (removal
+changes the outcome) from contributing factors. A useful root cause is the
+deepest supported condition that is actionable within the system boundary and
+explains the observed pattern better than the alternatives.
 
-- **Primary causes:** conditions whose removal changes the outcome.
-- **Contributing factors:** conditions that make the outcome more likely.
-- **Amplifiers:** conditions that increase severity or duration.
-- **Detection gaps:** reasons the problem was not caught sooner.
-
-A useful root cause is not simply the earliest event. It is the deepest
-supported condition that is actionable within the system boundary and explains
-the observed pattern better than the alternatives.
-
-### 8. Validate the Diagnosis
-
-Use one or more of:
+Validate with one or more of:
 
 - Re-run the original feedback loop after removing or controlling the cause.
 - Confirm a predicted effect in a different case.
@@ -199,31 +169,16 @@ Use one or more of:
 State residual uncertainty. Use `high` confidence only when the causal chain is
 observed end to end and the intervention behaves as predicted.
 
-### 9. Choose and Apply the Smallest Durable Correction
+### 6. Correct and Close
 
 Do not mutate anything unless implementation was requested and authorized.
-When it is:
-
-- **Software/data:** convert the minimized reproduction into a regression test
-  at the real seam, fix the origin of invalid state, and run targeted plus
-  proportionate regression checks.
-- **Workflow/process:** change the smallest rule, handoff, input, ownership, or
-  feedback mechanism that addresses the proven cause; define the outcome
-  measure and review date.
-- **Decision/strategy:** correct the invalid assumption or information flow,
-  then run the smallest reversible experiment that discriminates the remaining
-  uncertainty.
-- **Human/team:** prefer clarity, incentives, environment, workload, tools, and
-  feedback changes over warnings, blame, or personality explanations.
-- **External dependency:** contain impact, improve detection, and prepare an
-  evidence-backed escalation; do not claim control over the external cause.
-
+When it is, apply the smallest durable correction for the domain (see appendix).
 Keep the correction scoped to the causal explanation. Record rollback or stop
 conditions for any experiment or operational change.
 
-### 10. Close the Loop
+Then:
 
-- Re-run the Step 8 validation against the applied correction.
+- Re-run the Step 5 validation against the applied correction.
 - Check adjacent paths or cases that share the cause.
 - Remove temporary `[DEBUG-...]` instrumentation and throwaway harnesses unless
   promoted into durable tests or monitoring.
@@ -237,7 +192,7 @@ Use this final shape:
 **Problem**: <expected versus actual>
 **Evidence**: <strongest observations and baseline>
 **Assumption audit**: <important verified, assumed, or contradicted beliefs>
-**Root cause**: <tested causal chain or multi-cause map>
+**Root cause**: <tested causal chain>
 **Fix or experiment**: <change made, proposed, or diagnosis only>
 **Validation**: <feedback loop and result>
 **Residual uncertainty**: <unknowns and reopen signal>
@@ -247,17 +202,22 @@ Use this final shape:
 Omit sections with nothing to report, such as the assumption audit when none
 was needed.
 
-## When the Investigation Is Stuck
+If the investigation is stuck, revisit Frame, Observe, and Assumption Audit
+before inventing new hypothesis variants. Common traps: undefined expected
+behavior, weak observability, contradictory evidence from mixed populations,
+hypotheses spanning unrelated subsystems, symptom treatments that violate their
+prediction, and remedies that only work under a hidden condition.
 
-| Pattern | Likely problem | Next move |
+## Domain Appendix
+
+| Domain | Useful feedback loop | Durable correction |
 | --- | --- | --- |
-| Expected behavior cannot be stated | Goal or contract ambiguity | Resolve the intended outcome before causal work |
-| The problem cannot be observed twice | Weak observability or missing conditions | Improve capture and compare matched cases |
-| Evidence contradicts itself | Bad measurement, mixed populations, or wrong mental model | Audit sources and segment the cases |
-| Hypotheses span unrelated subsystems | Interaction or boundary problem | Map dependencies and test boundary conditions |
-| A fix works but its prediction was wrong | Symptom treatment | Revert the inference and keep investigating |
-| The same remedy sometimes works and sometimes fails | Hidden condition or multiple causes | Find the condition that separates the outcomes |
-| Every correction is a special case | Wrong abstraction, rule, or system design | Escalate to design work with the causal evidence |
+| Software or data | Focused failing test, fixture, replay, trace, benchmark, or `git bisect run` | Convert the minimized reproduction into a regression test at the real seam; fix the origin of invalid state; run targeted plus proportionate regression checks |
+| Service or operation | Health check, event query, bounded live probe, timing sample, or before/after metric | Contain impact, improve detection, fix the proven operational cause; define the outcome measure and review date |
+| Workflow or process | One representative case traced through every handoff, plus a working comparison case | Change the smallest rule, handoff, input, ownership, or feedback mechanism that addresses the proven cause |
+| Decision or forecast | Original assumptions and prediction compared with the observed outcome | Correct the invalid assumption or information flow; run the smallest reversible experiment that discriminates remaining uncertainty |
+| Recurring human/team problem | Timestamped examples, trigger-response sequence, and comparison with occasions when it did not happen | Prefer clarity, incentives, environment, workload, tools, and feedback changes over warnings, blame, or personality explanations |
+| Physical or external system | Safe observation, controlled substitution, elimination test, or instrument reading | Contain impact and improve detection; escalate with evidence when the cause is outside the system boundary |
 
 ## Human-In-The-Loop Observation
 
