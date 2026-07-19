@@ -41,7 +41,11 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 RESOLVER=""
 for candidate in \
   "$REPO_ROOT/plugins/v1tamins/scripts/resolve-skill-root.sh" \
-  "${CLAUDE_PLUGIN_ROOT:-}/scripts/resolve-skill-root.sh"; do
+  "${CLAUDE_PLUGIN_ROOT:-}/scripts/resolve-skill-root.sh" \
+  "$HOME/.claude/skills/v1-pr-description/../../scripts/resolve-skill-root.sh" \
+  "$HOME/.codex/skills/v1-pr-description/../../scripts/resolve-skill-root.sh" \
+  "$HOME/.claude/plugins/cache"/*/v1tamins/*/scripts/resolve-skill-root.sh \
+  "$HOME/.codex/plugins/cache/v1tamins/v1tamins"/*/scripts/resolve-skill-root.sh; do
   [ -x "$candidate" ] && RESOLVER="$candidate" && break
 done
 if [ -z "${RESOLVER:-}" ]; then

@@ -24,14 +24,34 @@ MUTATION_COMMAND_PREFIXES = [
   "gh pr create",
   "gh pr comment",
   "gh pr merge",
-  "git push",
-  "gh api "
+  "gh pr review",
+  "git push"
 ].freeze
-MUTATION_HTTP_METHODS = /\s-X\s+(POST|PATCH|PUT|DELETE)\b/i.freeze
+# `gh api` mutates when it sends a non-GET request: an explicit -X/--method
+# POST/PATCH/PUT/DELETE, or field/body flags (which default the method to
+# POST). GraphQL calls are always POST, so for those the mutation signal is a
+# `mutation` operation in the request rather than the HTTP method.
+GH_API_CALL = /(?:\A|\s)gh api\s/.freeze
+GH_API_GRAPHQL = /(?:\A|\s)gh api graphql\b/.freeze
+GH_API_EXPLICIT_GET = /\s(?:-X|--method)[\s=]+GET\b/i.freeze
+GH_API_MUTATION_METHOD = /\s(?:-X|--method)[\s=]+(?:POST|PATCH|PUT|DELETE)\b/i.freeze
+GH_API_BODY_FLAGS = /\s(?:-f|-F|--field|--raw-field|--input)[\s=]/.freeze
+GRAPHQL_MUTATION = /\bmutation\b/.freeze
 FENCED_SHELL = /```(?:bash|sh)\n(.*?)\n```/m.freeze
 
 def fenced_shell_blocks(markdown)
   markdown.to_s.scan(FENCED_SHELL).flatten
+end
+
+def mutation_line?(stripped)
+  return true if MUTATION_COMMAND_PREFIXES.any? do |prefix|
+    stripped.start_with?(prefix) || stripped.include?(" #{prefix}")
+  end
+  return false unless stripped.match?(GH_API_CALL)
+  return stripped.match?(GRAPHQL_MUTATION) if stripped.match?(GH_API_GRAPHQL)
+  return false if stripped.match?(GH_API_EXPLICIT_GET)
+
+  stripped.match?(GH_API_MUTATION_METHOD) || stripped.match?(GH_API_BODY_FLAGS)
 end
 
 def mutation_commands_in_skill?(markdown)
@@ -40,13 +60,7 @@ def mutation_commands_in_skill?(markdown)
       stripped = line.strip
       next false if stripped.empty? || stripped.start_with?("#")
 
-      MUTATION_COMMAND_PREFIXES.any? do |prefix|
-        if prefix == "gh api "
-          stripped.start_with?(prefix) && stripped.match?(MUTATION_HTTP_METHODS)
-        else
-          stripped.start_with?(prefix) || stripped.include?(" #{prefix}")
-        end
-      end
+      mutation_line?(stripped)
     end
   end
 end

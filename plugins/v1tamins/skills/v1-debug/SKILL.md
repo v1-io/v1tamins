@@ -1,6 +1,6 @@
 ---
 name: v1-debug
-description: Use when an observable outcome is wrong, recurring, or unexplained and needs tested root-cause diagnosis. For throughput/WIP/queue constraints, use v1-diagnosing-constraints.
+description: Use when an observable outcome is wrong, recurring, or unexplained and needs tested root-cause diagnosis, code or not. Triggers on "debug this", "diagnose this", "why is this failing", "find the root cause". For throughput/WIP/queue constraints, use v1-diagnosing-constraints.
 allowed-tools:
   - Bash
   - Read

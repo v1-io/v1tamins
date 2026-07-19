@@ -15,7 +15,6 @@ repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 candidates=(
   "$repo_root/plugins/v1tamins/skills/$skill_name"
-  "${CLAUDE_PLUGIN_ROOT:-}"
   "${CLAUDE_PLUGIN_ROOT:-}/skills/$skill_name"
   "$HOME/.codex/skills/$skill_name"
   "$HOME/.claude/skills/$skill_name"
@@ -31,18 +30,9 @@ done
 shopt -u nullglob
 
 for dir in "${candidates[@]}"; do
-  [[ -n "$dir" ]] || continue
-  if [[ -f "$dir/$marker" ]]; then
-    # Prefer a directory that is actually the skill root (contains SKILL.md)
-    if [[ -f "$dir/SKILL.md" ]] || [[ "$(basename "$dir")" == "$skill_name" ]]; then
-      printf '%s\n' "$dir"
-      exit 0
-    fi
-    # CLAUDE_PLUGIN_ROOT may be the plugin package; try skills/<name>
-    if [[ -f "$dir/skills/$skill_name/$marker" ]]; then
-      printf '%s\n' "$dir/skills/$skill_name"
-      exit 0
-    fi
+  if [[ -f "$dir/$marker" && -f "$dir/SKILL.md" ]]; then
+    printf '%s\n' "$dir"
+    exit 0
   fi
 done
 

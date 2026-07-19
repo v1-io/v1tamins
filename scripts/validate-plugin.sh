@@ -566,6 +566,19 @@ validate_metadata_hygiene() {
   fi
 }
 
+validate_metadata_checker_tests() {
+  if ! command -v ruby >/dev/null 2>&1; then
+    fail "ruby is required to run metadata checker tests"
+    return 0
+  fi
+
+  if ruby "$repo_root/scripts/test-check-skill-metadata.rb"; then
+    ok "metadata checker mutation-detection tests"
+  else
+    fail "metadata checker mutation-detection tests failed"
+  fi
+}
+
 main() {
   require_dir "$plugin_dir"
 
@@ -584,6 +597,7 @@ main() {
   validate_json_file "$live_routing_schema"
   validate_skill_routing_fixture
   validate_metadata_hygiene
+  validate_metadata_checker_tests
   validate_skill_references
   validate_skill_assets
   validate_portable_host_paths
