@@ -1,5 +1,15 @@
 # v1tamins
 
+## 0.9.0
+
+### Minor Changes
+
+- 516d61e: Corpus judo: merge simplify/deslop/hindsight into v1-refine; decompose walkthrough assets; extract address-review Code Factory adapter; collapse GPT-5.4 pattern twin; shared skill-root resolver; enforce undeclared side_effects; delete activation stubs; default v1-pr review to v1-deep-review.
+- d991b89: Expand `v1-debug` into a general causal debugging workflow with a required
+  assumption audit, a compact six-step loop, and a single domain appendix for
+  feedback loops and corrections. Keep explicit routing boundaries with
+  `v1-diagnosing-constraints` and `v1-designing-habit-systems`.
+
 ## 0.8.0
 
 ### Minor Changes
