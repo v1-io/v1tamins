@@ -384,7 +384,7 @@ flowchart LR
 
 | Skill | When to use |
 |-------|-------------|
-| [`/v1-debug`](./plugins/v1tamins/skills/v1-debug/SKILL.md) | General root-cause workflow for any observable problem, from code bugs to broken processes and recurring real-world failures |
+| [`/v1-debug`](./plugins/v1tamins/skills/v1-debug/SKILL.md) | Debug any observable problem to a tested causal explanation — code bugs, broken processes, recurring real-world failures |
 | [`/v1-fix-tests`](./plugins/v1tamins/skills/v1-fix-tests/SKILL.md) | Systematic loop until the test suite is green |
 | [`/v1-write-tests`](./plugins/v1tamins/skills/v1-write-tests/SKILL.md) | Generate meaningful unit tests for new code |
 | [`/v1-e2e-testing`](./plugins/v1tamins/skills/v1-e2e-testing/SKILL.md) | Playwright tests, including a de-flaking playbook |

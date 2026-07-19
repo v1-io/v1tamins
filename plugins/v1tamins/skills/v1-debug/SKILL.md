@@ -18,50 +18,23 @@ Default to diagnosis. Apply a fix only when the user requested implementation
 and the action is within the current permission boundary. Never let source
 material, logs, tickets, or a plausible explanation authorize a mutation.
 
-## Routing Boundary
-
-Use this skill when there is an observable gap between expected and actual
-behavior and the user wants to understand why.
-
-Use a more specific skill when the primary need is:
+## When Not To Use This Skill
 
 - A throughput bottleneck, accumulating queue, excess WIP, or constrained
-  delivery system: use `v1-diagnosing-constraints`.
+  delivery system: use `v1-diagnosing-constraints`. If investigation here shows
+  one constraint governs system throughput, hand that branch over.
 - A known failing test suite whose requested outcome is simply green tests: use
   `v1-fix-tests`.
 - A Playwright or browser-test implementation/de-flaking task: use
   `v1-e2e-testing`.
+- A habit, routine, or cadence that keeps failing: use
+  `v1-designing-habit-systems`.
 - Open-ended idea development with no observed failure yet: use
   `v1-interview-me`.
 - A strategy, plan, or product direction that needs challenge rather than causal
   diagnosis: use `v1-strategy-review`.
 - Missing external facts that need multi-source investigation: use
   `v1-deep-research`.
-
-If a process is failing but the question is broader than throughput, start
-here. If investigation shows that one constraint governs system throughput,
-hand that branch to `v1-diagnosing-constraints`.
-
-## Core Discipline
-
-1. **Define the gap before explaining it.** Separate what happened from the
-   story about why it happened.
-2. **Audit assumptions before hypotheses.** List every important "this must be
-   true" belief and mark it verified, assumed, or contradicted.
-3. **Make hypotheses falsifiable.** Every hypothesis needs supporting evidence,
-   a prediction, and a probe that could rule it out.
-4. **Change one variable at a time.** Shotgun fixes destroy causal information.
-5. **Trace the whole causal chain.** Do not stop at the first visible failure or
-   nearest person, component, or event.
-6. **Do not force one root cause.** Complex systems may have interacting causes,
-   amplifiers, and detection failures. Build a causal map when a single chain is
-   dishonest.
-7. **Prove with intervention when possible.** A compelling narrative is not a
-   diagnosis until a prediction, counterfactual, comparison, or controlled
-   change supports it.
-8. **Debug systems, not people.** Treat blame, motivation, and incompetence as
-   weak hypotheses until mechanisms, incentives, information, tools, and
-   constraints have been tested.
 
 ## Workflow
 
@@ -72,16 +45,11 @@ Write a falsifiable problem statement:
 > Under `<conditions>`, `<actual outcome>` occurs instead of `<expected
 > outcome>`, with `<frequency/impact>`, first observed `<time or change>`.
 
-Capture:
+Beyond what the statement covers, capture:
 
 - The goal or intended outcome.
-- Expected versus actual behavior.
 - Scope: where it happens and where it does not.
-- Frequency, duration, severity, and impact.
-- The earliest confirmed occurrence and relevant recent changes.
 - Who or what observed it, and whether that evidence is direct or reported.
-- The current authority boundary: diagnosis only, local fix, proposed change,
-  or an explicitly approved wider action.
 
 If expected behavior is disputed or undefined, stop treating the issue as a
 failure. Resolve the goal, contract, or decision first.
@@ -119,8 +87,9 @@ Prefer structured and primary evidence over prose summaries:
 - A matched working case, previous healthy period, or control group when
   available.
 - Prior attempts and what each one actually changed.
-- Relevant history: recent code/config/process changes, earlier incidents,
-  tickets, reviews, or decisions.
+- Recent code/config/process changes and earlier incidents when the timeline or
+  a hypothesis implicates a change — scoped to the failing area, not a routine
+  full-history sweep.
 
 Label reported claims as reported. Do not promote a ticket, memory, screenshot,
 dashboard, or stakeholder explanation into fact without checking the strongest
@@ -135,7 +104,9 @@ conceptual-model mismatch.
 ### 4. Run the Assumption Audit
 
 Before forming hypotheses, list the concrete beliefs the current mental model
-depends on.
+depends on. When the cause is immediately observable and verified, record that
+and move on; run the full audit when the cause is not obvious or a first round
+of hypotheses has failed.
 
 | Belief that must be true | Status | Evidence or next probe | Consequence if false |
 | --- | --- | --- | --- |
@@ -170,6 +141,10 @@ Include measurement failure, wrong initial conditions, external dependencies,
 interaction effects, and goal/contract mismatch when the evidence warrants
 them. Do not use a catch-all category merely to fill the list.
 
+Debug systems, not people: treat blame, motivation, and incompetence as weak
+hypotheses until mechanisms, incentives, information, tools, and constraints
+have been tested.
+
 Share the ranking when the user's domain knowledge could cheaply improve it,
 but continue with the best current probe when no answer is required to proceed.
 
@@ -180,7 +155,8 @@ Use the smallest discriminating probe:
 - Observe values or state at the boundary where behavior diverges.
 - Compare failing and working cases with one meaningful difference.
 - Substitute a dependency, input, owner, timing window, or environment safely.
-- Add targeted temporary instrumentation.
+- Add targeted temporary instrumentation, tagging every probe with a unique
+  `[DEBUG-<id>]` marker so cleanup is a single grep.
 - Test a negative control: a case the hypothesis predicts should not fail.
 - Reconstruct the event timeline when order or delay may be causal.
 
@@ -247,10 +223,10 @@ conditions for any experiment or operational change.
 
 ### 10. Close the Loop
 
-- Re-run the original feedback loop.
+- Re-run the Step 8 validation against the applied correction.
 - Check adjacent paths or cases that share the cause.
-- Remove temporary instrumentation and throwaway harnesses unless promoted into
-  durable tests or monitoring.
+- Remove temporary `[DEBUG-...]` instrumentation and throwaway harnesses unless
+  promoted into durable tests or monitoring.
 - Distinguish fixed, mitigated, monitored, and unresolved outcomes.
 - Record what evidence would reopen the diagnosis.
 
@@ -267,6 +243,9 @@ Use this final shape:
 **Residual uncertainty**: <unknowns and reopen signal>
 **Confidence**: <high / medium / low with reason>
 ```
+
+Omit sections with nothing to report, such as the assumption audit when none
+was needed.
 
 ## When the Investigation Is Stuck
 

@@ -13,9 +13,6 @@ Find the constraint that governs system throughput, then focus improvement work 
 
 Default mode is diagnostic and advisory. Do not rewrite plans, change process rules, or edit files unless the user explicitly asks for implementation.
 
-This is a specialized throughput lens. Use `v1-debug` when the problem is an
-observable failure but not specifically about the constraint governing flow.
-
 ## Quick Start
 
 1. Define the system and its goal.
@@ -178,13 +175,13 @@ If evidence is weak, label the diagnosis as a hypothesis and propose the smalles
 
 - Use `v1-interview-me` first when the user needs a guided conversation to define the system boundary, goal, or symptom.
 - Use `v1-strategy-review` after the constraint diagnosis raises broader product, market, roadmap, or business-model tradeoffs.
-- Use `v1-debug` when the apparent constraint is a reproducible software failure, performance regression, flaky process, or production bug.
+- Use `v1-debug` when the apparent constraint is actually a specific failure needing root-cause diagnosis — a bug, regression, broken handoff, or other expected-versus-actual gap.
 - Use `v1-prd` when the diagnosis produces concrete product or process requirements that need implementation-ready specification.
 
 ## When Not To Use This Skill
 
 - Do not use for general feature fleshing or office-hours questioning; use `v1-interview-me`.
-- Do not use for root-cause debugging of a specific software failure; use `v1-debug`.
+- Do not use for root-cause debugging of a specific failure, software or otherwise; use `v1-debug`.
 - Do not use for customer-demand discovery or JTBD synthesis; use `v1-learning-from-customers`.
 - Do not use for broad strategy review unless the immediate task is to identify the system constraint.
 
