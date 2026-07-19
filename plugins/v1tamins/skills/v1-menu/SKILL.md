@@ -17,7 +17,7 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 
 1. `/v1-interview-me` — office-hours questioning to flesh out an idea before planning. Hands off to `/v1-learning-from-customers` when the question is real demand, or `/v1-diagnosing-constraints` when a stuck process is the real problem.
 2. `/v1-prd` — turn the settled idea or ticket into requirements. `/v1-bare-bones` — strip an overscoped plan to the smallest useful version. `/v1-strategy-review` — challenge assumptions and ambition before committing.
-3. Build, driving `/v1-write-tests` for new coverage and `/v1-simplify` before calling it done.
+3. Build, driving `/v1-write-tests` for new coverage and `/v1-refine` before calling it done.
 4. Ship: `/v1-pr` **(explicit)** (create the PR), `/v1-pr-description` (title/body), `/v1-land-pr` **(explicit)** (commit → push → CI → ready), `/v1-prove-work` **(explicit)** (record browser proof for the PR).
 
 ## Reviewing code
@@ -28,15 +28,21 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 - `/v1-address-review` — resolve review comments that already exist.
 - `/v1-phone-a-friend` — one second opinion from a counterpart agent.
 
+## Diagnosing problems
+
+- `/v1-debug` — root-cause diagnosis of any observable expected-versus-actual gap (code or not).
+- `/v1-diagnosing-constraints` — Theory of Constraints when throughput, queues, or WIP are the problem.
+- `/v1-designing-habit-systems` — design or diagnose a habit, routine, or cadence that fails to stick.
+
 ## Fixing and improving code
 
-- Broken: `/v1-debug` (root-cause errors), `/v1-fix-tests` (failing suite), `/v1-e2e-testing` (browser/E2E and flakes).
-- Working but rough: `/v1-simplify` (reuse/quality/efficiency + KISS/DRY/SOLID + cognitive complexity, on the diff or named files), `/v1-deslop` (AI slop), `/v1-hindsight-refactor` (delete the messy fix, reimplement cleanly).
+- Broken: `/v1-fix-tests` (failing suite), `/v1-e2e-testing` (browser/E2E and flakes).
+- Working but rough: `/v1-refine` (quality pass / deslop / hindsight rewrite on the diff or named files).
 
 ## Research and analysis
 
 - `/v1-deep-research` — multi-source research report. `/v1-autoresearch-skill` **(explicit)** — autonomous optimize-measure-keep loop against a measurable target.
-- `/v1-learning-from-customers` — demand evidence and discovery. `/v1-testing-prototypes` — user tests for prototypes. `/v1-diagnosing-constraints` — find the bottleneck in a stuck system. `/v1-designing-habit-systems` — design a habit, routine, or cadence that sticks (person, team, or process), or diagnose why an existing one keeps failing.
+- `/v1-learning-from-customers` — demand evidence and discovery. `/v1-testing-prototypes` — user tests for prototypes.
 - `/v1-reviewing-data-graphics` — audit charts and dashboards. `/v1-reviewing-usability` — review a UI or flow for user error.
 
 ## Communicating and documenting

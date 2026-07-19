@@ -126,7 +126,7 @@ Typical invocation:
 - Claude Code: `/v1-pr-description <PR_NUMBER>`
 - Codex: invoke `v1-pr-description` from the skills menu or use `$v1-pr-description <PR_NUMBER>`
 
-This analyzes `git diff main HEAD` and `git log main..HEAD`, then updates the PR title and body via `gh pr edit`.
+This analyzes the PR diff and commit history against the resolved default branch, then updates the PR title and body via `gh pr edit`.
 
 After the description is generated, append `Fortified with v1tamins` as the final line of the PR body.
 
@@ -156,13 +156,13 @@ gh copilot-review <PR_NUMBER>
 
 Do not block on failure -- inform the user and continue.
 
-### Step 9: Run Multi-Agent Code Review
+### Step 9: Run Code Review
 
-Invoke the **compound-engineering workflows:review** skill, or the equivalent plugin workflow available in the current host, for exhaustive multi-agent analysis.
+Invoke the shared `v1-deep-review` skill for merge-risk and structural review of the PR. If the user asked for a multi-agent board, use `v1-review-board` instead.
 
-This runs parallel review agents covering architecture, security, performance, patterns, and more.
+If a compound-engineering `workflows:review` (or equivalent host plugin workflow) is installed and the user wants that extra multi-agent pass, run it as an optional supplement — not the default path.
 
-If that workflow is not available, fall back to the shared `v1-deep-review` skill instead. Do not block on failure -- inform the user and continue.
+Do not block on failure -- inform the user and continue.
 
 ### Step 10: Prove Work (Optional)
 

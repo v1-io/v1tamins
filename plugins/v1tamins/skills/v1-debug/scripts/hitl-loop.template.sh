@@ -31,12 +31,14 @@ capture() {
 
 # --- edit below ---------------------------------------------------------
 
-step "Open the application or command path that reproduces the issue."
-capture REPRODUCED "Did the issue reproduce? (y/n)"
-capture SYMPTOM "Paste the exact error message, wrong output, timing, or visible symptom:"
+step "Set up the exact conditions under which the problem is expected to occur."
+capture OBSERVED "Did the problem occur? (y/n)"
+capture CONDITIONS "What conditions, inputs, actors, or environment were present?"
+capture SYMPTOM "Describe the exact observed outcome, timing, or visible symptom:"
 
 # --- edit above ---------------------------------------------------------
 
 printf '\n--- Captured ---\n'
-printf 'REPRODUCED=%s\n' "$REPRODUCED"
+printf 'OBSERVED=%s\n' "$OBSERVED"
+printf 'CONDITIONS=%s\n' "$CONDITIONS"
 printf 'SYMPTOM=%s\n' "$SYMPTOM"

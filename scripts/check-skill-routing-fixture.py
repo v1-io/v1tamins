@@ -192,6 +192,11 @@ def validate_case(
     if case["category"] == "budget" and not case["budget_stress"]:
         errors.append(f"{case_id}: budget category requires budget_stress=true")
 
+    if case["category"] == "near_miss" and not case["near_miss_skills"]:
+        errors.append(
+            f"{case_id}: near_miss category requires near_miss_skills naming the rejected neighbor"
+        )
+
     if (
         case["category"] == "side_effect"
         and case["expected_skill"]

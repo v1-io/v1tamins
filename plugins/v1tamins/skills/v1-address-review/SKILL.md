@@ -1,6 +1,6 @@
 ---
 name: v1-address-review
-description: Use when addressing PR review comments or resolving unresolved PR review threads from Copilot, Code Factory, bots, or humans. Triggers on "fix review comments", "address review feedback", "address code factory", "respond to PR comments", "resolve conversations", "unresolved review threads".
+description: Use when addressing PR review comments or resolving unresolved PR review threads from humans, Copilot, or aggregate bot reviews. Triggers on "fix review comments", "address review feedback", "address code factory", "respond to PR comments", "resolve conversations", "unresolved review threads".
 allowed-tools:
   - Bash
   - Read
@@ -9,7 +9,7 @@ allowed-tools:
 ---
 # Address PR Review Comments
 
-Fetch code review comments on a PR (from Copilot, Code Factory, bots, or humans), critically evaluate each one, fix the valid issues, reply to each comment, resolve conversations when warranted, and use usefulness reactions when appropriate.
+Fetch code review comments on a PR (from humans, Copilot, or aggregate bot reviews), critically evaluate each one, fix the valid issues, reply to each comment, resolve conversations when warranted, and use usefulness reactions when appropriate.
 
 ## Usage
 
@@ -42,7 +42,7 @@ Before editing files, build a working ledger of every actionable review item:
 
 | Comment ID | Thread ID | Source | File:Line | Finding | Status | Action | Validation | Reply | Resolve | Reaction |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `<id>` | `<thread-id>` | Copilot / Code Factory / human | `path:line` | short title | valid / invalid / partial / blocked | fix / skip / ask | command or reason | posted / pending | yes / no / blocked | +1 / -1 / none |
+| `<id>` | `<thread-id>` | Copilot / bot / human | `path:line` | short title | valid / invalid / partial / blocked | fix / skip / ask | command or reason | posted / pending | yes / no / blocked | +1 / -1 / none |
 
 Use the ledger to avoid losing line-specific comments, stale bot findings, or false positives that still need a reply. If GitHub API access fails, say so explicitly and do not claim comments were addressed; fall back only to local diff review and mark replies as blocked.
 
@@ -68,15 +68,8 @@ Fetch all PR-level issue comments, then classify them during analysis. Do not pr
 gh api repos/{owner}/{repo}/issues/{pr}/comments --paginate
 ```
 
-#### C. Code Factory AI review comments
-Code Factory posts as `github-actions[bot]` with findings embedded in a single issue comment or summarized in the current Code Factory status comment. Identify these by looking for the `**Claude finished` prefix, `### Code Review` heading, `## Code Factory` heading, or `code-factory-rerun` marker:
-
-```bash
-gh api repos/{owner}/{repo}/issues/{pr}/comments --paginate | \
-jq -r '.[] | select(.user.login == "github-actions[bot]" and (.body | test("### Code Review|## Code Factory|Claude finished.*task in|code-factory-rerun")))'
-```
-
-**Important**: Code Factory may post multiple review comments (one per push). Use the **most recent** one — it may contain a "Previous Review Findings" status table showing what's already resolved, or it may be a summary-only status comment whose actionable findings are in line-specific review comments. Only address findings marked as unresolved or new findings from the latest review.
+#### C. Aggregate bot review comments
+When a bot packs multiple findings into one issue comment (Code Factory is the reference dialect), load [references/code-factory.md](references/code-factory.md) for detect/parse/summary-reply rules. Keep using the generic ledger; do not special-case other bots unless their body matches those multi-finding markers.
 
 #### D. Review threads and conversation state
 Fetch review threads so comments can be resolved after they are answered:
@@ -139,31 +132,8 @@ Before posting replies, adding reactions, resolving threads, committing, or push
 #### Line-specific and general comments
 Each comment = one finding. Read the referenced file and code section.
 
-#### Code Factory comments
-A single comment contains multiple findings in this structure:
-```markdown
-### P1 — Critical
-#### <Finding title>
-**`file.py:line`**
-<description>
-```code
-<code snippet>
-```
-[Fix this →](link)
-
-### P2 — High
-#### <Finding title>
-...
-```
-
-Extract each finding by:
-1. Splitting on `#### ` headings under P1/P2/P3 sections
-2. Parsing `**\`file.py:line\`**` for file and line references
-3. Reading the description and suggestion text
-4. **Ignoring** the "What looks good" section (no action needed)
-5. **Ignoring** any findings already marked resolved in a "Previous Review Findings" table (rows with checkmarks/Fixed/Resolved)
-
-If the latest Code Factory comment is summary-only, use it as gate/status context and rely on current line-specific review comments for the actionable finding ledger.
+#### Aggregate bot comments
+Follow [references/code-factory.md](references/code-factory.md) when the body matches multi-finding markers. Otherwise treat the issue comment as a single finding like any other PR-level comment.
 
 ### 4. Analyze Each Finding
 For each finding (regardless of source):
@@ -190,20 +160,8 @@ Reply inline: `gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies -f b
 #### General PR-level comments
 Summary comment: `gh api repos/{owner}/{repo}/issues/{pr}/comments`
 
-#### Code Factory comments
-Post a **single summary reply** as a new issue comment (there's no per-finding comment to reply to):
-
-```markdown
-## Addressed Code Factory Review
-
-Responding to review from [comment](link_to_comment):
-
-| # | Severity | File:Line | Finding | Action |
-|---|----------|-----------|---------|--------|
-| 1 | P1 | auth.py:42 | Missing auth guard | Fixed |
-| 2 | P2 | utils.py:50 | Unbounded memory | Fixed |
-| 3 | P3 | types.py:10 | Any type annotation | Skipped - not in changed code |
-```
+#### Aggregate bot multi-finding comments
+Use the summary-reply template in [references/code-factory.md](references/code-factory.md).
 
 Replies are brief:
 - Valid: "Fixed" or "Fixed - [note if approach differs]"
@@ -280,7 +238,7 @@ Commit all validated fixes with a descriptive message and push when the user ask
 - **Documentation updates**: Valid if docs outdated
 - **Test mock updates**: Valid if mocks don't match implementation
 - **Refactoring suggestions**: Evaluate against KISS/YAGNI
-- **"Previous findings still unresolved"**: Code Factory re-flags findings across review rounds — prioritize these as they've been raised before
+- **Repeated unresolved findings across bot rounds**: Prioritize — see [references/code-factory.md](references/code-factory.md)
 
 ## Completion Gates
 
@@ -301,6 +259,6 @@ Summary table of all findings addressed:
 
 | # | Source | File:Line | Issue | Action | Reply | Resolved | Reaction |
 |---|--------|-----------|-------|--------|-------|----------|----------|
-| 1 | Code Factory P1 | auth.py:42 | Missing auth | Fixed | Posted summary | n/a | +1 |
+| 1 | Aggregate bot P1 | auth.py:42 | Missing auth | Fixed | Posted summary | n/a | +1 |
 | 2 | Copilot | test.py:100 | Incorrect mock | Fixed | Replied inline | Yes | +1 |
-| 3 | Code Factory P3 | utils.py:50 | Suggested refactor | Skipped | Not needed per YAGNI | Yes | -1 |
+| 3 | Aggregate bot P3 | utils.py:50 | Suggested refactor | Skipped | Not needed per YAGNI | Yes | -1 |

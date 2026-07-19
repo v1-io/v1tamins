@@ -95,11 +95,13 @@ Followed by: launch date (landmark), miss rules, review cadence, re-entry plan t
 
 - Use `v1-interview-me` first when the behavior goal is still vague and needs office-hours questioning before design.
 - Use `v1-diagnosing-constraints` when the stuck system is a throughput problem (queue, funnel, WIP, bottleneck) — not a recurring behavior that fails to stick.
+- Use `v1-debug` when the failure is a general expected-versus-actual gap that is not habit, routine, or cadence decay.
 - Use `v1-deep-research` when the user wants a literature survey without system design.
 
 ## When Not To Use
 
 - Do not use for throughput, WIP, or queue bottlenecks; use `v1-diagnosing-constraints`.
+- Do not use for general expected-versus-actual failures that are not habit, routine, or cadence failures; use `v1-debug`.
 - Do not use for general idea fleshing before the recurring behavior is defined; use `v1-interview-me`.
 - Do not use for multi-source research without habit/routine system design; use `v1-deep-research`.
 

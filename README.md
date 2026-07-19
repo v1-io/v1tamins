@@ -129,9 +129,7 @@ mindmap
       ("v1-write-tests")
       ("v1-e2e-testing")
     Quality
-      ("v1-simplify")
-      ("v1-deslop")
-      ("v1-hindsight-refactor")
+      ("v1-refine")
       ("v1-deep-review")
       ("v1-diagnosing-constraints")
     Ship
@@ -182,8 +180,8 @@ Each v1tamin is the smallest sharp tool we could build for one of those failures
 | Plan or synthesize observed prototype sessions | `v1-testing-prototypes` | Customer interviews before a prototype exists |
 | Review UI task completion and error risk | `v1-reviewing-usability` | Chart truthfulness or metric-dashboard integrity |
 | Review charts, dashboards, or quantitative displays | `v1-reviewing-data-graphics` | General app usability review |
-| Diagnose a stuck process, queue, funnel, or roadmap | `v1-diagnosing-constraints` | Specific software bug reproduction |
-| Debug a reproducible failure or flaky behavior | `v1-debug` | Broad operational constraint diagnosis |
+| Diagnose a throughput bottleneck, queue, WIP, funnel, or delivery constraint | `v1-diagnosing-constraints` | A broader expected-versus-actual failure |
+| Debug any observable problem to a tested causal explanation | `v1-debug` | Open-ended ideation or explicit throughput-constraint analysis |
 | Get an independent second model/runtime opinion | `v1-phone-a-friend` | First-pass in-agent review or research |
 | Run a parallel multi-agent review board on a PR, then address it | `v1-review-board` | A single counterpart opinion or an in-agent review |
 
@@ -209,16 +207,16 @@ You describe a feature. The agent writes 800 lines. About 60% solves a different
 </details>
 
 <details>
-<summary><b>#2 &mdash; The code doesn't work</b></summary>
+<summary><b>#2 &mdash; Something doesn't work</b></summary>
 
 <br>
 
-Aligned and confident. You hit run. It crashes. The agent's first instinct is to wrap it in a try/except and declare victory.
+Aligned and confident. The result is wrong. The agent's first instinct is to patch the nearest symptom and declare victory.
 
 > [!TIP]
-> Yours should be a failing test that pins the symptom. Short feedback loops beat long debugging sessions — failing tests, real reproductions, instrumentation before guesses.
+> Yours should be the smallest feedback loop that pins the real symptom. Tests, traces, matched cases, controlled probes, and explicit assumptions beat plausible stories.
 
-- [`/v1-debug`](./plugins/v1tamins/skills/v1-debug/SKILL.md) — disciplined diagnosis loop: reproduce → minimise → hypothesise → instrument → fix → regression-test. The skill to reach for first when something is broken or flaky
+- [`/v1-debug`](./plugins/v1tamins/skills/v1-debug/SKILL.md) — general causal debugging loop: frame the gap → build a feedback loop → audit assumptions → test hypotheses → trace cause → validate the correction. Use it for code, systems, operations, workflows, decisions, services, and everyday problems
 - [`/v1-fix-tests`](./plugins/v1tamins/skills/v1-fix-tests/SKILL.md) — systematic loop that fixes failing tests until the suite is green, with feedback at every step
 - [`/v1-write-tests`](./plugins/v1tamins/skills/v1-write-tests/SKILL.md) — generate unit tests for new functionality with sensible coverage and meaningful assertions
 - [`/v1-e2e-testing`](./plugins/v1tamins/skills/v1-e2e-testing/SKILL.md) — Playwright-based browser tests, including a playbook for de-flaking
@@ -235,9 +233,7 @@ Agents over-build. Extra try/except. Unused helpers. Premature abstractions. Def
 > [!IMPORTANT]
 > Ship that diff once and the next change inherits its shape. Run a quality pass *before* marking work as done.
 
-- [`/v1-simplify`](./plugins/v1tamins/skills/v1-simplify/SKILL.md) — review or restructure the current diff or named files for reuse, simplicity, duplication, cognitive complexity, and efficiency (KISS / DRY / SOLID / YAGNI), preserving behavior
-- [`/v1-deslop`](./plugins/v1tamins/skills/v1-deslop/SKILL.md) — strip AI-generated boilerplate, defensive checks, and verbose comments that add nothing
-- [`/v1-hindsight-refactor`](./plugins/v1tamins/skills/v1-hindsight-refactor/SKILL.md) — when the first-pass fix is exploratory or overbuilt, delete it and reimplement a clean version using what the first pass taught you
+- [`/v1-refine`](./plugins/v1tamins/skills/v1-refine/SKILL.md) — refine working-but-rough code via a quality pass (reuse / KISS / DRY / SOLID / complexity / efficiency), AI-slop removal (`deslop`), or a hindsight rewrite
 - [`/v1-deep-review`](./plugins/v1tamins/skills/v1-deep-review/SKILL.md) — review any PR or branch (code, docs, config) on both bars: merge risk (bugs, regressions, security, tests, scope) and structural maintainability (abstraction quality, file-size boundaries, spaghetti branching); posts to GitHub only when requested
 
 </details>
@@ -294,7 +290,7 @@ flowchart LR
   C --> D([/v1-learning-from-customers])
   D --> E([/v1-prd])
   E --> F{{... build ...}}
-  F --> G([/v1-simplify])
+  F --> G([/v1-refine])
   G --> H([/v1-deep-review])
   H -.explain.-> W([/v1-pr-walkthrough])
   H --> I([/v1-pr])
@@ -307,7 +303,7 @@ flowchart LR
   click C href "./plugins/v1tamins/skills/v1-bare-bones/SKILL.md"
   click D href "./plugins/v1tamins/skills/v1-learning-from-customers/SKILL.md"
   click E href "./plugins/v1tamins/skills/v1-prd/SKILL.md"
-  click G href "./plugins/v1tamins/skills/v1-simplify/SKILL.md"
+  click G href "./plugins/v1tamins/skills/v1-refine/SKILL.md"
   click H href "./plugins/v1tamins/skills/v1-deep-review/SKILL.md"
   click W href "./plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md"
   click I href "./plugins/v1tamins/skills/v1-pr/SKILL.md"
@@ -321,11 +317,11 @@ flowchart LR
 ```mermaid
 flowchart LR
   A([/v1-debug]) --> B([/v1-write-tests])
-  B --> C([/v1-simplify])
+  B --> C([/v1-refine])
   C --> D([/v1-land-pr])
   click A href "./plugins/v1tamins/skills/v1-debug/SKILL.md"
   click B href "./plugins/v1tamins/skills/v1-write-tests/SKILL.md"
-  click C href "./plugins/v1tamins/skills/v1-simplify/SKILL.md"
+  click C href "./plugins/v1tamins/skills/v1-refine/SKILL.md"
   click D href "./plugins/v1tamins/skills/v1-land-pr/SKILL.md"
 ```
 
@@ -384,7 +380,7 @@ flowchart LR
 
 | Skill | When to use |
 |-------|-------------|
-| [`/v1-debug`](./plugins/v1tamins/skills/v1-debug/SKILL.md) | Disciplined diagnosis loop for hard bugs, flakes, and perf regressions |
+| [`/v1-debug`](./plugins/v1tamins/skills/v1-debug/SKILL.md) | Debug any observable problem to a tested causal explanation — code bugs, broken processes, recurring real-world failures |
 | [`/v1-fix-tests`](./plugins/v1tamins/skills/v1-fix-tests/SKILL.md) | Systematic loop until the test suite is green |
 | [`/v1-write-tests`](./plugins/v1tamins/skills/v1-write-tests/SKILL.md) | Generate meaningful unit tests for new code |
 | [`/v1-e2e-testing`](./plugins/v1tamins/skills/v1-e2e-testing/SKILL.md) | Playwright tests, including a de-flaking playbook |
@@ -393,9 +389,7 @@ flowchart LR
 
 | Skill | When to use |
 |-------|-------------|
-| [`/v1-simplify`](./plugins/v1tamins/skills/v1-simplify/SKILL.md) | Review or restructure the diff or named files for reuse, simplicity, duplication, complexity, and efficiency (KISS / DRY / SOLID / YAGNI) |
-| [`/v1-deslop`](./plugins/v1tamins/skills/v1-deslop/SKILL.md) | Strip AI-generated boilerplate, defensive checks, and dead comments |
-| [`/v1-hindsight-refactor`](./plugins/v1tamins/skills/v1-hindsight-refactor/SKILL.md) | Throw away the messy first-pass fix and reimplement cleanly using what it taught you |
+| [`/v1-refine`](./plugins/v1tamins/skills/v1-refine/SKILL.md) | Refine working code via quality passes, AI-slop removal (`deslop`), or hindsight rewrite |
 | [`/v1-deep-review`](./plugins/v1tamins/skills/v1-deep-review/SKILL.md) | Review any PR or branch (code, docs, config) for merge risk and structural maintainability; `--post` or ask to post to GitHub |
 | [`/v1-diagnosing-constraints`](./plugins/v1tamins/skills/v1-diagnosing-constraints/SKILL.md) | Find the bottleneck or constraint governing throughput in a stuck process, team, queue, or roadmap |
 
@@ -407,7 +401,7 @@ flowchart LR
 | [`/v1-pr-description`](./plugins/v1tamins/skills/v1-pr-description/SKILL.md) | Generate or refresh a PR title and body from metadata, diff, and validation |
 | [`/v1-land-pr`](./plugins/v1tamins/skills/v1-land-pr/SKILL.md) | Full hand-off: commit → push → CI → fix → mark ready → update Linear |
 | [`/v1-pr-walkthrough`](./plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md) | Create a browser walkthrough that maps touched files and explains the PR in execution order |
-| [`/v1-address-review`](./plugins/v1tamins/skills/v1-address-review/SKILL.md) | Resolve unresolved threads from Copilot, Code Factory, bots, or humans |
+| [`/v1-address-review`](./plugins/v1tamins/skills/v1-address-review/SKILL.md) | Resolve unresolved threads from humans, Copilot, or aggregate bot reviews |
 | [`/v1-prove-work`](./plugins/v1tamins/skills/v1-prove-work/SKILL.md) | Record a browser GIF for the PR description or Slack |
 
 ### Compound the learning

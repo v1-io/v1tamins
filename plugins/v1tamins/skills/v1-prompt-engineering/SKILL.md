@@ -6,11 +6,11 @@ description: Use when writing, reviewing, or migrating prompts, system prompts, 
 
 Improve prompts by tying every instruction to a concrete failure mode, output contract, or evaluation result.
 
-For GPT-5.5, the OpenAI Responses API, OpenRouter, `reasoning_effort`, or model-migration specifics, load `references/gpt-5-5-patterns.md` (or `references/gpt-5-4-patterns.md` for GPT-5.4 compatibility).
+For GPT-5.5, the OpenAI Responses API, OpenRouter, `reasoning_effort`, or model-migration specifics, load `references/gpt-5-5-patterns.md`. For GPT-5.4 hosts only, also load `references/gpt-5-4-patterns.md` (short deltas; load 5.5 first for shared contracts).
 
 ## Quick Start
 
-1. Identify the host, model family, tool surface, and output consumer. For GPT-5.5, OpenAI Responses API, or OpenRouter hosts, load `references/gpt-5-5-patterns.md` (GPT-5.4: `references/gpt-5-4-patterns.md`).
+1. Identify the host, model family, tool surface, and output consumer. For GPT-5.5, OpenAI Responses API, or OpenRouter hosts, load `references/gpt-5-5-patterns.md`. On GPT-5.4 only, load that file first, then `references/gpt-5-4-patterns.md` for deltas.
 2. Write the smallest prompt that can pass the task.
 3. Add only blocks that fix a named failure mode.
 4. Test against representative inputs before adding more instruction text.
@@ -136,4 +136,4 @@ Then prune:
 
 - `references/advanced.md` - Carry-forward patterns for context management, degrees of freedom, and prompt discipline.
 - `references/gpt-5-5-patterns.md` - GPT-5.5 ready-to-paste blocks, the reasoning-effort ladder, OpenAI Responses API and OpenRouter chat-completions runtime notes, and migration defaults.
-- `references/gpt-5-4-patterns.md` - GPT-5.4 compatibility blocks and migration defaults.
+- `references/gpt-5-4-patterns.md` - Short GPT-5.4-only deltas; load after `gpt-5-5-patterns.md` when still on 5.4.

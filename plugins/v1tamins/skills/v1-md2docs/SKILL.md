@@ -26,19 +26,21 @@ Optional arguments after the file path:
 
 ```bash
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-
-for dir in \
-  "$REPO_ROOT/plugins/v1tamins/skills/v1-md2docs" \
-  "${CLAUDE_PLUGIN_ROOT:-}" \
-  "$HOME/.codex/skills/v1-md2docs" \
-  "$HOME/.claude/skills/v1-md2docs"; do
-  [ -n "$dir" ] && [ -f "$dir/scripts/md2docs.py" ] && SKILL_ROOT="$dir" && break
+RESOLVER=""
+for candidate in \
+  "$REPO_ROOT/plugins/v1tamins/scripts/resolve-skill-root.sh" \
+  "${CLAUDE_PLUGIN_ROOT:-}/scripts/resolve-skill-root.sh" \
+  "$HOME/.claude/skills/v1-md2docs/../../scripts/resolve-skill-root.sh" \
+  "$HOME/.codex/skills/v1-md2docs/../../scripts/resolve-skill-root.sh" \
+  "$HOME/.claude/plugins/cache"/*/v1tamins/*/scripts/resolve-skill-root.sh \
+  "$HOME/.codex/plugins/cache/v1tamins/v1tamins"/*/scripts/resolve-skill-root.sh; do
+  [ -x "$candidate" ] && RESOLVER="$candidate" && break
 done
-
-if [ -z "${SKILL_ROOT:-}" ]; then
-  echo "ERROR: Could not find scripts/md2docs.py" >&2
+if [ -z "${RESOLVER:-}" ]; then
+  echo "ERROR: Could not find resolve-skill-root.sh" >&2
   exit 1
 fi
+SKILL_ROOT="$("$RESOLVER" v1-md2docs scripts/md2docs.py)"
 
 python3 "$SKILL_ROOT/scripts/md2docs.py" <file_path> [--title "Title"] [--no-open]
 ```

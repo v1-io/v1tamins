@@ -151,7 +151,7 @@ python3 "$SKILL_DIR/scripts/render_walkthrough.py" \
 
 The renderer validates file/layer/node identities, flowchart edges, edge evidence, and per-layer snippets before writing static semantic HTML. Treat a renderer error as a data error: fix the JSON and rerun it. Do not bypass the validation or hand-author a different page shell.
 
-The bundled template supplies inline CSS and inline JavaScript. It requires no dev server, build step, package install, CDN, or external network request. If the repository has an explicit temporary artifact convention, use it only when it is clearly throw-away and not committed by default.
+The renderer inlines the bundled CSS and JavaScript into one self-contained HTML file. It requires no dev server, build step, package install, CDN, or external network request. If the repository has an explicit temporary artifact convention, use it only when it is clearly throw-away and not committed by default.
 
 The first viewport must contain:
 - PR or branch title, source, base/head, author when available, and generated timestamp.
@@ -214,6 +214,8 @@ Do not post review findings to GitHub from this skill. If the walkthrough reveal
 
 ## Bundled Resources
 
-- [assets/pr-walkthrough-template.html](assets/pr-walkthrough-template.html) - Accessible, responsive, self-contained artifact shell.
+- [assets/pr-walkthrough-shell.html](assets/pr-walkthrough-shell.html) - Markup shell with `@@TOKEN@@` placeholders.
+- [assets/pr-walkthrough.css](assets/pr-walkthrough.css) - Styles inlined into the rendered artifact.
+- [assets/pr-walkthrough.js](assets/pr-walkthrough.js) - Client controls inlined into the rendered artifact.
 - [scripts/render_walkthrough.py](scripts/render_walkthrough.py) - Standard-library renderer and data validator.
 - [references/walkthrough-data.example.json](references/walkthrough-data.example.json) - Public-safe example of the complete input contract.
