@@ -1,0 +1,12 @@
+interface:
+  display_name: "Implement Unit"
+  short_description: "Take one planned unit through clean review to a mergeable PR"
+  default_prompt: "Use $v1-implement-unit to implement this planned ticket through a mergeable pull request."
+
+policy:
+  allow_implicit_invocation: false
+  invocation_posture: explicit_only
+  side_effects:
+    - external_write
+    - git_remote
+    - peer_launch

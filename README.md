@@ -92,6 +92,7 @@ rather than a static validation failure. Do not commit raw live transcripts.
 A few v1tamins skills compose directly with [Every's compound-engineering plugin](https://github.com/EveryInc/compound-engineering-plugin):
 
 - `/v1-goldpan` queues approved candidates through `/ce-compound` to write durable solution docs
+- `/v1-implement-unit` prefers `/ce-work` in return-to-caller mode for its isolated implementation thread
 - `/v1-pr` chains into `/ce-code-review` for multi-agent review before merge
 
 Install it alongside v1tamins:
@@ -124,6 +125,7 @@ mindmap
       ("v1-testing-prototypes")
       ("v1-reviewing-usability")
     Build
+      ("v1-implement-unit")
       ("v1-debug")
       ("v1-fix-tests")
       ("v1-write-tests")
@@ -182,6 +184,7 @@ Each v1tamin is the smallest sharp tool we could build for one of those failures
 | Review charts, dashboards, or quantitative displays | `v1-reviewing-data-graphics` | General app usability review |
 | Diagnose a throughput bottleneck, queue, WIP, funnel, or delivery constraint | `v1-diagnosing-constraints` | A broader expected-versus-actual failure |
 | Debug any observable problem to a tested causal explanation | `v1-debug` | Open-ended ideation or explicit throughput-constraint analysis |
+| Implement one adequately planned ticket through a mergeable PR | `v1-implement-unit` | Unplanned work or a whole epic |
 | Get an independent second model/runtime opinion | `v1-phone-a-friend` | First-pass in-agent review or research |
 | Run a parallel multi-agent review board on a PR, then address it | `v1-review-board` | A single counterpart opinion or an in-agent review |
 
@@ -247,6 +250,7 @@ Code's done. Now: title, body, screenshots, push, watch CI, fix the lint failure
 
 These skills compress the ship phase into one chained workflow.
 
+- [`/v1-implement-unit`](./plugins/v1tamins/skills/v1-implement-unit/SKILL.md) — orchestrate one adequately planned ticket through isolated implementation, fresh review-board cycles, remediation, CI, and a mergeable PR
 - [`/v1-pr`](./plugins/v1tamins/skills/v1-pr/SKILL.md) — turn local work into a draft PR with a sensible title and body
 - [`/v1-pr-description`](./plugins/v1tamins/skills/v1-pr-description/SKILL.md) — generate or refresh a PR title/body from metadata, diff, and validation evidence (use standalone or chained inside `/v1-pr`)
 - [`/v1-land-pr`](./plugins/v1tamins/skills/v1-land-pr/SKILL.md) — the full hand-off: commit → push → open as draft → monitor `gh pr checks` → fix failed checks (up to 3 retries) → mark ready → move linked Linear ticket to Human Review
@@ -310,6 +314,23 @@ flowchart LR
   click J href "./plugins/v1tamins/skills/v1-prove-work/SKILL.md"
   click K href "./plugins/v1tamins/skills/v1-land-pr/SKILL.md"
   click L href "./plugins/v1tamins/skills/v1-goldpan/SKILL.md"
+```
+
+### Planned unit → mergeable PR
+
+```mermaid
+flowchart LR
+  A{{adequate plan?}} -->|yes| B([/v1-implement-unit])
+  A -->|no| X([stop and plan])
+  B --> C([implementation thread])
+  C --> D([fresh /v1-review-board])
+  D -->|findings| C
+  D -->|clean| E([/v1-land-pr])
+  E -->|code changed| D
+  E -->|mergeable| F([stop and notify])
+  click B href "./plugins/v1tamins/skills/v1-implement-unit/SKILL.md"
+  click D href "./plugins/v1tamins/skills/v1-review-board/SKILL.md"
+  click E href "./plugins/v1tamins/skills/v1-land-pr/SKILL.md"
 ```
 
 ### Bug investigation
@@ -397,6 +418,7 @@ flowchart LR
 
 | Skill | When to use |
 |-------|-------------|
+| [`/v1-implement-unit`](./plugins/v1tamins/skills/v1-implement-unit/SKILL.md) | Orchestrate one adequately planned ticket through implementation, clean review, and a mergeable PR |
 | [`/v1-pr`](./plugins/v1tamins/skills/v1-pr/SKILL.md) | Turn local work into a draft PR |
 | [`/v1-pr-description`](./plugins/v1tamins/skills/v1-pr-description/SKILL.md) | Generate or refresh a PR title and body from metadata, diff, and validation |
 | [`/v1-land-pr`](./plugins/v1tamins/skills/v1-land-pr/SKILL.md) | Full hand-off: commit → push → CI → fix → mark ready → update Linear |

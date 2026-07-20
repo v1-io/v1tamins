@@ -17,7 +17,7 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 
 1. `/v1-interview-me` — office-hours questioning to flesh out an idea before planning. Hands off to `/v1-learning-from-customers` when the question is real demand, or `/v1-diagnosing-constraints` when a stuck process is the real problem.
 2. `/v1-prd` — turn the settled idea or ticket into requirements. `/v1-bare-bones` — strip an overscoped plan to the smallest useful version. `/v1-strategy-review` — challenge assumptions and ambition before committing.
-3. Build, driving `/v1-write-tests` for new coverage and `/v1-refine` before calling it done.
+3. Build: `/v1-implement-unit` **(explicit)** takes one adequately planned ticket through isolated implementation, fresh review-board cycles, and a mergeable PR. For manual work, drive `/v1-write-tests` for new coverage and `/v1-refine` before calling it done.
 4. Ship: `/v1-pr` **(explicit)** (create the PR), `/v1-pr-description` (title/body), `/v1-land-pr` **(explicit)** (commit → push → CI → ready), `/v1-prove-work` **(explicit)** (record browser proof for the PR).
 
 ## Reviewing code
