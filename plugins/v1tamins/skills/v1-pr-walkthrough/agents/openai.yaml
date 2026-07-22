@@ -1,7 +1,7 @@
 interface:
   display_name: "PR Walkthrough"
-  short_description: "Create an HTML walkthrough for a PR or branch"
-  default_prompt: "Use $v1-pr-walkthrough to create a throw-away HTML walkthrough that maps touched files, explains each file, and walks the PR layer by layer."
+  short_description: "Create an interactive HTML explanation of a PR or branch"
+  default_prompt: "Use $v1-pr-walkthrough to create a dated self-contained HTML explanation with Background, Intuition, Code, and Quiz sections."
 
 policy:
   allow_implicit_invocation: true

@@ -23,7 +23,7 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 ## Reviewing code
 
 - `/v1-deep-review` — review a branch or PR (code, docs, or config) for merge risk and structural maintainability.
-- `/v1-pr-walkthrough` — create a throw-away HTML walkthrough that maps touched files and explains a PR in execution order.
+- `/v1-pr-walkthrough` — create a dated self-contained HTML explanation of a PR with Background, Intuition, Code, and interactive Quiz sections.
 - `/v1-review-board` **(explicit)** — fan review out to multiple peer agents.
 - `/v1-address-review` — resolve review comments that already exist.
 - `/v1-phone-a-friend` — one second opinion from a counterpart agent.
