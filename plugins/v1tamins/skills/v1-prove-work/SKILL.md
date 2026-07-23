@@ -1,6 +1,6 @@
 ---
 name: v1-prove-work
-description: Use when the user explicitly wants a browser demo GIF or visual proof for a completed UI change. Triggers on "prove work", "record demo", "GIF for PR", "visual proof", "proof of work", "/v1-prove-work".
+description: Use when explicitly recording browser proof or a demo GIF for a completed UI change. Triggers on "prove work", "record demo", or "visual proof".
 disable-model-invocation: true
 allowed-tools:
   - Bash

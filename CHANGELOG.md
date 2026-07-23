@@ -1,5 +1,16 @@
 # v1tamins
 
+## 0.10.0
+
+### Minor Changes
+
+- d0c4e59: Add `v1-implement-unit`, an explicit orchestration skill that gates on an adequate plan, runs implementation in a separate resumable thread, cycles fresh review-board ledgers through remediation, and uses `v1-land-pr` to reach a mergeable pull request.
+- 0926ee0: Rewrite `v1-pr-walkthrough` around a dated self-contained HTML explanation with Background, Intuition, Code, and interactive Quiz sections. Drop the bundled shell/CSS/JS template and JSON renderer in favor of generating the full page directly.
+
+### Patch Changes
+
+- Reduce always-loaded skill routing descriptions, make invocation posture explicit, and document the compact metadata contract.
+
 ## 0.9.0
 
 ### Minor Changes

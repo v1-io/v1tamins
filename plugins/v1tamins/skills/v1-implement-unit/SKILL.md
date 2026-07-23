@@ -1,6 +1,6 @@
 ---
 name: v1-implement-unit
-description: Use when the user explicitly asks to implement one planned ticket or unit through a mergeable pull request. Triggers on "implement unit", "implement this ticket end to end", "/v1-implement-unit", or "take this unit to a mergeable PR".
+description: Use when explicitly implementing one planned ticket through independent review and a mergeable PR. Triggers on "implement this ticket end to end" or "/v1-implement-unit".
 disable-model-invocation: true
 allowed-tools:
   - Bash

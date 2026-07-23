@@ -1,6 +1,6 @@
 ---
 name: v1-fix-tests
-description: Use when tests are failing and need systematic fixing until all pass. Triggers on "fix tests", "tests failing", "make tests pass".
+description: Use when a failing test suite needs systematic repair. Triggers on "fix tests", "tests failing", or "make tests pass".
 allowed-tools:
   - Bash
   - Read

@@ -61,6 +61,30 @@ Skill names use the `v1-` prefix in both directory names and frontmatter names (
 
 Private plugin skill directories named `v1-_*` are gitignored — they can exist locally but are not distributed.
 
+### Invocation taxonomy and description contract
+
+Every distributed skill declares one `policy.invocation_posture` in its
+`agents/openai.yaml` metadata:
+
+- `implicit`: model-selectable and directly invocable for ordinary local work.
+- `selective_implicit`: model-selectable and directly invocable, but costly,
+  high-impact, or separately gated when it reaches an external or peer system.
+- `explicit_only`: callable only from a human or explicitly named automation;
+  set `allow_implicit_invocation: false` and
+  `disable-model-invocation: true`.
+
+This package has no supported `agent-only` posture. Keep orchestration entry
+points such as `v1-implement-unit`, `v1-review-board`, `v1-pr`, and `v1-land-pr`
+explicit even when their child skills are model-selectable. Child routing must
+not open the parent workflow.
+
+`SKILL.md` frontmatter descriptions are always-loaded routing metadata, not
+miniature manuals. Keep each non-empty description to the skill's core purpose
+plus distinct natural trigger phrases; target 180 characters or fewer. Keep
+methods, outputs, edge cases, and routing boundaries in the body or a directly
+linked reference. Update the trigger inventory and routing fixture whenever
+this contract changes.
+
 ### General Skill Workflow
 
 Use `v1-skilling-it` to create, edit, audit, or validate an Agent Skill and to

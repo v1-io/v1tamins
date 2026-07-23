@@ -1,6 +1,6 @@
 ---
 name: v1-canon2skill
-description: Use when extracting suggested agent skills or skill improvements from source material. Triggers on "what skills could come from this", "extract skills from this", "turn this into skills", "skill ideas from this source".
+description: Use when extracting reusable Agent Skill ideas from books, PDFs, articles, courses, or notes. Triggers on "extract skills from this" or "what skills could come from this?".
 allowed-tools:
   - Bash
   - Read

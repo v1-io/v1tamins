@@ -1,6 +1,6 @@
 ---
 name: v1-menu
-description: Use when the user explicitly asks which v1tamins skill fits the current situation. The single canonical roster of every v1 skill, which one to reach for, and how they chain together. Triggers on "which v1 skill", "v1 menu", "/v1-menu".
+description: Use when explicitly choosing which v1tamins skill fits a task. Triggers on "which v1 skill", "v1 menu", or "/v1-menu".
 disable-model-invocation: true
 allowed-tools:
   - Read

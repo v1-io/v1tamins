@@ -1,6 +1,6 @@
 ---
 name: v1-bare-bones
-description: Use when reducing an overscoped plan, PRD, proposal, or implementation outline to the smallest useful version. Triggers on "bare bones", "strip this plan", "trim this plan", "scope creep", "descope this plan", "MVP only".
+description: Use when reducing a plan, PRD, or proposal to the smallest useful scope. Triggers on "strip this plan", "MVP only", or "remove scope".
 allowed-tools:
   - Bash
   - Read

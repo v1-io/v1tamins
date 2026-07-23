@@ -1,6 +1,6 @@
 ---
 name: v1-prd
-description: Use when writing a PRD from a Linear ticket or feature request. Triggers on "write PRD", "create requirements doc", "PRD from ticket".
+description: Use when turning a Linear ticket or feature request into a PRD. Triggers on "write PRD", "requirements doc", or "PRD from ticket".
 allowed-tools:
   - Bash
   - Read

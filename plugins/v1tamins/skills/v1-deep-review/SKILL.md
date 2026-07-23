@@ -1,6 +1,6 @@
 ---
 name: v1-deep-review
-description: Use when reviewing a pull request or branch for merge risk and structural maintainability, or posting review feedback to GitHub. Triggers on "review this PR", "code review", "review my branch", "check this pull request", "maintainability audit", "architecture review".
+description: Use when reviewing a PR or branch for merge risk or maintainability. Triggers on "review this PR", "code review", or "maintainability audit".
 allowed-tools:
   - Bash
   - Read

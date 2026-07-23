@@ -1,6 +1,6 @@
 ---
 name: v1-pr-description
-description: Use when writing, updating, or auditing a GitHub PR title or description. Triggers on "write PR description", "update PR body", "describe this PR", "refresh PR description", "PR title".
+description: Use when writing or updating a GitHub PR title or description. Triggers on "write PR description", "update PR body", or "PR title".
 allowed-tools:
   - Bash
   - Read

@@ -1,6 +1,6 @@
 ---
 name: v1-refine
-description: Use when refining working-but-rough code via a quality pass, AI-slop removal, or a hindsight rewrite. Triggers on "simplify", "refine", "refactor", "clean up code", "deslop", "remove slop", "hindsight refactor", "second pass rewrite", "reduce complexity", "too nested".
+description: Use when refining working code through a quality pass, deslop, or hindsight rewrite. Triggers on "simplify", "deslop", "refactor", or "reduce complexity".
 allowed-tools:
   - Bash
   - Read

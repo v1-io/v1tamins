@@ -1,6 +1,6 @@
 ---
 name: v1-reviewing-data-graphics
-description: Use when reviewing charts, dashboards, quantitative graphics, data visualizations, metric screenshots, or visual reports. Triggers on "review this chart", "audit this dashboard", "is this visualization misleading", "critique this data display", "review these metrics".
+description: Use when reviewing charts, dashboards, or quantitative visualizations for integrity. Triggers on "review this chart", "audit this dashboard", or "misleading visualization".
 allowed-tools:
   - Bash
   - Read

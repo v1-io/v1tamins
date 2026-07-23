@@ -1,6 +1,6 @@
 ---
 name: v1-reviewing-usability
-description: Use when reviewing a UI, product flow, prototype, form, admin surface, or control for user-error risk. Triggers on "review this UI", "usability review", "why is this confusing", "is this flow discoverable", "review this interaction".
+description: Use when reviewing a UI, product flow, prototype, or form for usability and user-error risk. Triggers on "review this UI", "usability review", or "confusing interaction".
 allowed-tools:
   - Bash
   - Read

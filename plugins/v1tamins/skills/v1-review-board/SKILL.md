@@ -1,6 +1,6 @@
 ---
 name: v1-review-board
-description: Use when the user wants several peer agents to review a PR or branch and produce a verified finding ledger. Triggers on "review board", "convene the review board", "multi-agent review", "fan out a review", "deep-review from multiple models".
+description: Use when explicitly convening several peer agents to review a PR or branch. Triggers on "review board", "multi-agent review", or "fan out a review".
 disable-model-invocation: true
 allowed-tools:
   - Bash

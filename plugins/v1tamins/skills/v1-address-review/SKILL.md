@@ -1,6 +1,6 @@
 ---
 name: v1-address-review
-description: Use when addressing PR review comments or resolving unresolved PR review threads from humans, Copilot, or aggregate bot reviews. Triggers on "fix review comments", "address review feedback", "address code factory", "respond to PR comments", "resolve conversations", "unresolved review threads".
+description: Use when resolving existing PR review comments or threads. Triggers on "address review feedback", "fix review comments", or "resolve review threads".
 allowed-tools:
   - Bash
   - Read

@@ -1,6 +1,6 @@
 ---
 name: v1-skilling-it
-description: Use when creating, editing, auditing, or validating an Agent Skill. Use for packaging, installing, publishing, or improving skills for Codex, Claude Code, ChatGPT, a project, a personal workspace, or a shared plugin. Triggers on "create a skill", "where should this skill live", "audit this SKILL.md", "skill description", and "improve this skill".
+description: Use when creating, editing, auditing, or validating an Agent Skill. Triggers on "create a skill", "audit this SKILL.md", or "skill description".
 ---
 # Skilling It
 

@@ -4,6 +4,11 @@ Use this inventory before editing descriptions. The question is not only whether
 the current wording is concise; it is whether the skill has the right trigger
 contract at all.
 
+The compact-description contract is purpose plus distinct trigger phrases,
+targeting 180 characters or fewer. Detailed methods, outputs, edge cases, and
+neighbor boundaries belong in the loaded skill body or references; keep this
+table focused on routing evidence and invocation posture.
+
 | Skill | Trigger assessment | Candidate trigger examples | Near-miss neighbors | Invocation posture | Budget risk |
 | --- | --- | --- | --- | --- | --- |
 | `v1-address-review` | Right trigger: resolving already-existing review comments and conversations. | "work through the unresolved PR comments"; "reply to this bot review with fixes" | `v1-deep-review`, `v1-review-board`, `v1-pr` | selective implicit; GitHub replies, resolution, and push require explicit request | medium |
