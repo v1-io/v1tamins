@@ -111,6 +111,12 @@ an opt-in live Codex or Claude Code smoke sample. It may require local runtime
 auth and writes ignored artifacts under `.v1tamins/live-routing/`; do not commit
 raw transcripts.
 
+To compare one installed Codex or Claude plugin root with the canonical plugin
+package without mutating caches or credentials, run
+`scripts/verify-installed-plugin.sh --canonical <plugin-root> --installed <plugin-root> --runtime <codex|claude>`.
+Add `--probe-catalog` only when you want a read-only installed
+`peer_catalog.py` probe; bytecode writes are disabled for that probe.
+
 ## Migration Note
 
 The canonical source moved from `.agents/skills/<skill-name>/` to `plugins/v1tamins/skills/v1-<skill-name>/`. Direct checkout consumers should update symlinks, scripts, and docs to use the plugin path and installed `v1-*` names. Marketplace/plugin consumers already using `/v1-*` skill names should not need to change anything.

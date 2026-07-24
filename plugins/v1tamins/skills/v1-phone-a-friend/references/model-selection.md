@@ -6,10 +6,12 @@ fixture.
 
 ## Discovery command
 
-From the installed Phone-a-Friend skill directory, run:
+From the installed Phone-a-Friend skill directory, resolve the discovery helper
+from that skill path (not the project cwd), then run:
 
 ```bash
-python3 scripts/peer_catalog.py \
+PEER_CATALOG="<this skill dir>/scripts/peer_catalog.py"
+python3 "$PEER_CATALOG" \
   --profile quality \
   --auth-mode subscription_native \
   --prompt-profile structural \

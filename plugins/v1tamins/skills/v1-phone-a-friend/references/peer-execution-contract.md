@@ -63,8 +63,10 @@ fingerprint, or prompt digest changes after approval; rediscover and ask again.
 user-supplied API-key variables without printing them (via `peer_policy.py`) and
 leaves provider-native login state available. The wrapper also closes stdin at
 the child boundary. A user-supplied API key is allowed only after the user
-selects `api_explicit` for that run. The wrapper must then report
-`api_explicit`; it must never claim subscription-native auth.
+selects `api_explicit` for that run. Even then, `peer-env.sh` keeps only the
+selected provider's known API-key variables and scrubs every other provider's
+keys. The wrapper must report `api_explicit`; it must never claim
+subscription-native auth.
 
 Provider-native login and an API key are different facts. A successful CLI
 version command proves installation only. A status command can prove auth only

@@ -81,6 +81,22 @@ def scrub_key_names() -> tuple[str, ...]:
     return API_KEY_ENV_VARS
 
 
+def emit_shell_unset() -> str:
+    return "unset " + " ".join(scrub_key_names())
+
+
+def emit_shell_unset_except_provider(provider: str) -> str:
+    """Unset every known API-key name except the selected provider's."""
+
+    if provider not in PROVIDERS:
+        raise ValueError(f"unsupported provider: {provider}")
+    keep = set(PROVIDER_KEY_ENV_VARS.get(provider, ()))
+    drop = [name for name in scrub_key_names() if name not in keep]
+    if not drop:
+        return "true"
+    return "unset " + " ".join(drop)
+
+
 def subscription_environment(mode: str) -> dict[str, str]:
     if mode not in {"subscription_native", "api_explicit"}:
         raise ValueError(f"unsupported auth mode: {mode}")
@@ -92,10 +108,6 @@ def subscription_environment(mode: str) -> dict[str, str]:
     return environment
 
 
-def emit_shell_unset() -> str:
-    return "unset " + " ".join(scrub_key_names())
-
-
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     group = parser.add_mutually_exclusive_group(required=True)
@@ -103,6 +115,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--emit-shell-unset",
         action="store_true",
         help="print a bash unset line for subscription_native scrubbing",
+    )
+    group.add_argument(
+        "--emit-shell-unset-except-provider",
+        metavar="NAME",
+        help="print unset for every API-key name except NAME's keys",
     )
     group.add_argument(
         "--emit-providers",
@@ -121,6 +138,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     if args.emit_shell_unset:
         print(emit_shell_unset())
+        return 0
+    if args.emit_shell_unset_except_provider is not None:
+        try:
+            print(emit_shell_unset_except_provider(args.emit_shell_unset_except_provider))
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
         return 0
     if args.emit_providers:
         print("|".join(PROVIDER_IDS))

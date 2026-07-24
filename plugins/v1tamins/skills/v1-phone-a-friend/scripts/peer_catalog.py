@@ -247,21 +247,36 @@ def build_candidates(
         for candidate in ranked
         if requested_cli is None or candidate.cli == requested_cli
     ]
+    eligible_pool = [
+        candidate for candidate in pool if candidate.launch_state == "eligible"
+    ]
+    ineligible_pool = [
+        candidate for candidate in pool if candidate.launch_state != "eligible"
+    ]
+
+    # Fill the recommended roster from eligible peers first. Family diversity
+    # only competes among launchable candidates so an ineligible different
+    # family cannot push out a second eligible peer.
     selected: list[Candidate] = []
     families: set[str] = set()
-    for candidate in pool:
+    for candidate in eligible_pool:
         if len(selected) >= count:
             break
         if candidate.model_family in families and any(
-            other.model_family not in families for other in pool
+            other.model_family not in families for other in eligible_pool
         ):
             continue
         selected.append(candidate)
         families.add(candidate.model_family)
     if len(selected) < count:
-        for candidate in pool:
+        for candidate in eligible_pool:
             if candidate not in selected:
                 selected.append(candidate)
+            if len(selected) >= count:
+                break
+    if len(selected) < count:
+        for candidate in ineligible_pool:
+            selected.append(candidate)
             if len(selected) >= count:
                 break
 
@@ -427,6 +442,22 @@ def main() -> int:
     eligible_count = sum(
         1 for candidate in roster if candidate.launch_state == "eligible"
     )
+    # Explicit custom/model/reasoning failures are a rejected proposal, not a
+    # successful discovery receipt with selection_errors buried in the body.
+    if errors and (args.profile == "custom" or args.model or args.reasoning):
+        print(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": {
+                        "code": "selection_rejected",
+                        "selection_errors": errors,
+                    },
+                },
+                sort_keys=True,
+            )
+        )
+        return 2
     result = Proposal(
         ok=True,
         schema=SCHEMA,

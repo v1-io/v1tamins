@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -21,6 +22,13 @@ REQUIRED_RELPATHS = (
     "skills/v1-phone-a-friend/scripts/peer_policy.py",
     "skills/v1-phone-a-friend/scripts/peer_adapters.py",
     "skills/v1-phone-a-friend/scripts/peer_models.py",
+)
+
+REQUIRED_EXECUTABLE_RELPATHS = (
+    "skills/v1-phone-a-friend/scripts/peer-run.sh",
+    "skills/v1-phone-a-friend/scripts/peer-env.sh",
+    "skills/v1-phone-a-friend/scripts/peer-run-inner.sh",
+    "skills/v1-phone-a-friend/scripts/peer-run-watchdog.sh",
 )
 
 
@@ -43,21 +51,51 @@ def status_payload(
     return payload
 
 
+def _is_private_or_generated(relative: Path) -> bool:
+    parts = relative.parts
+    if any(part == "__pycache__" or part.startswith("v1-_") for part in parts):
+        return True
+    if relative.suffix in {".pyc", ".pyo"}:
+        return True
+    return False
+
+
 def tree_hash(root: Path) -> str:
     digest = hashlib.sha256()
     for current, directories, files in os.walk(root, followlinks=False):
-        directories.sort()
+        # Skip private plugin skills and bytecode directories in-place.
+        directories[:] = [
+            name
+            for name in sorted(directories)
+            if name != "__pycache__" and not name.startswith("v1-_")
+        ]
         for name in sorted(files):
             path = Path(current) / name
             if not path.is_file():
                 continue
-            relative = path.relative_to(root).as_posix().encode()
-            digest.update(relative)
+            relative = path.relative_to(root)
+            if _is_private_or_generated(relative):
+                continue
+            digest.update(relative.as_posix().encode())
+            digest.update(b"\0")
+            mode = path.stat().st_mode & 0o777
+            digest.update(f"{mode:03o}".encode())
             digest.update(b"\0")
             with path.open("rb") as handle:
                 for block in iter(lambda: handle.read(1024 * 1024), b""):
                     digest.update(block)
     return digest.hexdigest()
+
+
+def required_helpers_executable(root: Path) -> bool:
+    for relpath in REQUIRED_EXECUTABLE_RELPATHS:
+        path = root / relpath
+        if not path.is_file():
+            return False
+        mode = path.stat().st_mode
+        if not (mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)):
+            return False
+    return True
 
 
 def manifest_version(path: Path) -> str | None:
@@ -70,10 +108,13 @@ def manifest_version(path: Path) -> str | None:
 
 
 def probe_catalog(script: Path) -> tuple[str, str | None]:
+    env = dict(os.environ)
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
     try:
         completed = subprocess.run(
             [
                 sys.executable,
+                "-B",
                 str(script),
                 "--profile",
                 "fast",
@@ -85,7 +126,9 @@ def probe_catalog(script: Path) -> tuple[str, str | None]:
             text=True,
             errors="replace",
             stdin=subprocess.DEVNULL,
-            timeout=30,
+            timeout=60,
+            env=env,
+            cwd=str(script.parent),
         )
     except (OSError, subprocess.TimeoutExpired):
         return "unavailable", None
@@ -96,9 +139,19 @@ def probe_catalog(script: Path) -> tuple[str, str | None]:
     except json.JSONDecodeError:
         return "invalid", None
     fingerprint = payload.get("catalog_fingerprint")
-    if isinstance(fingerprint, str) and fingerprint:
+    if not (isinstance(fingerprint, str) and fingerprint):
+        return "invalid", None
+    discovered = payload.get("discovered")
+    if not isinstance(discovered, list):
+        return "unresolved", fingerprint
+    if any(
+        isinstance(item, dict)
+        and isinstance(item.get("model_catalog"), dict)
+        and item["model_catalog"].get("status") == "resolved"
+        for item in discovered
+    ):
         return "resolved", fingerprint
-    return "invalid", None
+    return "unresolved", fingerprint
 
 
 def parse_args() -> argparse.Namespace:
@@ -163,6 +216,18 @@ def main() -> int:
                 )
             )
             return 1
+
+    if not required_helpers_executable(canonical) or not required_helpers_executable(
+        installed
+    ):
+        emit(
+            status_payload(
+                runtime,
+                "missing",
+                "required peer helper scripts are missing execute permission",
+            )
+        )
+        return 1
 
     canonical_version = manifest_version(canonical / manifest_relpath)
     installed_version = manifest_version(installed / manifest_relpath)

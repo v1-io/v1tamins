@@ -41,9 +41,21 @@ OPENAI_API_KEY=synthetic ANTHROPIC_API_KEY=synthetic CURSOR_API_KEY=synthetic \
   "$ENV_WRAPPER" --provider codex --auth-mode subscription_native -- "$FAKE_ENV" > "$TEST_DIR/env.txt"
 grep -qx 'keys-scrubbed' "$TEST_DIR/env.txt"
 grep -qx 'stdin-closed' "$TEST_DIR/env.txt"
-OPENAI_API_KEY=synthetic "$ENV_WRAPPER" --provider codex --auth-mode api_explicit -- "$FAKE_ENV" > "$TEST_DIR/api-env.txt"
+OPENAI_API_KEY=synthetic ANTHROPIC_API_KEY=synthetic CURSOR_API_KEY=synthetic \
+  "$ENV_WRAPPER" --provider codex --auth-mode api_explicit -- "$FAKE_ENV" > "$TEST_DIR/api-env.txt"
 grep -qx 'key-present' "$TEST_DIR/api-env.txt"
 grep -qx 'stdin-closed' "$TEST_DIR/api-env.txt"
+# api_explicit for codex must keep OpenAI keys but scrub Anthropic/Cursor keys.
+printf '%s\n' '#!/usr/bin/env bash' \
+  'printf "openai=%s\n" "${OPENAI_API_KEY:-absent}"' \
+  'printf "anthropic=%s\n" "${ANTHROPIC_API_KEY:-absent}"' \
+  'printf "cursor=%s\n" "${CURSOR_API_KEY:-absent}"' > "$TEST_DIR/fake-scoped-env.sh"
+chmod +x "$TEST_DIR/fake-scoped-env.sh"
+OPENAI_API_KEY=synthetic ANTHROPIC_API_KEY=synthetic CURSOR_API_KEY=synthetic \
+  "$ENV_WRAPPER" --provider codex --auth-mode api_explicit -- "$TEST_DIR/fake-scoped-env.sh" > "$TEST_DIR/scoped-env.txt"
+grep -qx 'openai=synthetic' "$TEST_DIR/scoped-env.txt"
+grep -qx 'anthropic=absent' "$TEST_DIR/scoped-env.txt"
+grep -qx 'cursor=absent' "$TEST_DIR/scoped-env.txt"
 
 json_field() {
   local file="$1"
@@ -93,7 +105,8 @@ poll_verdict "$TEST_DIR" empty "$TEST_DIR/empty.json"
 
 # A hung peer reaches timed_out via the watchdog. status/verdict must not kill.
 # Teardown owns mutation after observation. The unrelated process must remain.
-sleep 4 &
+# Keep the sentinel alive past launch + deadline grace + observation sleeps.
+while :; do sleep 1; done &
 UNRELATED_PID=$!
 "$RUNNER" launch --dir "$TEST_DIR" --slug hang --deadline-seconds 1 -- "$FAKE_HANG" >/dev/null
 if [ "$(cat "$TEST_DIR/hang/peer.session")" = '1' ]; then

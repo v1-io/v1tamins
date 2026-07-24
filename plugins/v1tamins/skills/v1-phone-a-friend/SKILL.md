@@ -61,10 +61,14 @@ Examples:
 
 ## Capability Audit
 
-Run the bundled discovery before selecting a peer. It checks command presence, versions, current model catalogs, reasoning levels, and auth policy without printing secrets. In `subscription_native` mode, unset ambient API-key variables first (or run `eval "$(python3 scripts/peer_policy.py --emit-shell-unset)"`) so discovery matches the scrubbed launch environment; otherwise ambient keys are a visible `blocked_api_key_present` policy block.
+Run the bundled discovery before selecting a peer. It checks command presence, versions, current model catalogs, reasoning levels, and auth policy without printing secrets. In `subscription_native` mode, unset ambient API-key variables first (or run `eval "$(python3 "$PEER_POLICY" --emit-shell-unset)"`) so discovery matches the scrubbed launch environment; otherwise ambient keys are a visible `blocked_api_key_present` policy block.
 
 ```bash
-python3 scripts/peer_catalog.py \
+# Resolve helpers from this skill's installed directory, not the project cwd.
+PEER_CATALOG="<this skill dir>/scripts/peer_catalog.py"
+PEER_POLICY="<this skill dir>/scripts/peer_policy.py"
+eval "$(python3 "$PEER_POLICY" --emit-shell-unset)"
+python3 "$PEER_CATALOG" \
   --profile quality \
   --auth-mode subscription_native
 ```

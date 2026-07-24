@@ -446,6 +446,58 @@ class PeerContractTests(unittest.TestCase):
         self.assertEqual(auth.policy_state, "eligible")
         self.assertIn("claude", peer_adapters.AUTH_PARSERS)
 
+    def test_quality_roster_prefers_eligible_over_ineligible_diversity(self) -> None:
+        selected, alternatives, errors = peer_catalog.build_candidates(
+            [
+                make_provider(
+                    cli="eligible-a",
+                    models=[
+                        {
+                            "id": "family-a-1",
+                            "family": "family-a",
+                            "rank": 0,
+                            "reasoning_levels": ["high"],
+                        }
+                    ],
+                ),
+                make_provider(
+                    cli="eligible-b",
+                    models=[
+                        {
+                            "id": "family-a-2",
+                            "family": "family-a",
+                            "rank": 0,
+                            "reasoning_levels": ["high"],
+                        }
+                    ],
+                ),
+                make_provider(
+                    cli="ineligible-c",
+                    policy_state="auth_not_verified",
+                    models=[
+                        {
+                            "id": "family-b-1",
+                            "family": "family-b",
+                            "rank": 0,
+                            "reasoning_levels": ["high"],
+                        }
+                    ],
+                ),
+            ],
+            "quality",
+            2,
+            None,
+            None,
+            None,
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(
+            {candidate.cli for candidate in selected},
+            {"eligible-a", "eligible-b"},
+        )
+        self.assertTrue(all(item.launch_state == "eligible" for item in selected))
+        self.assertEqual(alternatives[0].cli, "ineligible-c")
+
     def test_quality_roster_prefers_different_families(self) -> None:
         selected, alternatives, errors = peer_catalog.build_candidates(
             [

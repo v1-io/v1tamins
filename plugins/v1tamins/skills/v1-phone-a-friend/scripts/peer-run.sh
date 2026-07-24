@@ -137,19 +137,25 @@ resolve_state() {
   cpid="$(peer_read_number "$childpidfile")"
   lpid="$(peer_read_number "$pidfile")"
 
-  # A done sentinel is stronger than a deadline: the peer exited and the
-  # wrapper recorded its result. Substantive output, not the exit code, makes
-  # that terminal result complete.
-  if [ -f "$donefile" ] && has_content "$outfile"; then
-    printf 'complete\n'
-    return 0
+  # A done sentinel is the terminal boundary. Zombie wrappers can still answer
+  # kill -0, so never treat "alive" as stronger than a recorded exit.
+  if [ -f "$donefile" ]; then
+    if has_content "$outfile"; then
+      printf 'complete\n'
+      return 0
+    fi
+    printf 'empty_output\n'
+    return 1
   fi
 
   if deadline_expired; then
-    if peer_alive "$cpid" || peer_alive "$lpid" || [ ! -f "$donefile" ]; then
+    if peer_alive "$cpid" || peer_alive "$lpid"; then
       printf 'timed_out\n'
       return 1
     fi
+    # Deadline passed, process gone, no done sentinel: interrupted/stalled.
+    printf 'timed_out\n'
+    return 1
   fi
 
   if peer_alive "$cpid" || peer_alive "$lpid"; then
@@ -157,14 +163,7 @@ resolve_state() {
     return 2
   fi
 
-  if [ -f "$donefile" ]; then
-    printf 'empty_output\n'
-    return 1
-  fi
-  if has_content "$outfile"; then
-    printf 'complete\n'
-    return 0
-  fi
+  # Content without a done sentinel is an interrupted recorder, not complete.
   printf 'stalled\n'
   return 1
 }

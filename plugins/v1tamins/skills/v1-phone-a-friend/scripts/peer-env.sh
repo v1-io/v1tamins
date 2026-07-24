@@ -3,8 +3,8 @@
 #
 # subscription_native removes known user-supplied API-key variables before the
 # child is exec'd. It intentionally leaves provider-native OAuth variables and
-# host login state untouched. api_explicit is the only mode that preserves
-# ambient API-key variables; selecting it is a deliberate per-run choice.
+# host login state untouched. api_explicit keeps only the selected provider's
+# known API-key variables and still scrubs every other provider's keys.
 
 set -euo pipefail
 
@@ -52,9 +52,11 @@ esac
 
 [ "${#command_args[@]}" -gt 0 ] || die "a command is required after --"
 
+# Names only; never print their values. Source of truth is peer_policy.py.
 if [ "$auth_mode" = "subscription_native" ]; then
-  # Names only; never print their values. Source of truth is peer_policy.py.
   eval "$(python3 "$POLICY_PY" --emit-shell-unset)"
+else
+  eval "$(python3 "$POLICY_PY" --emit-shell-unset-except-provider "$provider")"
 fi
 
 # Keep the provider wrapper safe even when a caller forgets the redirection;
