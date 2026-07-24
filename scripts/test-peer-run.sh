@@ -127,4 +127,17 @@ kill -0 "$UNRELATED_PID" 2>/dev/null
 "$RUNNER" teardown --dir "$TEST_DIR" --slug hang >/dev/null
 kill -0 "$UNRELATED_PID" 2>/dev/null
 
+# Reusing a slug must tear down the prior watchdog before overwriting sentinels.
+"$RUNNER" launch --dir "$TEST_DIR" --slug reuse --deadline-seconds 30 -- "$FAKE_HANG" >/dev/null
+old_watchdog="$(cat "$TEST_DIR/reuse/peer.watchdog.pid")"
+kill -0 "$old_watchdog" 2>/dev/null
+"$RUNNER" launch --dir "$TEST_DIR" --slug reuse --deadline-seconds 5 -- "$FAKE_OUTPUT" >/dev/null
+if kill -0 "$old_watchdog" 2>/dev/null; then
+  printf 'stale watchdog survived slug reuse\n' >&2
+  exit 1
+fi
+poll_verdict "$TEST_DIR" reuse "$TEST_DIR/reuse.json"
+[ "$(json_field "$TEST_DIR/reuse.json" state)" = 'complete' ]
+"$RUNNER" teardown --dir "$TEST_DIR" --slug reuse >/dev/null
+
 printf 'peer-run contract passed\n'

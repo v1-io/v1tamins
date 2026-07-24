@@ -181,6 +181,10 @@ case "$cmd" in
     [ -x "$INNER" ] || die "missing executable peer-run-inner.sh"
     [ -x "$WATCHDOG" ] || die "missing executable peer-run-watchdog.sh"
     mkdir -p "$peerdir" || die "cannot create run directory"
+    # Reusing a slug must not leave a prior watchdog/peer to kill the new run.
+    if [ -f "$pidfile" ] || [ -f "$watchdogfile" ] || [ -f "$childpidfile" ]; then
+      terminate_recorded >/dev/null || true
+    fi
     : > "$outfile"
     : > "$errfile"
     rm -f "$pidfile" "$sessfile" "$donefile" "$childpidfile" "$watchdogfile"

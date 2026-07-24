@@ -49,7 +49,13 @@ def bounded_text(value: str, limit: int = 400) -> str:
     return re.sub(r"\s+", " ", value.strip())[:limit]
 
 
-def run_command(command: list[str], mode: str, timeout_seconds: float) -> CommandResult:
+def run_command(
+    command: list[str],
+    mode: str,
+    timeout_seconds: float,
+    *,
+    provider: str,
+) -> CommandResult:
     try:
         completed = subprocess.run(
             command,
@@ -58,7 +64,7 @@ def run_command(command: list[str], mode: str, timeout_seconds: float) -> Comman
             stdin=subprocess.DEVNULL,
             text=True,
             errors="replace",
-            env=subscription_environment(mode),
+            env=subscription_environment(mode, provider),
             timeout=timeout_seconds,
         )
     except subprocess.TimeoutExpired as exc:
@@ -175,7 +181,11 @@ def parse_model_catalog(
             line = line.strip()
             if not line or line.endswith(":"):
                 continue
-            if re.match(r"(?i)^(available|models?|tips?|usage|options?)\b", line):
+            # Reject catalog headers and diagnostic/prose lines before tokenization.
+            if re.match(
+                r"(?i)^(available|models?|tips?|usage|options?|warning|error|info|note|debug|failed|fatal|trace)\b",
+                line,
+            ):
                 continue
             # cursor-agent: "id - label"; agy: one id per line.
             if " - " in line:
@@ -184,9 +194,12 @@ def parse_model_catalog(
                 parts = line.split()
                 token = parts[0].strip("`'\"(),") if parts else ""
                 # Reject prose lines that are not model-shaped identifiers.
-                if len(parts) > 1 and not re.search(r"[-_.:/=+@0-9]", token):
+                if len(parts) > 1 and not re.search(r"[-_./=+@0-9]", token):
                     continue
+            token = token.rstrip(":")
             if not token or token.startswith("-") or token.startswith("<"):
+                continue
+            if re.match(r"(?i)^(warning|error|info|note|debug|failed|fatal|trace)$", token):
                 continue
             if re.match(r"^[A-Za-z0-9][A-Za-z0-9_.:/=+@-]*$", token):
                 values.append(token)
@@ -392,20 +405,24 @@ def discover_provider(
     def remaining() -> float:
         return max(0.1, deadline - time.monotonic())
 
-    version_result = run_command([executable, "--version"], mode, remaining())
+    version_result = run_command(
+        [executable, "--version"], mode, remaining(), provider=name
+    )
     version = first_version_line(version_result)
     version_fingerprint = sha256_text(f"{name}\n{version or ''}\n{version_result.returncode}")
 
     auth_probe = None
     if spec.auth_args is not None:
-        auth_probe = run_command([executable, *spec.auth_args], mode, remaining())
+        auth_probe = run_command(
+            [executable, *spec.auth_args], mode, remaining(), provider=name
+        )
     auth = auth_result(name, spec, mode, auth_probe)
 
     models: list[ModelEntry] = []
     catalog = unresolved_catalog
     if spec.catalog_mode == "command" and spec.catalog_args is not None:
         catalog_result = run_command(
-            [executable, *spec.catalog_args], mode, remaining()
+            [executable, *spec.catalog_args], mode, remaining(), provider=name
         )
         if catalog_result.returncode == 0 and not catalog_result.timed_out:
             models = parse_model_catalog(catalog_result.stdout)

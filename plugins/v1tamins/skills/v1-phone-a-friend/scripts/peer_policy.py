@@ -97,13 +97,30 @@ def emit_shell_unset_except_provider(provider: str) -> str:
     return "unset " + " ".join(drop)
 
 
-def subscription_environment(mode: str) -> dict[str, str]:
+def subscription_environment(mode: str, provider: str | None = None) -> dict[str, str]:
+    """Build the env for a peer discovery/launch subprocess.
+
+    ``subscription_native`` removes every known API-key name.
+    ``api_explicit`` keeps only the selected provider's known API-key names and
+    still removes every other provider's keys, including during discovery.
+    """
+
     if mode not in {"subscription_native", "api_explicit"}:
         raise ValueError(f"unsupported auth mode: {mode}")
 
     environment = dict(os.environ)
     if mode == "subscription_native":
         for name in scrub_key_names():
+            environment.pop(name, None)
+        return environment
+
+    if provider is None:
+        raise ValueError("api_explicit requires a provider")
+    if provider not in PROVIDERS:
+        raise ValueError(f"unsupported provider: {provider}")
+    keep = set(PROVIDER_KEY_ENV_VARS.get(provider, ()))
+    for name in scrub_key_names():
+        if name not in keep:
             environment.pop(name, None)
     return environment
 

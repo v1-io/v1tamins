@@ -156,6 +156,29 @@ class PeerContractTests(unittest.TestCase):
         self.assertEqual([model.id for model in models], ["auto", "gpt-demo-high"])
         self.assertIn("high", models[1].reasoning_levels)
 
+    def test_line_catalog_rejects_diagnostic_prose(self) -> None:
+        models = peer_adapters.parse_model_catalog(
+            "Warning: using cached credentials\n"
+            "error: temporary upstream failure\n"
+            "real-model-high\n"
+        )
+        self.assertEqual([model.id for model in models], ["real-model-high"])
+
+    def test_api_explicit_discovery_env_keeps_only_selected_provider_keys(self) -> None:
+        values = {
+            "OPENAI_API_KEY": "redacted-openai",
+            "ANTHROPIC_API_KEY": "redacted-anthropic",
+            "CURSOR_API_KEY": "redacted-cursor",
+        }
+        with mock.patch.dict(os.environ, values, clear=False):
+            codex_env = peer_policy.subscription_environment("api_explicit", "codex")
+            claude_env = peer_policy.subscription_environment("api_explicit", "claude")
+        self.assertEqual(codex_env.get("OPENAI_API_KEY"), "redacted-openai")
+        self.assertNotIn("ANTHROPIC_API_KEY", codex_env)
+        self.assertNotIn("CURSOR_API_KEY", codex_env)
+        self.assertEqual(claude_env.get("ANTHROPIC_API_KEY"), "redacted-anthropic")
+        self.assertNotIn("OPENAI_API_KEY", claude_env)
+
     def test_quality_and_fast_profiles_use_exposed_levels(self) -> None:
         provider = make_provider(
             models=[
