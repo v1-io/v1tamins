@@ -116,6 +116,108 @@ has_content() {
   [ -s "$1" ] && LC_ALL=C grep -q '[^[:space:]]' "$1" 2>/dev/null
 }
 
+# Plain text: any non-whitespace is enough. JSON / stream-json / --json: require a
+# terminal answer payload, not framing, progress, or error-only events.
+has_peer_answer() {
+  local path="$1"
+  has_content "$path" || return 1
+  python3 - "$path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+text = path.read_text(encoding="utf-8", errors="replace")
+stripped = text.strip()
+if not stripped:
+    raise SystemExit(1)
+
+def text_blocks(value) -> bool:
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, list):
+        for item in value:
+            if isinstance(item, str) and item.strip():
+                return True
+            if isinstance(item, dict):
+                if item.get("type") == "text" and text_blocks(item.get("text")):
+                    return True
+                if text_blocks(item.get("text")) or text_blocks(item.get("content")):
+                    return True
+    if isinstance(value, dict):
+        return text_blocks(value.get("text")) or text_blocks(value.get("content"))
+    return False
+
+
+def is_terminal_answer(obj) -> bool:
+    if not isinstance(obj, dict):
+        return False
+    if obj.get("is_error") is True:
+        return False
+    typ = str(obj.get("type") or obj.get("event") or "").lower()
+    if typ in {
+        "system",
+        "status",
+        "progress",
+        "ping",
+        "heartbeat",
+        "tool_progress",
+        "user",
+        "rate_limit_event",
+    }:
+        return False
+    subtype = str(obj.get("subtype") or "").lower()
+    if subtype in {"error", "failure", "failed"}:
+        return False
+    if typ == "result":
+        return text_blocks(obj.get("result"))
+    for key in ("result", "message", "text", "content", "output", "response"):
+        if key in obj and text_blocks(obj.get(key)):
+            if typ in {
+                "",
+                "result",
+                "message",
+                "assistant",
+                "agent_message",
+                "response",
+                "item.completed",
+                "agent.completed",
+            }:
+                return True
+            if typ.startswith("item.") and "completed" in typ:
+                return True
+    return False
+
+
+objects: list[object] = []
+json_lines = 0
+nonempty = 0
+for line in text.splitlines():
+    line = line.strip()
+    if not line:
+        continue
+    nonempty += 1
+    try:
+        objects.append(json.loads(line))
+        json_lines += 1
+    except json.JSONDecodeError:
+        objects.append(None)
+
+if nonempty and json_lines == nonempty:
+    raise SystemExit(0 if any(is_terminal_answer(obj) for obj in objects) else 1)
+
+try:
+    payload = json.loads(stripped)
+except json.JSONDecodeError:
+    # Plain text with non-whitespace content.
+    raise SystemExit(0)
+
+if isinstance(payload, list):
+    raise SystemExit(0 if any(is_terminal_answer(obj) for obj in payload) else 1)
+raise SystemExit(0 if is_terminal_answer(payload) else 1)
+PY
+}
+
 deadline_expired() {
   local deadline
   deadline="$(peer_read_number "$deadlinefile")"
@@ -140,7 +242,7 @@ resolve_state() {
   # A done sentinel is the terminal boundary. Zombie wrappers can still answer
   # kill -0, so never treat "alive" as stronger than a recorded exit.
   if [ -f "$donefile" ]; then
-    if has_content "$outfile"; then
+    if has_peer_answer "$outfile"; then
       printf 'complete\n'
       return 0
     fi

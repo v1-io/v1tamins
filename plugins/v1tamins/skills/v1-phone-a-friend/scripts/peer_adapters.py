@@ -187,21 +187,28 @@ def parse_model_catalog(
                 line,
             ):
                 continue
-            # cursor-agent: "id - label"; agy: one id per line.
+            # cursor-agent: "id - label"; agy: one model name per line (may include
+            # spaces, e.g. "Gemini 3.5 Flash (Medium)").
             if " - " in line:
                 token = line.split(" - ", 1)[0].strip()
             else:
-                parts = line.split()
-                token = parts[0].strip("`'\"(),") if parts else ""
-                # Reject prose lines that are not model-shaped identifiers.
-                if len(parts) > 1 and not re.search(r"[-_./=+@0-9]", token):
+                cleaned = re.sub(r"^[-*•]\s+", "", line)
+                cleaned = re.sub(r"^\d+[.)]\s+", "", cleaned).strip()
+                token = cleaned.strip("`'\"")
+                parts = token.split()
+                # Reject multi-word prose that lacks model-shaped cues.
+                if len(parts) > 1 and not re.search(
+                    r"[-_./=+@0-9()]|Medium|High|Low|Flash|Pro|Max",
+                    token,
+                    re.IGNORECASE,
+                ):
                     continue
             token = token.rstrip(":")
             if not token or token.startswith("-") or token.startswith("<"):
                 continue
             if re.match(r"(?i)^(warning|error|info|note|debug|failed|fatal|trace)$", token):
                 continue
-            if re.match(r"^[A-Za-z0-9][A-Za-z0-9_.:/=+@-]*$", token):
+            if re.match(r"^[A-Za-z0-9][A-Za-z0-9 _.:/=+@()-]*$", token):
                 values.append(token)
 
     models: list[ModelEntry] = []

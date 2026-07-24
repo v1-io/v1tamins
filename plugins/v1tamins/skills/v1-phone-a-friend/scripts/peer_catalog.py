@@ -120,7 +120,8 @@ def choose_model(
     levels = list(selected.reasoning_levels or reasoning_levels)
     if requested_reasoning:
         normalized = effort_name(requested_reasoning)
-        if normalized is None or (levels and normalized not in levels):
+        # Empty advertised levels means the catalog did not verify any override.
+        if normalized is None or normalized not in levels:
             return SelectionError(
                 code="reasoning_level_unsupported",
                 requested_reasoning=requested_reasoning,

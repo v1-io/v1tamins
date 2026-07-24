@@ -159,7 +159,7 @@ RUN_DIR="<host-scratch-dir>/v1-phone-a-friend/<run-slug>"
 "$PEER_RUN" teardown --dir "$RUN_DIR" --slug codex    # PID-scoped kill; never pkill -f
 ```
 
-The helper owns the contract: stdin closed per launch, detached background, sentinels recording both the launched leader and the **real peer pid**, a watchdog deadline, teardown that reaps the actual peer (its process group when a true session was created, else the recorded peer pid — always PID/PGID-derived, never a pattern kill), and a single state resolver shared by `status` and `verdict` so they never disagree. Completion is **judged by substantive output rather than exit code** — real content under a nonzero/odd exit code is `complete`; an empty exit is `empty_output`; a process still alive with no terminal sentinel is `running`; a deadline breach is `timed_out`. The byte threshold assumes **plain-text** output: `stream-json`/`--json` emit framing bytes before any content, so consume text for the verdict and use stream-json only for a live progress stream (judge it on a terminal event, not the byte count). Before launching, record the selected catalog and prompt fingerprints, deadline, and check-in cadence. If a peer dies, stalls, or becomes execution-uncertain, do not retry or switch automatically; report the typed result and ask for a new explicit selection. On the `nohup` fallback and for long runs, also use the host's own background primitive (e.g. Claude Code `run_in_background`).
+The helper owns the contract: stdin closed per launch, detached background, sentinels recording both the launched leader and the **real peer pid**, a watchdog deadline, teardown that reaps the actual peer (its process group when a true session was created, else the recorded peer pid — always PID/PGID-derived, never a pattern kill), and a single state resolver shared by `status` and `verdict` so they never disagree. Completion is **judged by substantive peer answer rather than exit code** — plain-text content under a nonzero/odd exit code is `complete`; JSON / `stream-json` / `--json` stdout counts as `complete` only when a terminal answer payload is present (framing, progress, or error-only events alone are `empty_output`); an empty exit is `empty_output`; a process still alive with no terminal sentinel is `running`; a deadline breach is `timed_out`. Before launching, record the selected catalog and prompt fingerprints, deadline, and check-in cadence. If a peer dies, stalls, or becomes execution-uncertain, do not retry or switch automatically; report the typed result and ask for a new explicit selection. On the `nohup` fallback and for long runs, also use the host's own background primitive (e.g. Claude Code `run_in_background`).
 
 If the helper is unavailable, the manual equivalent is `( "$PEER_ENV" --provider <provider> --auth-mode subscription_native -- <peer-command> </dev/null >"$RUN_DIR/<peer>.stdout" 2>"$RUN_DIR/<peer>.stderr"; printf 'DONE rc=%s\n' "$?" >"$RUN_DIR/<peer>.done" ) &` with `$!` saved to `<peer>.pid` — but this lacks true detachment, a watchdog, and the full typed verdict, so report the degradation and pair it with the host's background primitive. API mode must be an explicit user selection in the manual wrapper too.
 
@@ -167,7 +167,7 @@ If the helper is unavailable, the manual equivalent is `( "$PEER_ENV" --provider
 
 | Peer | `readonly` wrapper | `local-verify` or `isolated-delegate` wrapper |
 | --- | --- | --- |
-| Claude Code | `claude -p --allowedTools "Read,Grep,Glob" --disallowedTools "Edit,Write,Bash" ...` | `claude -p --permission-mode bypassPermissions ...` |
+| Claude Code | `claude -p --tools "Read,Grep,Glob" --allowedTools "Read,Grep,Glob" --disallowedTools "Edit,Write,Bash,mcp__*" --strict-mcp-config ...` | `claude -p --permission-mode bypassPermissions ...` |
 | Codex | `codex exec --sandbox read-only --cd <repo> ...` | `codex exec --dangerously-bypass-approvals-and-sandbox --cd <repo> ...` |
 | Cursor Agent | `cursor-agent -p --mode plan --trust ...` | `cursor-agent -p --worktree <name> --force ...` |
 | Antigravity CLI (`agy`) | `agy --sandbox --print ...` | `agy --dangerously-skip-permissions --print ...` only in a trusted or isolated worktree. |
@@ -184,8 +184,10 @@ Read-only consult:
 
 ```bash
 "$PEER_ENV" --provider claude --auth-mode subscription_native -- claude -p \
+  --tools "Read,Grep,Glob" \
   --allowedTools "Read,Grep,Glob" \
-  --disallowedTools "Edit,Write,Bash" \
+  --disallowedTools "Edit,Write,Bash,mcp__*" \
+  --strict-mcp-config \
   --output-format stream-json \
   --model <current-model-from-catalog> \
   --effort <current-reasoning-level> \
@@ -203,11 +205,11 @@ Trusted verification or isolated delegation:
   "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
-Use `--auth-mode api_explicit` only when the user selected API mode for this run. Keep `--output-format stream-json` so progress is observable and an empty response is distinguishable from a stall, and close stdin (`< /dev/null`) for the same reason as Codex.
+Use `--auth-mode api_explicit` only when the user selected API mode for this run. Keep `--output-format stream-json` so progress is observable; `peer-run.sh` treats framing-only JSON as `empty_output` and requires a terminal answer event for `complete`. Close stdin (`< /dev/null`) for the same reason as Codex.
 
 Use full permission mode only for a trusted local repo or isolated worktree. Inspect any resulting diff before keeping it.
 
-Do not rely on `--permission-mode plan` alone as this template's read-only Claude Code wrapper unless local help and behavior confirm the desired constraints. Prefer the explicit allow/deny tool wrapper above for read-only consults; if it is unavailable, use a disposable worktree or choose another peer.
+Do not rely on `--permission-mode plan` alone as this template's read-only Claude Code wrapper unless local help and behavior confirm the desired constraints. Prefer the explicit tool-restriction wrapper above for read-only consults: `--tools` limits built-ins, `--allowedTools` auto-approves that read set, `--disallowedTools "mcp__*"` plus `--strict-mcp-config` (with no `--mcp-config`) keeps ambient MCP servers out. If those flags are unavailable, use a disposable worktree or choose another peer.
 
 ## Codex
 

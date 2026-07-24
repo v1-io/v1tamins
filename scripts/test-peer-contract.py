@@ -164,6 +164,21 @@ class PeerContractTests(unittest.TestCase):
         )
         self.assertEqual([model.id for model in models], ["real-model-high"])
 
+    def test_agy_multiword_model_names_are_preserved(self) -> None:
+        models = peer_adapters.parse_model_catalog(
+            "* Gemini 3.5 Flash (Medium)\n"
+            "GPT-OSS 120B (Medium)\n"
+            "gemini-3.5-flash-medium\n"
+        )
+        self.assertEqual(
+            [model.id for model in models],
+            [
+                "Gemini 3.5 Flash (Medium)",
+                "GPT-OSS 120B (Medium)",
+                "gemini-3.5-flash-medium",
+            ],
+        )
+
     def test_api_explicit_discovery_env_keeps_only_selected_provider_keys(self) -> None:
         values = {
             "OPENAI_API_KEY": "redacted-openai",
@@ -224,6 +239,25 @@ class PeerContractTests(unittest.TestCase):
         self.assertEqual(reasoning_error.code, "reasoning_level_unsupported")
         self.assertEqual(list(reasoning_error.alternatives), ["medium"])
         self.assertEqual(reasoning_error.requested_reasoning, "max")
+
+    def test_explicit_reasoning_rejected_when_catalog_exposes_no_levels(self) -> None:
+        provider = make_provider(
+            models=[
+                {
+                    "id": "fake-current",
+                    "family": "fake",
+                    "rank": 0,
+                    "reasoning_levels": [],
+                }
+            ],
+            reasoning_levels=[],
+        )
+        reasoning_error = peer_catalog.choose_model(
+            provider, "custom", "fake-current", "high"
+        )
+        self.assertEqual(reasoning_error.code, "reasoning_level_unsupported")
+        self.assertEqual(list(reasoning_error.alternatives), [])
+        self.assertEqual(reasoning_error.requested_reasoning, "high")
 
     def test_custom_explicit_model_when_catalog_empty(self) -> None:
         provider = make_provider(

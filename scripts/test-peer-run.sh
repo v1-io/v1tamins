@@ -140,4 +140,25 @@ poll_verdict "$TEST_DIR" reuse "$TEST_DIR/reuse.json"
 [ "$(json_field "$TEST_DIR/reuse.json" state)" = 'complete' ]
 "$RUNNER" teardown --dir "$TEST_DIR" --slug reuse >/dev/null
 
+# JSON / stream-json framing without a terminal answer is empty_output, not complete.
+FAKE_JSON_FRAME="$TEST_DIR/fake-json-frame.sh"
+printf '%s\n' '#!/usr/bin/env bash' \
+  'printf "%s\n" "{\"type\":\"system\",\"subtype\":\"init\"}"' \
+  'printf "%s\n" "{\"type\":\"result\",\"subtype\":\"success\",\"result\":\"\",\"is_error\":false}"' \
+  'exit 0' > "$FAKE_JSON_FRAME"
+chmod +x "$FAKE_JSON_FRAME"
+"$RUNNER" launch --dir "$TEST_DIR" --slug json-frame --deadline-seconds 5 -- "$FAKE_JSON_FRAME" >/dev/null
+poll_verdict "$TEST_DIR" json-frame "$TEST_DIR/json-frame.json"
+[ "$(json_field "$TEST_DIR/json-frame.json" state)" = 'empty_output' ]
+
+FAKE_JSON_ANSWER="$TEST_DIR/fake-json-answer.sh"
+printf '%s\n' '#!/usr/bin/env bash' \
+  'printf "%s\n" "{\"type\":\"system\",\"subtype\":\"init\"}"' \
+  'printf "%s\n" "{\"type\":\"result\",\"subtype\":\"success\",\"result\":\"peer answer\",\"is_error\":false}"' \
+  'exit 0' > "$FAKE_JSON_ANSWER"
+chmod +x "$FAKE_JSON_ANSWER"
+"$RUNNER" launch --dir "$TEST_DIR" --slug json-answer --deadline-seconds 5 -- "$FAKE_JSON_ANSWER" >/dev/null
+poll_verdict "$TEST_DIR" json-answer "$TEST_DIR/json-answer.json"
+[ "$(json_field "$TEST_DIR/json-answer.json" state)" = 'complete' ]
+
 printf 'peer-run contract passed\n'

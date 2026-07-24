@@ -81,10 +81,12 @@ Do not regex free-form auth prose.
    closed, a recorded deadline, and a unique slug. Detach with `setsid` when
    available, else Perl `POSIX::setsid`, else `nohup`.
 3. Poll `status` or read `verdict --json`; do not branch on provider exit code
-   alone. Substantive output plus a terminal sentinel is `complete`, an empty
-   terminal result is `empty_output`, a vanished process is `stalled`, and a
-   deadline breach is `timed_out`. `status` and `verdict` are pure observation;
-   the watchdog and explicit `teardown` own process mutation.
+   alone. A terminal sentinel plus a real peer answer is `complete` (plain text
+   non-whitespace, or a terminal JSON / stream-json answer payload — framing or
+   error-only JSON alone is not enough), an empty or answer-less terminal result
+   is `empty_output`, a vanished process is `stalled`, and a deadline breach is
+   `timed_out`. `status` and `verdict` are pure observation; the watchdog and
+   explicit `teardown` own process mutation.
 4. If dispatch occurred and lifecycle evidence is ambiguous, the parent reports
    `execution_uncertain`. Do not retry, replace the peer, or fan out another
    run automatically.
