@@ -1,6 +1,6 @@
 ---
 name: v1-refine
-description: Use when refining working code through a quality pass, deslop, or hindsight rewrite. Triggers on "make this diff simpler", "deslop", or "refactor".
+description: Use when refining working code through a quality pass, deslop, or hindsight rewrite. Triggers on "make this diff simpler", "reduce complexity", or "deslop".
 allowed-tools:
   - Bash
   - Read
