@@ -8,6 +8,9 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+POLICY_PY="$SCRIPT_DIR/peer_policy.py"
+
 die() {
   printf 'peer-env: %s\n' "$1" >&2
   exit "${2:-2}"
@@ -39,10 +42,8 @@ while [ "$#" -gt 0 ]; do
 done
 
 [ -n "$provider" ] || die "--provider is required"
-case "$provider" in
-  claude|codex|cursor-agent|agy|oracle) ;;
-  *) die "unsupported provider: $provider" ;;
-esac
+python3 "$POLICY_PY" --require-provider "$provider" >/dev/null \
+  || die "unsupported provider: $provider"
 
 case "$auth_mode" in
   subscription_native|api_explicit) ;;
@@ -52,11 +53,8 @@ esac
 [ "${#command_args[@]}" -gt 0 ] || die "a command is required after --"
 
 if [ "$auth_mode" = "subscription_native" ]; then
-  # Names only; never print their values. Keep this list aligned with
-  # peer_catalog.py and the deterministic contract tests.
-  unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_API_KEY
-  unset OPENAI_API_KEY OPENAI_AUTH_TOKEN CODEX_API_KEY
-  unset CURSOR_API_KEY GEMINI_API_KEY GOOGLE_API_KEY GOOGLE_GENAI_API_KEY
+  # Names only; never print their values. Source of truth is peer_policy.py.
+  eval "$(python3 "$POLICY_PY" --emit-shell-unset)"
 fi
 
 # Keep the provider wrapper safe even when a caller forgets the redirection;

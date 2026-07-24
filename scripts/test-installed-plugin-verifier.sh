@@ -20,15 +20,6 @@ mkdir -p "$CANONICAL" "$INSTALLED" "$MISSING"
 cp -R "$ROOT_DIR/plugins/v1tamins/." "$CANONICAL/"
 cp -R "$CANONICAL/." "$INSTALLED/"
 
-# Keep verifier tests offline and deterministic while exercising the catalog
-# fingerprint field expected from the real discovery script.
-FAKE_CATALOG='#!/usr/bin/env python3
-import json
-print(json.dumps({"ok": True, "catalog_fingerprint": "synthetic-catalog"}))'
-printf '%s\n' "$FAKE_CATALOG" > "$CANONICAL/skills/v1-phone-a-friend/scripts/peer_catalog.py"
-printf '%s\n' "$FAKE_CATALOG" > "$INSTALLED/skills/v1-phone-a-friend/scripts/peer_catalog.py"
-chmod +x "$CANONICAL/skills/v1-phone-a-friend/scripts/peer_catalog.py" "$INSTALLED/skills/v1-phone-a-friend/scripts/peer_catalog.py"
-
 json_field() {
   python3 - "$1" "$2" <<'PY'
 import json
@@ -42,12 +33,32 @@ PY
 
 "$VERIFIER" --canonical "$CANONICAL" --installed "$INSTALLED" --runtime codex > "$TEST_DIR/match.json"
 [ "$(json_field "$TEST_DIR/match.json" verification_status)" = 'match' ]
-[ "$(json_field "$TEST_DIR/match.json" model_catalog_fingerprint)" = 'synthetic-catalog' ]
+[ "$(json_field "$TEST_DIR/match.json" model_catalog_status)" = 'not_requested' ]
+[ "$(json_field "$TEST_DIR/match.json" model_catalog_fingerprint)" = 'null' ]
 [ "$(json_field "$TEST_DIR/match.json" credential_values_exposed)" = 'false' ]
 if grep -F "$TEST_DIR" "$TEST_DIR/match.json" >/dev/null; then
   printf 'verifier leaked a private absolute path\n' >&2
   exit 1
 fi
+
+# Optional catalog probe uses the installed discovery script when requested.
+FAKE_CATALOG='#!/usr/bin/env python3
+import json
+print(json.dumps({"ok": True, "catalog_fingerprint": "synthetic-catalog"}))'
+printf '%s\n' "$FAKE_CATALOG" > "$INSTALLED/skills/v1-phone-a-friend/scripts/peer_catalog.py"
+chmod +x "$INSTALLED/skills/v1-phone-a-friend/scripts/peer_catalog.py"
+# Tree hash changes because we replaced the installed catalog script.
+if "$VERIFIER" --canonical "$CANONICAL" --installed "$INSTALLED" --runtime codex --probe-catalog > "$TEST_DIR/probe-stale.json"; then
+  printf 'probe against drifted install unexpectedly matched\n' >&2
+  exit 1
+fi
+[ "$(json_field "$TEST_DIR/probe-stale.json" verification_status)" = 'stale' ]
+[ "$(json_field "$TEST_DIR/probe-stale.json" model_catalog_status)" = 'resolved' ]
+[ "$(json_field "$TEST_DIR/probe-stale.json" model_catalog_fingerprint)" = 'synthetic-catalog' ]
+
+# Restore installed tree for remaining cases.
+rm -rf "$INSTALLED"
+cp -R "$CANONICAL/." "$INSTALLED/"
 
 printf '%s\n' '# synthetic installed drift' >> "$INSTALLED/skills/v1-phone-a-friend/SKILL.md"
 if "$VERIFIER" --canonical "$CANONICAL" --installed "$INSTALLED" --runtime codex > "$TEST_DIR/stale.json"; then
@@ -55,6 +66,7 @@ if "$VERIFIER" --canonical "$CANONICAL" --installed "$INSTALLED" --runtime codex
   exit 1
 fi
 [ "$(json_field "$TEST_DIR/stale.json" verification_status)" = 'stale' ]
+[ "$(json_field "$TEST_DIR/stale.json" model_catalog_status)" = 'not_requested' ]
 
 if "$VERIFIER" --canonical "$CANONICAL" --installed "$MISSING" --runtime codex > "$TEST_DIR/missing.json"; then
   printf 'missing verification unexpectedly succeeded\n' >&2

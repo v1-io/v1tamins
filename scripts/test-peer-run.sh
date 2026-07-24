@@ -33,6 +33,10 @@ if "$ENV_WRAPPER" --provider gemini --auth-mode subscription_native -- "$FAKE_EM
   printf 'legacy gemini provider was accepted\n' >&2
   exit 1
 fi
+if "$ENV_WRAPPER" --provider oracle --auth-mode subscription_native -- "$FAKE_EMPTY" >/dev/null 2>&1; then
+  printf 'oracle provider was accepted by peer-env allowlist\n' >&2
+  exit 1
+fi
 OPENAI_API_KEY=synthetic ANTHROPIC_API_KEY=synthetic CURSOR_API_KEY=synthetic \
   "$ENV_WRAPPER" --provider codex --auth-mode subscription_native -- "$FAKE_ENV" > "$TEST_DIR/env.txt"
 grep -qx 'keys-scrubbed' "$TEST_DIR/env.txt"
@@ -87,8 +91,8 @@ fi
 poll_verdict "$TEST_DIR" empty "$TEST_DIR/empty.json"
 [ "$(json_field "$TEST_DIR/empty.json" state)" = 'empty_output' ]
 
-# A hung peer reaches timed_out and the runner terminates only its recorded
-# process group. The unrelated process must remain alive.
+# A hung peer reaches timed_out via the watchdog. status/verdict must not kill.
+# Teardown owns mutation after observation. The unrelated process must remain.
 sleep 4 &
 UNRELATED_PID=$!
 "$RUNNER" launch --dir "$TEST_DIR" --slug hang --deadline-seconds 1 -- "$FAKE_HANG" >/dev/null
@@ -100,9 +104,14 @@ if [ "$(cat "$TEST_DIR/hang/peer.session")" = '1' ]; then
     exit 1
   }
 fi
-sleep 2
+# Wait past deadline + watchdog grace without calling status/verdict mutation.
+sleep 3
+"$RUNNER" status --dir "$TEST_DIR" --slug hang > "$TEST_DIR/hang-status.txt" || true
+[ "$(cat "$TEST_DIR/hang-status.txt")" = 'timed_out' ]
 "$RUNNER" verdict --dir "$TEST_DIR" --slug hang --json > "$TEST_DIR/hang.json"
 [ "$(json_field "$TEST_DIR/hang.json" state)" = 'timed_out' ]
+kill -0 "$UNRELATED_PID" 2>/dev/null
+"$RUNNER" teardown --dir "$TEST_DIR" --slug hang >/dev/null
 kill -0 "$UNRELATED_PID" 2>/dev/null
 
 printf 'peer-run contract passed\n'

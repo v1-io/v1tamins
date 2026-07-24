@@ -141,7 +141,7 @@ Embed `"$RUBRIC_BLOCK"` in `PHONE_A_FRIEND_TASK` (under the review lens). If `RU
 
 ## Supervised Local Runs
 
-Background launch is the **default** for any peer run that could exceed the host's command timeout — never foreground-`wait` on a peer, because the host's timeout (e.g. an agent's 2-minute Bash default) sends a signal to the parent's process group and reaps the backgrounded peer along with the wait. A bare `( <peer-command> ) &` does **not** survive this: the subshell stays in the parent's process group. Use the bundled `peer-run.sh` helper, which detaches each peer into its own session — `setsid` on Linux, `perl POSIX::setsid` on macOS (which ships no `setsid`), and a `nohup` + `disown` best-effort fallback only when neither is present. `launch` reports which path it used; on the `nohup` fallback it is best-effort, so pair it with the host's background primitive.
+Background launch is the **default** for any peer run that could exceed the host's command timeout — never foreground-`wait` on a peer, because the host's timeout (e.g. an agent's 2-minute Bash default) sends a signal to the parent's process group and reaps the backgrounded peer along with the wait. A bare `( <peer-command> ) &` does **not** survive this: the subshell stays in the parent's process group. Use the bundled `peer-run.sh` helper, which detaches with `setsid` when available and otherwise `nohup`. `launch` reports which path it used; on the `nohup` fallback it is best-effort, so pair it with the host's background primitive.
 
 Resolve the helper relative to this skill's directory at runtime (the skill ships it at `scripts/peer-run.sh`); do not hardcode an absolute or checkout path. Then:
 

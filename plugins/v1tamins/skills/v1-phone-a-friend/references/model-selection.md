@@ -16,21 +16,25 @@ python3 scripts/peer_catalog.py \
   --prompt-source <resolved-current-rubric>
 ```
 
-The script checks installed versions, provider-owned help/catalog surfaces,
-bounded auth status probes, read-only workflow support, and known API-key
-presence. It prefers structured model lists or pickers. A documented help
-example is a degraded catalog; no usable surface is `model_unresolved`.
+The script checks installed versions, provider-owned catalog commands, structured
+auth status probes, read-only workflow support, and known API-key presence. It
+accepts only structured catalog command output (JSON preferred; line-oriented
+lists for dedicated commands such as `agy models` and cursor-agent
+`--list-models`). Help text is not a catalog source. When no usable catalog
+command exists, the result is `model_unresolved`.
 
 Current provider surfaces are discovered rather than copied into this file:
 
-| Runtime | Preferred model surface | Fallback | Boundary |
+| Runtime | Preferred model surface | Auth surface | Boundary |
 | --- | --- | --- | --- |
-| Claude Code | A provider-owned model picker/catalog when available | Current `--help` examples, marked degraded | Do not use a non-interactive API-key path in subscription mode. |
-| Codex | A provider-owned model catalog or structured doctor/config surface when available | Current help only, otherwise unresolved | Do not invent a model from the parent ChatGPT session. |
-| Cursor Agent | Its current model-list surface | Current help only, marked degraded | Browser login and API-key auth are separate. |
-| Antigravity CLI (`agy`) | Its current model-list command | Current help only, marked degraded | Use Agy's supported native login path; do not assume another Google CLI's login state applies. |
+| Claude Code | Provider-owned catalog when available; otherwise unresolved | `auth status` JSON (`loggedIn`, `authMethod`) | Ambient API keys in subscription mode are a policy block; do not invent models from help. |
+| Codex | Provider-owned catalog when available; otherwise unresolved | `doctor --json` credentials check (`stored ChatGPT tokens` / `stored auth mode`) | Do not invent a model from the parent ChatGPT session or free-form status prose. |
+| Cursor Agent | `--list-models` (`id - label` lines) | `status --format json` (`isAuthenticated` / `status`) | Browser login and API-key auth are separate. |
+| Antigravity CLI (`agy`) | `models` list command | No auth probe; `auth_not_verified` unless `api_explicit` with keys | Use Agy's supported native login path; do not assume another Google CLI's login state applies. |
 
-For Codex subscription auth, use the provider-owned `codex login status` surface. Its current model catalog may still be `model_unresolved` when the installed CLI does not expose a usable list command; do not substitute a model from the parent session.
+Custom profile with an explicit `--model` may use a synthetic model entry when
+the catalog is unresolved. Mark model confidence `unresolved`. Launch remains
+eligible only when auth policy is eligible.
 
 The output contains a CLI/version fingerprint, catalog fingerprint, model ID,
 model family, supported reasoning levels, auth source, role, permission,
@@ -47,7 +51,7 @@ Profiles are policies, not pinned models:
 | `quality` | Highest current model quality exposed by the selected CLI and its highest supported reasoning level. Prefer verified subscription auth, catalog confidence, and a different model family for a second peer. | Serious review, architecture, security, migration. |
 | `balanced` | A current strong model with a supported reasoning level below the maximum when the catalog exposes one; retain verified auth and role fit. | Normal review or verification. |
 | `fast` | The least expensive/lowest-latency current option the runtime can identify, with a low or medium level only when the catalog exposes it. | Cheap sanity checks. |
-| `custom` | A user-selected CLI, current model ID, supported reasoning level, prompt profile, auth mode, and permission. | Deliberate exceptions. |
+| `custom` | A user-selected CLI, current or explicitly named model ID, supported reasoning level, prompt profile, auth mode, and permission. | Deliberate exceptions. |
 
 The ranking is opinionated: subscription-native auth, read-only capability,
 current catalog confidence, role fit, and model-family diversity outrank
@@ -65,8 +69,10 @@ for an explicit roster selection. A missing or ineligible preferred candidate
 is a visible typed result; it never causes silent replacement or retry.
 
 If the user names a model or reasoning level, validate it against this
-invocation's catalog. Reject unsupported values with the current alternatives.
-When checking a prior proposal, pass `--compare-preview <previous.json>` and,
-when available, `--snapshot-fingerprint <working-tree-digest>`. A changed
-catalog, prompt digest, or snapshot returns `context.status: context_stale`;
-repeat discovery and selection before launch.
+invocation's catalog when resolved. Reject unsupported values with the current
+alternatives. When the catalog is unresolved, an explicit custom `--model` is
+allowed as a synthetic entry with unresolved model confidence. When checking a
+prior proposal, pass `--compare-preview <previous.json>` and, when available,
+`--snapshot-fingerprint <working-tree-digest>`. A changed catalog, prompt
+digest, or snapshot returns `context.status: context_stale`; repeat discovery
+and selection before launch.

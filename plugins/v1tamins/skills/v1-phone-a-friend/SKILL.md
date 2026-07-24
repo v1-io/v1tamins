@@ -1,6 +1,6 @@
 ---
 name: v1-phone-a-friend
-description: Use when the user explicitly invokes a counterpart review, second opinion, steelman, or delegated peer-agent consult. Triggers on "/v1-phone-a-friend", "$v1-phone-a-friend", or an explicit "phone a friend" request; never launch a peer from a natural-language hint alone.
+description: Use when the user explicitly requests phone-a-friend, a counterpart review, steelman, or peer consult. Triggers on /v1-phone-a-friend or $v1-phone-a-friend only.
 disable-model-invocation: true
 allowed-tools:
   - Bash
@@ -71,10 +71,10 @@ python3 scripts/peer_catalog.py \
 
 Report:
 - **host:** current runtime when known, otherwise `unknown`
-- **installed peers:** `claude`, `codex`, `cursor-agent`, `agy` (Antigravity CLI), `oracle`
+- **installed peers:** `claude`, `codex`, `cursor-agent`, `agy` (Antigravity CLI); Oracle remains a manual/browser path outside the discovery allowlist
 - **auth:** `subscription_native`, `api_explicit`, `unverified`, or `unavailable`
 - **credential policy:** `eligible`, `blocked_api_key_present`, `api_key_required`, or another typed state
-- **model catalog:** `resolved`/`unresolved`, with `verified`/`degraded`/`unresolved` confidence
+- **model catalog:** `resolved`/`unresolved`, with `verified`/`unresolved` confidence from provider catalog commands only
 - **default peer:** proposed counterpart and reason; not yet launched
 - **limits:** subscription tier, browser access, and cloud-agent access if not directly verified
 
@@ -142,7 +142,7 @@ Long-running delegation needs a visible lifecycle, not just a prompt.
 
 Do not wait on a peer run with no observable contract.
 
-- **Background by default.** Launch any peer that could exceed the host's command timeout as a detached background process — never foreground-`wait` on it. The host's timeout (e.g. an agent's 2-minute Bash default) signals the parent's process group and reaps a peer backgrounded with a bare `&`. Use the bundled `scripts/peer-run.sh` helper, which puts the peer in its own session — `setsid`, or `perl POSIX::setsid` on macOS (no `setsid` there), with a best-effort `nohup` fallback when neither exists — so a parent-shell timeout does not reap it. On the `nohup` fallback this is best-effort, so pair it with the host's background primitive. See [references/command-templates.md](references/command-templates.md) (Supervised Local Runs).
+- **Background by default.** Launch any peer that could exceed the host's command timeout as a detached background process — never foreground-`wait` on it. The host's timeout (e.g. an agent's 2-minute Bash default) signals the parent's process group and reaps a peer backgrounded with a bare `&`. Use the bundled `scripts/peer-run.sh` helper, which detaches with `setsid` when available and otherwise `nohup`, so a parent-shell timeout does not reap it. On the `nohup` fallback this is best-effort, so pair it with the host's background primitive. See [references/command-templates.md](references/command-templates.md) (Supervised Local Runs).
 - Before launch, state the run slug, peer, permission mode, output location, completion signal, first-progress deadline, and maximum wait or check-in cadence.
 - For background or concurrent local runs, capture stdout, stderr, and a completion sentinel per peer. Keep artifacts in a run-specific scratch directory.
 - **Judge completion by substantive output, not exit code.** A peer that returned real content under a nonzero or unusual exit code is complete; an empty success exit is a stall. Wrapper exit codes are advisory.

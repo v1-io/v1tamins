@@ -4,9 +4,14 @@
 # The caller supplies a complete provider wrapper. This helper owns stdin
 # closure, detached sessions, bounded deadlines, sentinels, typed verdicts,
 # and PID/PGID-scoped teardown. It never searches for or kills a command-line
-# pattern.
+# pattern. status and verdict are pure observation; watchdog and teardown own
+# mutation.
 
 set -u
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INNER="$SCRIPT_DIR/peer-run-inner.sh"
+WATCHDOG="$SCRIPT_DIR/peer-run-watchdog.sh"
 
 die() {
   printf 'peer-run: %s\n' "$1" >&2
@@ -131,13 +136,6 @@ deadline_expired() {
   [ "$(date +%s)" -ge "$deadline" ]
 }
 
-recorded_pids() {
-  local pid cpid
-  pid="$(read_number "$pidfile")"
-  cpid="$(read_number "$childpidfile")"
-  printf '%s\n%s\n' "$pid" "$cpid"
-}
-
 terminate_recorded() {
   local pid cpid sess watchdog killed=""
   pid="$(read_number "$pidfile")"
@@ -160,8 +158,6 @@ terminate_recorded() {
     fi
   done
 
-  # Give the recorded processes a short grace period, then use the same
-  # recorded PGID/PIDs for escalation. No command-line or broad process scan.
   for _ in 1 2 3 4 5 6 7 8 9 10; do
     if ! alive "$pid" && ! alive "$cpid"; then
       break
@@ -226,6 +222,8 @@ json_number_or_null() {
 
 case "$cmd" in
   launch)
+    [ -x "$INNER" ] || die "missing executable peer-run-inner.sh"
+    [ -x "$WATCHDOG" ] || die "missing executable peer-run-watchdog.sh"
     mkdir -p "$peerdir" || die "cannot create run directory"
     : > "$outfile"
     : > "$errfile"
@@ -234,27 +232,18 @@ case "$cmd" in
     printf '%s\n' "$deadline_epoch" > "$deadlinefile"
 
     # The inner runner records its own PID because GNU setsid may fork before
-    # exec. The shell that writes this file is the real session leader; the
-    # parent must not assume that its background-job PID is the leader.
-    # It backgrounds only the real peer so its PID can be recorded before
-    # waiting. stdin is closed at the final child boundary.
-    inner='pf="$1"; of="$2"; ef="$3"; df="$4"; cf="$5"; shift 5; printf "%s\n" "$$" >"$pf"; "$@" >"$of" 2>"$ef" </dev/null & cpid=$!; printf "%s\n" "$cpid" >"$cf"; wait "$cpid"; printf "DONE rc=%s\n" "$?" >"$df"'
-    sess=0
+    # exec. The shell that writes this file is the real session leader.
+    # One detach strategy: setsid when available, otherwise nohup. No perl path.
     if command -v setsid >/dev/null 2>&1; then
-      setsid sh -c "$inner" sh "$pidfile" "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" &
+      setsid "$INNER" "$pidfile" "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" &
       launcher_pid=$!
       sess=1
       how="setsid"
-    elif command -v perl >/dev/null 2>&1; then
-      perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV or die "exec: $!"' \
-        sh -c "$inner" sh "$pidfile" "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" &
-      launcher_pid=$!
-      sess=1
-      how="perl-setsid"
     else
-      nohup sh -c "$inner" sh "$pidfile" "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" >/dev/null 2>&1 &
+      nohup "$INNER" "$pidfile" "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" >/dev/null 2>&1 &
       launcher_pid=$!
-      how="nohup (best-effort; use the host background primitive)"
+      sess=0
+      how="nohup"
     fi
 
     pid=""
@@ -265,26 +254,20 @@ case "$cmd" in
     done
     if [ -z "$pid" ]; then
       # Preserve a diagnostic PID if the detached command failed before it
-      # could record its leader. This branch is fail-closed: it may report a
-      # stalled launch, but never guesses a process group to kill.
+      # could record its leader. Fail-closed: never guess a process group.
       pid="$launcher_pid"
       sess=0
       printf '%s\n' "$pid" > "$pidfile"
     fi
     printf '%s\n' "$sess" > "$sessfile"
 
-    # The watchdog is itself detached and records no peer output. It enforces
-    # the maximum lifetime even when the caller is delayed before polling.
-    watchdog='seconds="$1"; df="$2"; pf="$3"; ccf="$4"; sleep "$seconds"; [ -f "$df" ] && exit 0; target="$(sed -n "1p" "$pf" 2>/dev/null)"; child="$(sed -n "1p" "$ccf" 2>/dev/null)"; case "$target" in ""|*[!0-9]*) exit 0 ;; esac; kill -TERM -- "-$target" 2>/dev/null || true; kill -TERM "$child" 2>/dev/null || true; sleep 1; kill -KILL -- "-$target" 2>/dev/null || true; kill -KILL "$child" 2>/dev/null || true'
+    # Watchdog enforces the maximum lifetime even when the caller is delayed.
+    # It honors peer.session the same way terminate_recorded does.
     if command -v setsid >/dev/null 2>&1; then
-      setsid sh -c "$watchdog" sh "$DEADLINE_SECONDS" "$donefile" "$pidfile" "$childpidfile" >/dev/null 2>&1 &
-      watchdog_pid=$!
-    elif command -v perl >/dev/null 2>&1; then
-      perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV or die "exec: $!"' \
-        sh -c "$watchdog" sh "$DEADLINE_SECONDS" "$donefile" "$pidfile" "$childpidfile" >/dev/null 2>&1 &
+      setsid "$WATCHDOG" "$DEADLINE_SECONDS" "$donefile" "$pidfile" "$childpidfile" "$sessfile" >/dev/null 2>&1 &
       watchdog_pid=$!
     else
-      nohup sh -c "$watchdog" sh "$DEADLINE_SECONDS" "$donefile" "$pidfile" "$childpidfile" >/dev/null 2>&1 &
+      nohup "$WATCHDOG" "$DEADLINE_SECONDS" "$donefile" "$pidfile" "$childpidfile" "$sessfile" >/dev/null 2>&1 &
       watchdog_pid=$!
     fi
     printf '%s\n' "$watchdog_pid" > "$watchdogfile"
@@ -296,9 +279,6 @@ case "$cmd" in
     [ -f "$pidfile" ] || die "unknown slug: $SLUG" 3
     state="$(resolve_state)"
     rc=$?
-    if [ "$state" = "timed_out" ]; then
-      terminate_recorded >/dev/null
-    fi
     printf '%s\n' "$state"
     exit "$rc"
     ;;
@@ -306,10 +286,6 @@ case "$cmd" in
   verdict)
     [ -f "$pidfile" ] || die "unknown slug: $SLUG" 3
     state="$(resolve_state)"
-    resolve_rc=$?
-    if [ "$state" = "timed_out" ]; then
-      terminate_recorded >/dev/null
-    fi
     output_bytes="$(bytes "$outfile")"
     exit_code="?"
     if [ -f "$donefile" ]; then
@@ -327,12 +303,10 @@ case "$cmd" in
         complete) printf 'complete (content=%s bytes, rc=%s)\n' "$output_bytes" "$exit_code" ;;
         running) printf 'running (no terminal sentinel yet; process is alive)\n' ;;
         empty_output) printf 'empty_output (exited rc=%s with no substantive output)\n' "$exit_code" ;;
-        timed_out) printf 'timed_out (deadline exceeded; recorded process was terminated)\n' ;;
+        timed_out) printf 'timed_out (deadline exceeded)\n' ;;
         *) printf 'stalled (vanished without substantive output or terminal sentinel)\n' ;;
       esac
     fi
-    # Verdict is a report command; callers consume the typed state rather than
-    # branching on a provider's exit code.
     exit 0
     ;;
 
