@@ -10,6 +10,7 @@ import re
 import sys
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest import mock
 
 sys.dont_write_bytecode = True
@@ -31,6 +32,54 @@ import peer_models  # noqa: E402
 import peer_policy  # noqa: E402
 
 
+def provider_from_dict(payload: dict[str, Any]) -> peer_models.ProviderDiscovery:
+    """Test-edge coercion from dict fixtures into typed discovery records."""
+
+    auth_payload = payload["auth"]
+    if isinstance(auth_payload, peer_models.AuthFact):
+        auth = auth_payload
+    else:
+        auth = peer_models.AuthFact(
+            policy_state=auth_payload["policy_state"],
+            key_env_names=tuple(auth_payload.get("key_env_names", ())),
+        )
+    models = tuple(
+        model
+        if isinstance(model, peer_models.ModelEntry)
+        else peer_models.ModelEntry(
+            id=model["id"],
+            family=model.get("family", peer_adapters.model_family(model["id"])),
+            reasoning_levels=tuple(
+                model.get("reasoning_levels") or model.get("efforts") or ()
+            ),
+            rank=int(model.get("rank", 0)),
+        )
+        for model in payload.get("models", [])
+    )
+    catalog_payload = payload["model_catalog"]
+    if isinstance(catalog_payload, peer_models.ModelCatalog):
+        catalog = catalog_payload
+    else:
+        catalog = peer_models.ModelCatalog(
+            status=catalog_payload.get("status", "unresolved"),
+            confidence=catalog_payload.get("confidence", "unresolved"),
+            source=catalog_payload.get("source"),
+            fingerprint=catalog_payload.get("fingerprint"),
+        )
+    return peer_models.ProviderDiscovery(
+        cli=payload["cli"],
+        installed=bool(payload.get("installed", True)),
+        executable=payload.get("executable"),
+        version=payload.get("version"),
+        version_fingerprint=payload.get("version_fingerprint"),
+        auth=auth,
+        models=models,
+        model_catalog=catalog,
+        reasoning_levels=tuple(payload.get("reasoning_levels", ())),
+        roles=tuple(payload.get("roles", ("structural review",))),
+    )
+
+
 def make_provider(
     *,
     cli: str = "fake",
@@ -39,14 +88,12 @@ def make_provider(
     reasoning_levels: list[str] | None = None,
     catalog_status: str = "resolved",
     catalog_confidence: str = "verified",
-    auth_source: str = "subscription_native",
-    auth_confidence: str = "verified",
     policy_state: str = "eligible",
     roles: list[str] | None = None,
-    workflow: str = "available",
     version: str = "synthetic",
     version_fingerprint: str = "version",
     catalog_fingerprint: str | None = "catalog",
+    key_env_names: tuple[str, ...] = (),
 ) -> peer_models.ProviderDiscovery:
     payload: dict = {
         "cli": cli,
@@ -70,14 +117,12 @@ def make_provider(
             "fingerprint": catalog_fingerprint,
         },
         "auth": {
-            "source": auth_source,
-            "confidence": auth_confidence,
             "policy_state": policy_state,
+            "key_env_names": list(key_env_names),
         },
         "roles": roles or ["structural review"],
-        "workflow": workflow,
     }
-    return peer_catalog.provider_from_dict(payload)
+    return provider_from_dict(payload)
 
 
 class PeerContractTests(unittest.TestCase):
@@ -92,6 +137,7 @@ class PeerContractTests(unittest.TestCase):
         self.assertEqual(peer_policy.PROVIDERS["claude"].catalog_mode, "explicit_required")
         self.assertEqual(peer_policy.PROVIDERS["codex"].catalog_mode, "explicit_required")
         self.assertEqual(peer_policy.PROVIDERS["cursor-agent"].catalog_mode, "command")
+        self.assertFalse(hasattr(peer_policy.ProviderSpec, "parse_auth"))
 
     def test_provider_catalog_changes_are_reflected_without_source_edits(self) -> None:
         first = peer_adapters.parse_model_catalog(
@@ -130,10 +176,6 @@ class PeerContractTests(unittest.TestCase):
         )
         quality = peer_catalog.choose_model(provider, "quality")
         fast = peer_catalog.choose_model(provider, "fast")
-        self.assertIsInstance(quality, peer_models.ModelSelection)
-        self.assertIsInstance(fast, peer_models.ModelSelection)
-        assert isinstance(quality, peer_models.ModelSelection)
-        assert isinstance(fast, peer_models.ModelSelection)
         self.assertEqual(quality.model, "fake-strong")
         self.assertEqual(quality.reasoning, "high")
         self.assertEqual(fast.model, "fake-fast")
@@ -152,16 +194,13 @@ class PeerContractTests(unittest.TestCase):
             reasoning_levels=["medium"],
         )
         model_error = peer_catalog.choose_model(provider, "custom", "fake-old")
-        effort_error = peer_catalog.choose_model(
+        reasoning_error = peer_catalog.choose_model(
             provider, "custom", "fake-current", "max"
         )
-        self.assertIsInstance(model_error, peer_models.SelectionError)
-        self.assertIsInstance(effort_error, peer_models.SelectionError)
-        assert isinstance(model_error, peer_models.SelectionError)
-        assert isinstance(effort_error, peer_models.SelectionError)
         self.assertEqual(model_error.code, "model_not_current")
-        self.assertEqual(effort_error.code, "reasoning_level_unsupported")
-        self.assertEqual(list(effort_error.alternatives), ["medium"])
+        self.assertEqual(reasoning_error.code, "reasoning_level_unsupported")
+        self.assertEqual(list(reasoning_error.alternatives), ["medium"])
+        self.assertEqual(reasoning_error.requested_reasoning, "max")
 
     def test_custom_explicit_model_when_catalog_empty(self) -> None:
         provider = make_provider(
@@ -173,8 +212,6 @@ class PeerContractTests(unittest.TestCase):
             reasoning_levels=[],
         )
         selection = peer_catalog.choose_model(provider, "custom", "auto")
-        self.assertIsInstance(selection, peer_models.ModelSelection)
-        assert isinstance(selection, peer_models.ModelSelection)
         self.assertEqual(selection.model, "auto")
         self.assertTrue(selection.explicit)
         self.assertEqual(selection.model_confidence, "unresolved")
@@ -183,7 +220,6 @@ class PeerContractTests(unittest.TestCase):
         )
         self.assertEqual(errors, [])
         self.assertEqual(len(selected), 1)
-        self.assertTrue(selected[0].eligible)
         self.assertEqual(selected[0].launch_state, "eligible")
         self.assertEqual(alternatives, [])
 
@@ -202,8 +238,8 @@ class PeerContractTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual(len(selected), 1)
         self.assertIsNone(selected[0].model)
-        self.assertFalse(selected[0].eligible)
         self.assertEqual(selected[0].launch_state, "model_unresolved")
+        self.assertNotIn("eligible", selected[0].to_dict())
         self.assertEqual(alternatives, [])
 
     def test_malformed_catalog_is_unresolved(self) -> None:
@@ -225,6 +261,7 @@ class PeerContractTests(unittest.TestCase):
             )
         self.assertEqual(discovered.models, ())
         self.assertEqual(discovered.model_catalog.status, "unresolved")
+        self.assertFalse(hasattr(discovered, "workflow"))
 
     def test_subscription_environment_scrubs_keys_but_keeps_native_login(self) -> None:
         values = {
@@ -252,8 +289,69 @@ class PeerContractTests(unittest.TestCase):
                 "subscription_native",
                 None,
             )
-        self.assertEqual(auth.source, "unverified")
         self.assertEqual(auth.policy_state, "auth_not_verified")
+
+    def test_ambient_key_blocks_matching_provider_only(self) -> None:
+        with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "redacted"}, clear=True):
+            auth = peer_adapters.auth_result(
+                "codex",
+                peer_policy.PROVIDERS["codex"],
+                "subscription_native",
+                None,
+            )
+        self.assertEqual(auth.policy_state, "blocked_api_key_present")
+        self.assertEqual(auth.key_env_names, ("OPENAI_API_KEY",))
+        provider = make_provider(
+            cli="codex",
+            policy_state="blocked_api_key_present",
+            key_env_names=("OPENAI_API_KEY",),
+            models=[
+                {
+                    "id": "fake-current",
+                    "family": "fake",
+                    "rank": 0,
+                    "reasoning_levels": ["high"],
+                }
+            ],
+        )
+        selected, _, errors = peer_catalog.build_candidates(
+            [provider], "quality", 1, None, None, None
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(selected[0].launch_state, "blocked_api_key_present")
+
+    def test_not_authenticated_and_api_key_required_stay_distinct(self) -> None:
+        logged_out = make_provider(
+            cli="codex",
+            policy_state="not_authenticated",
+            models=[
+                {
+                    "id": "fake-current",
+                    "family": "fake",
+                    "rank": 0,
+                    "reasoning_levels": ["high"],
+                }
+            ],
+        )
+        missing_key = make_provider(
+            cli="claude",
+            policy_state="api_key_required",
+            models=[
+                {
+                    "id": "fake-current",
+                    "family": "fake",
+                    "rank": 0,
+                    "reasoning_levels": ["high"],
+                }
+            ],
+        )
+        selected, _, errors = peer_catalog.build_candidates(
+            [logged_out, missing_key], "quality", 2, None, None, None
+        )
+        self.assertEqual(errors, [])
+        states = {item.cli: item.launch_state for item in selected}
+        self.assertEqual(states["codex"], "not_authenticated")
+        self.assertEqual(states["claude"], "api_key_required")
 
     def test_codex_doctor_chatgpt_auth_shape_is_recognized(self) -> None:
         doctor = {
@@ -277,8 +375,6 @@ class PeerContractTests(unittest.TestCase):
                 "subscription_native",
                 peer_adapters.CommandResult(0, json.dumps(doctor), ""),
             )
-        self.assertEqual(auth.source, "subscription_native")
-        self.assertEqual(auth.confidence, "verified")
         self.assertEqual(auth.policy_state, "eligible")
 
     def test_codex_doctor_verified_logout_is_not_authenticated(self) -> None:
@@ -303,9 +399,36 @@ class PeerContractTests(unittest.TestCase):
                 "subscription_native",
                 peer_adapters.CommandResult(0, json.dumps(doctor), ""),
             )
-        self.assertEqual(auth.source, "unavailable")
-        self.assertEqual(auth.confidence, "verified")
         self.assertEqual(auth.policy_state, "not_authenticated")
+
+    def test_provider_without_auth_probe_is_launchable_when_catalog_resolves(
+        self,
+    ) -> None:
+        with mock.patch.dict(os.environ, {}, clear=True):
+            auth = peer_adapters.auth_result(
+                "agy",
+                peer_policy.PROVIDERS["agy"],
+                "subscription_native",
+                None,
+            )
+        self.assertEqual(auth.policy_state, "eligible")
+        provider = make_provider(
+            cli="agy",
+            policy_state="eligible",
+            models=[
+                {
+                    "id": "fake-agy",
+                    "family": "gemini",
+                    "rank": 0,
+                    "reasoning_levels": ["high"],
+                }
+            ],
+        )
+        selected, _, errors = peer_catalog.build_candidates(
+            [provider], "quality", 1, None, None, None
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(selected[0].launch_state, "eligible")
 
     def test_claude_structured_auth_uses_logged_in(self) -> None:
         payload = {
@@ -320,9 +443,8 @@ class PeerContractTests(unittest.TestCase):
                 "subscription_native",
                 peer_adapters.CommandResult(0, json.dumps(payload), ""),
             )
-        self.assertEqual(auth.source, "subscription_native")
         self.assertEqual(auth.policy_state, "eligible")
-        self.assertIsNotNone(peer_policy.PROVIDERS["claude"].parse_auth)
+        self.assertIn("claude", peer_adapters.AUTH_PARSERS)
 
     def test_quality_roster_prefers_different_families(self) -> None:
         selected, alternatives, errors = peer_catalog.build_candidates(
@@ -393,8 +515,6 @@ class PeerContractTests(unittest.TestCase):
     def test_unverified_auth_is_visible_but_not_launch_eligible(self) -> None:
         provider = make_provider(
             cli="fake-unverified",
-            auth_source="unverified",
-            auth_confidence="unresolved",
             policy_state="auth_not_verified",
             models=[
                 {
@@ -409,7 +529,6 @@ class PeerContractTests(unittest.TestCase):
             [provider], "quality", 1, None, None, None
         )
         self.assertEqual(errors, [])
-        self.assertFalse(selected[0].eligible)
         self.assertEqual(selected[0].launch_state, "auth_unverified")
 
     def test_prompt_fingerprint_changes_with_source(self) -> None:
@@ -449,8 +568,14 @@ class PeerContractTests(unittest.TestCase):
         payload = auth.to_dict()
         self.assertEqual(payload["policy_state"], "eligible")
         self.assertIsInstance(payload["key_env_names"], list)
-        self.assertEqual(peer_models.AuthFact.not_authenticated().policy_state, "not_authenticated")
-        self.assertEqual(peer_models.AuthFact.unverified().policy_state, "auth_not_verified")
+        self.assertNotIn("source", payload)
+        self.assertNotIn("confidence", payload)
+        self.assertEqual(
+            peer_models.AuthFact.not_authenticated().policy_state, "not_authenticated"
+        )
+        self.assertEqual(
+            peer_models.AuthFact.unverified().policy_state, "auth_not_verified"
+        )
 
     def test_model_entry_emits_efforts_alias_only(self) -> None:
         entry = peer_models.ModelEntry(
@@ -477,10 +602,6 @@ class PeerContractTests(unittest.TestCase):
             self.assertIsNone(
                 concrete_id.search(path.read_text(encoding="utf-8")), path
             )
-
-    def test_support_module_removed(self) -> None:
-        self.assertFalse((SCRIPTS / "peer_catalog_support.py").exists())
-        self.assertTrue((SCRIPTS / "peer-run-lib.sh").exists())
 
 
 if __name__ == "__main__":

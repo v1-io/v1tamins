@@ -9,7 +9,7 @@ import re
 import shutil
 import subprocess
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from typing import Any, Literal
 
 from peer_models import AuthFact, ModelCatalog, ModelEntry, ProviderDiscovery
@@ -208,31 +208,13 @@ def ambient_provider_keys(name: str) -> list[str]:
 def policy_auth(name: str, mode: str) -> AuthFact | None:
     """Apply credential policy before provider-specific auth probes."""
 
-    key_names = ambient_provider_keys(name)
+    key_names = tuple(ambient_provider_keys(name))
     if mode == "subscription_native" and key_names:
-        return AuthFact(
-            source="unverified",
-            confidence="degraded",
-            credential_presence="api_key_present",
-            policy_state="blocked_api_key_present",
-            key_env_names=tuple(key_names),
-        )
+        return AuthFact.blocked_api_keys(key_names)
     if mode == "api_explicit":
         if key_names:
-            return AuthFact(
-                source="api_explicit",
-                confidence="unresolved",
-                credential_presence="api_key_present",
-                policy_state="explicit_api_mode",
-                key_env_names=tuple(key_names),
-            )
-        return AuthFact(
-            source="unavailable",
-            confidence="unresolved",
-            credential_presence="none_detected",
-            policy_state="api_key_required",
-            key_env_names=(),
-        )
+            return AuthFact.explicit_api(key_names)
+        return AuthFact.api_key_required()
     return None
 
 
@@ -333,19 +315,12 @@ def auth_from_cursor(probe: CommandResult) -> AuthFact | None:
     return None
 
 
-def _bind_auth_parsers() -> None:
-    """Attach provider-owned auth parsers without an import cycle."""
-
-    parsers: dict[str, AuthParser] = {
-        "claude": auth_from_claude,
-        "codex": auth_from_codex,
-        "cursor-agent": auth_from_cursor,
-    }
-    for name, parser in parsers.items():
-        PROVIDERS[name] = replace(PROVIDERS[name], parse_auth=parser)
-
-
-_bind_auth_parsers()
+# Provider-owned auth parsers stay local to adapters; ProviderSpec stays static data.
+AUTH_PARSERS: dict[str, AuthParser] = {
+    "claude": auth_from_claude,
+    "codex": auth_from_codex,
+    "cursor-agent": auth_from_cursor,
+}
 
 
 def auth_result(
@@ -355,10 +330,17 @@ def auth_result(
     if policy is not None:
         return policy
 
-    if auth_probe is None or spec.parse_auth is None:
+    # Providers with no structured auth probe (for example agy) are launchable
+    # after the proposal gate once catalog/selection rules pass. A probe that
+    # exists but times out or fails to parse stays auth_not_verified.
+    if spec.auth_args is None:
+        return AuthFact.eligible()
+
+    parser = AUTH_PARSERS.get(name)
+    if auth_probe is None or parser is None:
         return AuthFact.unverified()
 
-    parsed = spec.parse_auth(auth_probe)
+    parsed = parser(auth_probe)
     if isinstance(parsed, AuthFact):
         return parsed
     return AuthFact.unverified()
@@ -395,7 +377,6 @@ def discover_provider(
             model_catalog=unresolved_catalog,
             reasoning_levels=(),
             roles=spec.roles,
-            workflow="available",
         )
 
     version_result = run_command([executable, "--version"], mode, timeout_seconds)
@@ -449,5 +430,4 @@ def discover_provider(
         model_catalog=catalog,
         reasoning_levels=reasoning_levels,
         roles=spec.roles,
-        workflow="available",
     )

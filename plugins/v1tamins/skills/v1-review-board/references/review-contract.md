@@ -38,7 +38,7 @@ proposal.
 Resolve all of the following at every invocation. Commit none of the runtime
 values.
 
-- **Peer availability** — run the sibling `v1-phone-a-friend/scripts/peer_catalog.py` with bounded provider probes. Installation, auth, model catalog, workflow, and execution are separate states.
+- **Peer availability** — run the sibling `v1-phone-a-friend/scripts/peer_catalog.py` with bounded provider probes. Installation, credential policy, model catalog, launch state, and runner lifecycle are separate states.
 - **Proposal command** — start with the quality proposal and pass the resolved current prompt source when available:
 
   ```bash
@@ -52,7 +52,7 @@ values.
 
   The result is still `confirmation_required`; `--count 2` describes the proposed roster and does not authorize two launches.
 - **Antigravity (`agy`) peer** — prefer its current model catalog for Gemini-backed large-context or multimodal work. Use Agy's native login path; API mode requires an explicit user choice and a documented current surface.
-- **Models and reasoning** — use the current provider-owned model catalog or picker. A help example is degraded; no reliable surface is `model_unresolved`. If a peer does not report its actual model, record `model: not reported` rather than treating the requested model as proof.
+- **Models and reasoning** — use the current provider-owned model catalog or picker. Help text is not a catalog source; no reliable surface is `model_unresolved`. If a peer does not report its actual model, record `model: not reported` rather than treating the requested model as proof.
 - **Auth** — use `subscription_native` by default and scrub user API-key variables with `peer-env.sh`. `api_explicit` is a separate user-selected mode. An ambient key in subscription mode is `blocked_api_key_present`, not an invitation to use it.
 - **Thermo-nuclear rubric** — glob the Cursor install location, not the Codex/Claude plugin caches:
 
@@ -91,8 +91,10 @@ alternative before asking for a roster choice:
 | Role | Structural review, correctness/security, maintainability, research, or multimodal. |
 | Prompt | Named profile, resolved source, and source digest. |
 | Permission | `readonly` for the default Board proposal. |
-| Auth | `subscription_native`, `api_explicit`, `unverified`, or `unavailable`. |
-| Confidence | Verified, degraded, or unresolved for catalog/prompt/auth evidence. |
+| Auth policy | `eligible`, `not_authenticated`, `auth_not_verified`, `blocked_api_key_present`, `explicit_api_mode`, or `api_key_required`. |
+| Launch state | `eligible` or a distinct typed failure such as `model_unresolved`. |
+| Catalog confidence | `verified` or `unresolved` from provider catalog commands only. |
+| Prompt status | `resolved`, `degraded` (missing source), or `unresolved`. |
 | Deadline | Explicit maximum lifecycle. |
 
 Profiles are policies: `quality` chooses the strongest current eligible model
@@ -100,8 +102,8 @@ and highest supported reasoning; `balanced` chooses a current strong model with
 a lower supported level when available; `fast` chooses the efficient current
 option; `custom` requires explicit current values. The quality Board asks for
 two distinct coding candidates plus an optional third lens. A candidate with
-unresolved auth, catalog, workflow, or prompt evidence stays visible as a
-degraded alternative but is not silently replaced.
+non-eligible launch state or unresolved prompt evidence stays visible as an
+alternative but is not silently replaced.
 
 Discovery, canonical source, installed runtime, model catalog, prompt source,
 and working-tree snapshot each receive an independent fingerprint. A changed

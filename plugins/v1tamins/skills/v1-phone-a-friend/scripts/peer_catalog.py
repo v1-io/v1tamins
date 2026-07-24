@@ -32,10 +32,9 @@ from peer_adapters import (  # noqa: E402
     sha256_text,
 )
 from peer_models import (  # noqa: E402
-    AuthFact,
     Candidate,
+    CatalogConfidence,
     LaunchState,
-    ModelCatalog,
     ModelEntry,
     ModelSelection,
     Proposal,
@@ -45,10 +44,10 @@ from peer_models import (  # noqa: E402
 from peer_policy import PROVIDERS  # noqa: E402
 
 SCHEMA = "v1-peer-catalog/v1"
-DEFAULT_TIMEOUT_SECONDS = 8
+# Provider auth probes (especially `codex doctor --json`) routinely exceed 8s.
+DEFAULT_TIMEOUT_SECONDS = 45
 PROFILE_NAMES = ("quality", "balanced", "fast", "custom")
 
-# Re-export for contract tests and callers that import from this module.
 __all__ = [
     "PROVIDERS",
     "SCHEMA",
@@ -56,7 +55,6 @@ __all__ = [
     "choose_model",
     "compare_preview_context",
     "prompt_fingerprints",
-    "provider_from_dict",
 ]
 
 
@@ -64,65 +62,11 @@ def effort_rank(level: str | None) -> int:
     return KNOWN_EFFORT_RANK.get(level or "none", 0)
 
 
-def provider_from_dict(payload: dict[str, Any]) -> ProviderDiscovery:
-    """Normalize a dict fixture into ProviderDiscovery at the test/API edge."""
-
-    auth_payload = payload["auth"]
-    if isinstance(auth_payload, AuthFact):
-        auth = auth_payload
-    else:
-        auth = AuthFact(
-            source=auth_payload["source"],
-            confidence=auth_payload.get("confidence", "unresolved"),
-            credential_presence=auth_payload.get(
-                "credential_presence", "none_detected"
-            ),
-            policy_state=auth_payload["policy_state"],
-            key_env_names=tuple(auth_payload.get("key_env_names", ())),
-        )
-    models = tuple(
-        model
-        if isinstance(model, ModelEntry)
-        else ModelEntry(
-            id=model["id"],
-            family=model.get("family", model_family(model["id"])),
-            reasoning_levels=tuple(
-                model.get("reasoning_levels") or model.get("efforts") or ()
-            ),
-            rank=int(model.get("rank", 0)),
-        )
-        for model in payload.get("models", [])
-    )
-    catalog_payload = payload["model_catalog"]
-    if isinstance(catalog_payload, ModelCatalog):
-        catalog = catalog_payload
-    else:
-        catalog = ModelCatalog(
-            status=catalog_payload.get("status", "unresolved"),
-            confidence=catalog_payload.get("confidence", "unresolved"),
-            source=catalog_payload.get("source"),
-            fingerprint=catalog_payload.get("fingerprint"),
-        )
-    return ProviderDiscovery(
-        cli=payload["cli"],
-        installed=bool(payload.get("installed", True)),
-        executable=payload.get("executable"),
-        version=payload.get("version"),
-        version_fingerprint=payload.get("version_fingerprint"),
-        auth=auth,
-        models=models,
-        model_catalog=catalog,
-        reasoning_levels=tuple(payload.get("reasoning_levels", ())),
-        roles=tuple(payload.get("roles", ("structural review",))),
-        workflow=payload.get("workflow", "available"),
-    )
-
-
 def choose_model(
     provider: ProviderDiscovery,
     profile: str,
     requested_model: str | None = None,
-    requested_effort: str | None = None,
+    requested_reasoning: str | None = None,
 ) -> ModelSelection | SelectionError:
     models = list(provider.models)
     reasoning_levels = list(provider.reasoning_levels)
@@ -172,42 +116,45 @@ def choose_model(
         selected = sorted(models, key=score, reverse=True)[0]
 
     levels = list(selected.reasoning_levels or reasoning_levels)
-    if requested_effort:
-        normalized = effort_name(requested_effort)
+    if requested_reasoning:
+        normalized = effort_name(requested_reasoning)
         if normalized is None or (levels and normalized not in levels):
             return SelectionError(
                 code="reasoning_level_unsupported",
-                requested_effort=requested_effort,
+                requested_reasoning=requested_reasoning,
                 alternatives=tuple(levels),
             )
-        selected_effort = normalized
+        selected_reasoning = normalized
     elif levels:
         if profile == "fast":
-            selected_effort = min(levels, key=effort_rank)
+            selected_reasoning = min(levels, key=effort_rank)
         elif profile == "balanced":
             ordered = sorted(levels, key=effort_rank)
-            selected_effort = ordered[max(0, len(ordered) - 2)]
+            selected_reasoning = ordered[max(0, len(ordered) - 2)]
         else:
-            selected_effort = max(levels, key=effort_rank)
+            selected_reasoning = max(levels, key=effort_rank)
     else:
-        selected_effort = None
+        selected_reasoning = None
 
-    model_confidence: Any = "unresolved" if explicit else catalog_confidence
+    model_confidence: CatalogConfidence = (
+        "unresolved" if explicit else catalog_confidence
+    )
     return ModelSelection(
         model=selected.id,
         model_family=selected.family,
-        reasoning=selected_effort,
+        reasoning=selected_reasoning,
         model_confidence=model_confidence,
         explicit=explicit,
     )
 
 
 def candidate_sort_key(candidate: Candidate) -> tuple[int, int, int, int]:
-    auth_source = candidate.auth.source
-    auth_score = {"subscription_native": 3, "unverified": 1, "api_explicit": 1}.get(
-        auth_source, 0
-    )
-    catalog_score = {"verified": 2, "degraded": 1, "unresolved": 0}.get(
+    auth_score = {
+        "eligible": 3,
+        "explicit_api_mode": 1,
+        "auth_not_verified": 1,
+    }.get(candidate.auth.policy_state, 0)
+    catalog_score = {"verified": 2, "unresolved": 0}.get(
         candidate.catalog_confidence, 0
     )
     reasoning_score = effort_rank(candidate.reasoning)
@@ -218,24 +165,24 @@ def candidate_launch_state(
     provider: ProviderDiscovery,
     *,
     selection: ModelSelection,
-) -> tuple[bool, LaunchState]:
-    auth = provider.auth
-    catalog_status = provider.model_catalog.status
-    workflow = provider.workflow
+) -> LaunchState:
+    """Derive launch from the auth policy tag plus catalog/selection facts."""
 
-    if auth.policy_state == "blocked_api_key_present":
-        return False, "blocked_api_key_present"
-    if auth.source == "unavailable":
-        return False, "auth_unavailable"
-    if auth.source == "unverified":
-        return False, "auth_unverified"
-    if catalog_status != "resolved" and not selection.explicit:
-        return False, "model_unresolved"
+    policy = provider.auth.policy_state
+    if policy == "blocked_api_key_present":
+        return "blocked_api_key_present"
+    if policy == "not_authenticated":
+        return "not_authenticated"
+    if policy == "api_key_required":
+        return "api_key_required"
+    if policy in {"auth_not_verified", "not_installed"}:
+        return "auth_unverified"
+    # eligible | explicit_api_mode
+    if provider.model_catalog.status != "resolved" and not selection.explicit:
+        return "model_unresolved"
     if selection.model is None:
-        return False, "model_unresolved"
-    if workflow != "available":
-        return False, "workflow_unavailable"
-    return True, "eligible"
+        return "model_unresolved"
+    return "eligible"
 
 
 def build_candidates(
@@ -244,7 +191,7 @@ def build_candidates(
     count: int,
     requested_cli: str | None,
     requested_model: str | None,
-    requested_effort: str | None,
+    requested_reasoning: str | None,
 ) -> tuple[list[Candidate], list[Candidate], list[dict[str, Any]]]:
     """Build the candidate universe once, then slice roster vs alternatives."""
 
@@ -258,8 +205,8 @@ def build_candidates(
             if requested_cli is None or provider.cli == requested_cli
             else None
         )
-        use_effort = (
-            requested_effort
+        use_reasoning = (
+            requested_reasoning
             if requested_cli is None or provider.cli == requested_cli
             else None
         )
@@ -267,14 +214,14 @@ def build_candidates(
         # alternatives remain available without a second discovery pass.
         if requested_cli and provider.cli != requested_cli:
             use_model = None
-            use_effort = None
-        outcome = choose_model(provider, profile, use_model, use_effort)
+            use_reasoning = None
+        outcome = choose_model(provider, profile, use_model, use_reasoning)
         if isinstance(outcome, SelectionError):
             if requested_cli is None or provider.cli == requested_cli:
                 errors.append({"cli": provider.cli, **outcome.to_dict()})
             continue
         selection = outcome
-        eligible, launch_state = candidate_launch_state(provider, selection=selection)
+        launch_state = candidate_launch_state(provider, selection=selection)
         universe.append(
             Candidate(
                 cli=provider.cli,
@@ -288,14 +235,8 @@ def build_candidates(
                 auth=provider.auth,
                 catalog_confidence=provider.model_catalog.confidence,
                 catalog_fingerprint=provider.model_catalog.fingerprint,
-                confidence={
-                    "auth": provider.auth.confidence,
-                    "catalog": provider.model_catalog.confidence,
-                    "model": selection.model_confidence,
-                },
-                workflow=provider.workflow,
+                model_confidence=selection.model_confidence,
                 provider_rank=provider_rank,
-                eligible=eligible,
                 launch_state=launch_state,
             )
         )
@@ -483,6 +424,9 @@ def main() -> int:
     alt_roster = [
         candidate.with_prompt(prompt_resolution) for candidate in alternatives
     ]
+    eligible_count = sum(
+        1 for candidate in roster if candidate.launch_state == "eligible"
+    )
     result = Proposal(
         ok=True,
         schema=SCHEMA,
@@ -493,9 +437,9 @@ def main() -> int:
             {"profile": name, "recommended": args.profile == name}
             for name in PROFILE_NAMES
         ],
-        eligible_count=sum(1 for candidate in roster if candidate.eligible),
+        eligible_count=eligible_count,
         roster_status="complete"
-        if len(roster) >= args.count and all(candidate.eligible for candidate in roster)
+        if len(roster) >= args.count and eligible_count == len(roster)
         else "partial",
         recommended_roster=roster,
         alternatives=alt_roster,

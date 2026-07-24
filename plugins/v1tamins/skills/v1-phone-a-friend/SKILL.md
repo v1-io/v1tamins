@@ -29,7 +29,7 @@ Examples:
 ## Quick Start
 
 1. Run the dynamic discovery command in [references/model-selection.md](references/model-selection.md); do not launch during discovery.
-2. Show the recommended one-peer roster, current CLI/version, model, reasoning level, prompt source/digest, auth source, permission, deadline, confidence, and alternatives.
+2. Show the recommended one-peer roster, current CLI/version, model, reasoning level, prompt source/digest, auth policy, launch state, permission, deadline, catalog/model confidence, and alternatives.
 3. Wait for explicit selection. API mode, multiple peers, delegation, research, and write-capable permissions require explicit choices in addition to the skill invocation. If the user has not selected a candidate, return `confirmation_required` and launch zero peers.
 4. Package the smallest useful context and remove secrets, private URLs, customer data, tokens, account IDs, and proprietary incident details.
 5. Run exactly the selected peer with [scripts/peer-env.sh](scripts/peer-env.sh) and [scripts/peer-run.sh](scripts/peer-run.sh), then verify the typed result locally.
@@ -61,7 +61,7 @@ Examples:
 
 ## Capability Audit
 
-Run the bundled discovery before selecting a peer. It checks command presence, versions, current model catalogs, reasoning levels, auth status, and read-only workflow support without printing secrets.
+Run the bundled discovery before selecting a peer. It checks command presence, versions, current model catalogs, reasoning levels, and auth policy without printing secrets. In `subscription_native` mode, unset ambient API-key variables first (or run `eval "$(python3 scripts/peer_policy.py --emit-shell-unset)"`) so discovery matches the scrubbed launch environment; otherwise ambient keys are a visible `blocked_api_key_present` policy block.
 
 ```bash
 python3 scripts/peer_catalog.py \
@@ -72,15 +72,15 @@ python3 scripts/peer_catalog.py \
 Report:
 - **host:** current runtime when known, otherwise `unknown`
 - **installed peers:** `claude`, `codex`, `cursor-agent`, `agy` (Antigravity CLI); Oracle remains a manual/browser path outside the discovery allowlist
-- **auth:** `subscription_native`, `api_explicit`, `unverified`, or `unavailable`
-- **credential policy:** `eligible`, `blocked_api_key_present`, `api_key_required`, or another typed state
+- **credential policy:** `eligible`, `not_authenticated`, `auth_not_verified`, `blocked_api_key_present`, `explicit_api_mode`, `api_key_required`, or `not_installed`
+- **launch state:** derived readiness such as `eligible`, `model_unresolved`, or a distinct policy failure
 - **model catalog:** `resolved`/`unresolved`, with `verified`/`unresolved` confidence from provider catalog commands only
 - **default peer:** proposed counterpart and reason; not yet launched
 - **limits:** subscription tier, browser access, and cloud-agent access if not directly verified
 
 Treat command presence as `installed`, not authenticated. Do not claim a specific subscription tier unless the tool explicitly reports it or a safe probe succeeds. A current CLI with no reliable model-list surface is `model_unresolved`; never guess a model. In `subscription_native` mode, an API-key variable being present is a visible policy block, not permission to use it.
 
-The script bounds every provider probe. A timeout becomes `unverified`/`unresolved` evidence rather than a launch or a replacement-peer trigger. The audit is a quick orientation, never a blocker.
+The script bounds every provider probe. A timeout becomes `auth_not_verified`/`unresolved` evidence rather than a launch or a replacement-peer trigger. The audit is a quick orientation, never a blocker.
 
 ## Peer Capability Boundaries
 
@@ -148,7 +148,7 @@ Do not wait on a peer run with no observable contract.
 - **Judge completion by substantive output, not exit code.** A peer that returned real content under a nonzero or unusual exit code is complete; an empty success exit is a stall. Wrapper exit codes are advisory.
 - **Tear down by recorded PID only.** Kill a stalled peer by the PID you captured at launch — never a pattern kill like `pkill -f "codex exec"`, which can reap an unrelated peer the user is running elsewhere.
 - If there is no output, artifact update, completion signal, or visible progress by the first-progress deadline, inspect the process state, stderr, run directory, and resume handle before deciding what to do next.
-- If a peer stalls, inspect its recorded status, stderr, sentinel, and PID. Mark it `stalled`, `timed_out`, or `execution_uncertain` as appropriate. Do not retry, switch, or add a peer automatically; ask for a fresh explicit selection if the user wants another attempt.
+- If a peer stalls, inspect its recorded status, stderr, sentinel, and PID. Record the runner lifecycle (`stalled` or `timed_out`) or, when dispatch occurred but evidence is ambiguous, parent-level `execution_uncertain`. Do not retry, switch, or add a peer automatically; ask for a fresh explicit selection if the user wants another attempt.
 - **Routing is reliability-aware.** Headless reliability differs by peer and recipe: apply the hardened invocations (stdin closed, `peer-env.sh` subscription scrubbing, streaming output) before sending real work to a peer, and show reliability evidence in the proposal. A stalled peer does not make another peer the silent default.
 - Never report a multi-peer consult as complete without saying which peers completed, which were partial, which stalled, and which suggestions were locally verified.
 

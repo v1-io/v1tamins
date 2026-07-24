@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal
 
@@ -44,8 +43,6 @@ class ProviderSpec:
     catalog_args: tuple[str, ...] | None
     auth_args: tuple[str, ...] | None
     roles: tuple[str, ...]
-    # Bound by peer_adapters after parser definitions to avoid import cycles.
-    parse_auth: Callable[..., object] | None = None
 
 
 PROVIDERS: dict[str, ProviderSpec] = {

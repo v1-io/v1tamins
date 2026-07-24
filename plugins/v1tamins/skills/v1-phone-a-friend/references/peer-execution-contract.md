@@ -13,24 +13,25 @@ record per discovered CLI. The result records:
 | Axis | Values | Meaning |
 | --- | --- | --- |
 | installation | `installed`, `unavailable` | Executable presence and version surface. |
-| authentication | `subscription_native`, `api_explicit`, `unverified`, `unavailable` | Credential path, never a credential value. |
-| credential policy | `eligible`, `blocked_api_key_present`, `explicit_api_mode`, `api_key_required`, or another typed state | Whether the selected auth mode may launch. |
+| credential policy | `eligible`, `not_authenticated`, `auth_not_verified`, `blocked_api_key_present`, `explicit_api_mode`, `api_key_required`, `not_installed` | Single tagged auth decision. Launch derives from this tag plus catalog/selection. |
 | model catalog | `resolved`, `unresolved` | Whether the current provider-owned catalog command returned usable IDs. |
-| catalog confidence | `verified`, `unresolved` | Provider catalog command output only; help text is never a degraded catalog. Unresolved means no model may be invented unless custom `--model` is explicit. |
-| workflow | `available`, `unavailable`, or another typed state | Whether the selected CLI path is supported for this auth mode and permission. |
-| execution | `running`, `complete`, `empty_output`, `stalled`, `timed_out`, or `execution_uncertain` | Result from `peer-run.sh` plus dispatch-state interpretation. |
+| catalog confidence | `verified`, `unresolved` | Provider catalog command output only; help text is never a catalog source. Unresolved means no model may be invented unless custom `--model` is explicit. |
+| launch state | `eligible`, `blocked_api_key_present`, `not_authenticated`, `api_key_required`, `auth_unverified`, `model_unresolved` | Derived candidate readiness. Distinct policy failures stay distinct. |
+| runner lifecycle | `running`, `complete`, `empty_output`, `stalled`, `timed_out` | Exact states from `peer-run.sh` status/verdict. |
+| execution (parent) | runner lifecycle, or `execution_uncertain` | Parent interpretation when dispatch occurred but lifecycle evidence is ambiguous. Not a runner-emitted state. |
 
 Structured auth probes are provider-owned JSON surfaces only:
 
 - Claude: `auth status` → `loggedIn` / `authMethod`
 - Codex: `doctor --json` → credentials details (`stored ChatGPT tokens` / `stored auth mode`)
 - Cursor Agent: `status --format json` → `isAuthenticated` / `status`
-- Agy: no auth probe → `auth_not_verified` unless `api_explicit` with keys
+- Agy: no structured auth probe → `eligible` after policy scrub when installed; ambient keys still require `api_explicit`
 
-The result may list an installed CLI with `auth: unverified` or
+The result may list an installed CLI with `auth_not_verified` or
 `model_catalog: unresolved`. That is useful evidence, not permission to
-launch, except for an explicit custom `--model` when auth is eligible. Never
-silently substitute another CLI, model, auth mode, or prompt.
+launch, except for an explicit custom `--model` when auth policy is `eligible`
+or `explicit_api_mode`. Never silently substitute another CLI, model, auth
+mode, or prompt.
 
 ## Candidate record
 
@@ -43,8 +44,9 @@ Reasoning: <current supported level, or unresolved>
 Role: <structural review | correctness/security | maintainability | research | multimodal>
 Prompt: <profile name>, source <path or provider rubric>, digest <sha256>
 Permission: readonly | local-verify | isolated-delegate | external
-Auth: subscription_native | api_explicit | unverified | unavailable
+Auth policy: eligible | not_authenticated | auth_not_verified | blocked_api_key_present | explicit_api_mode | api_key_required
 Catalog confidence: verified | unresolved
+Launch state: eligible | blocked_api_key_present | not_authenticated | api_key_required | auth_unverified | model_unresolved
 Deadline: <seconds>
 Selection: recommended | alternative | user-named
 ```
@@ -66,8 +68,8 @@ selects `api_explicit` for that run. The wrapper must then report
 
 Provider-native login and an API key are different facts. A successful CLI
 version command proves installation only. A status command can prove auth only
-when its structured JSON result is clear; otherwise report `unverified`. Do not
-regex free-form auth prose.
+when its structured JSON result is clear; otherwise report `auth_not_verified`.
+Do not regex free-form auth prose.
 
 ## Launch and lifecycle
 
@@ -81,7 +83,7 @@ regex free-form auth prose.
    terminal result is `empty_output`, a vanished process is `stalled`, and a
    deadline breach is `timed_out`. `status` and `verdict` are pure observation;
    the watchdog and explicit `teardown` own process mutation.
-4. If dispatch occurred and lifecycle state is ambiguous, report
+4. If dispatch occurred and lifecycle evidence is ambiguous, the parent reports
    `execution_uncertain`. Do not retry, replace the peer, or fan out another
    run automatically.
 5. Tear down only the recorded PID/PGID (PGID only when `peer.session=1`).

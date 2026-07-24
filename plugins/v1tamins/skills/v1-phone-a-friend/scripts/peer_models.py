@@ -5,18 +5,6 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field, replace
 from typing import Any, Literal
 
-AuthSource = Literal[
-    "subscription_native",
-    "api_explicit",
-    "unverified",
-    "unavailable",
-]
-AuthConfidence = Literal["verified", "degraded", "unresolved"]
-CredentialPresence = Literal[
-    "none_detected",
-    "api_key_present",
-    "not_checked",
-]
 PolicyState = Literal[
     "eligible",
     "not_authenticated",
@@ -27,14 +15,14 @@ PolicyState = Literal[
     "not_installed",
 ]
 CatalogStatus = Literal["resolved", "unresolved"]
-CatalogConfidence = Literal["verified", "degraded", "unresolved"]
+CatalogConfidence = Literal["verified", "unresolved"]
 LaunchState = Literal[
     "eligible",
     "blocked_api_key_present",
-    "auth_unavailable",
+    "not_authenticated",
+    "api_key_required",
     "auth_unverified",
     "model_unresolved",
-    "workflow_unavailable",
 ]
 SelectionErrorCode = Literal[
     "model_not_current",
@@ -44,53 +32,47 @@ SelectionErrorCode = Literal[
 
 @dataclass(frozen=True)
 class AuthFact:
-    source: AuthSource
-    confidence: AuthConfidence
-    credential_presence: CredentialPresence
+    """Single tagged auth decision. Launch derives from policy_state alone."""
+
     policy_state: PolicyState
     key_env_names: tuple[str, ...] = ()
 
     @classmethod
     def eligible(cls) -> AuthFact:
-        return cls(
-            source="subscription_native",
-            confidence="verified",
-            credential_presence="none_detected",
-            policy_state="eligible",
-        )
+        return cls(policy_state="eligible")
 
     @classmethod
     def not_authenticated(cls) -> AuthFact:
-        return cls(
-            source="unavailable",
-            confidence="verified",
-            credential_presence="none_detected",
-            policy_state="not_authenticated",
-        )
+        return cls(policy_state="not_authenticated")
 
     @classmethod
     def unverified(cls) -> AuthFact:
-        return cls(
-            source="unverified",
-            confidence="unresolved",
-            credential_presence="none_detected",
-            policy_state="auth_not_verified",
-        )
+        return cls(policy_state="auth_not_verified")
 
     @classmethod
     def not_installed(cls) -> AuthFact:
+        return cls(policy_state="not_installed")
+
+    @classmethod
+    def blocked_api_keys(cls, key_env_names: tuple[str, ...]) -> AuthFact:
         return cls(
-            source="unavailable",
-            confidence="verified",
-            credential_presence="not_checked",
-            policy_state="not_installed",
+            policy_state="blocked_api_key_present",
+            key_env_names=key_env_names,
         )
+
+    @classmethod
+    def explicit_api(cls, key_env_names: tuple[str, ...]) -> AuthFact:
+        return cls(
+            policy_state="explicit_api_mode",
+            key_env_names=key_env_names,
+        )
+
+    @classmethod
+    def api_key_required(cls) -> AuthFact:
+        return cls(policy_state="api_key_required")
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "source": self.source,
-            "confidence": self.confidence,
-            "credential_presence": self.credential_presence,
             "policy_state": self.policy_state,
             "key_env_names": list(self.key_env_names),
         }
@@ -138,7 +120,6 @@ class ProviderDiscovery:
     model_catalog: ModelCatalog
     reasoning_levels: tuple[str, ...]
     roles: tuple[str, ...]
-    workflow: str
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -152,7 +133,6 @@ class ProviderDiscovery:
             "model_catalog": self.model_catalog.to_dict(),
             "reasoning_levels": list(self.reasoning_levels),
             "roles": list(self.roles),
-            "workflow": self.workflow,
         }
 
 
@@ -170,7 +150,7 @@ class SelectionError:
     code: SelectionErrorCode
     alternatives: tuple[str, ...] = ()
     requested_model: str | None = None
-    requested_effort: str | None = None
+    requested_reasoning: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -179,8 +159,8 @@ class SelectionError:
         }
         if self.requested_model is not None:
             payload["requested_model"] = self.requested_model
-        if self.requested_effort is not None:
-            payload["requested_effort"] = self.requested_effort
+        if self.requested_reasoning is not None:
+            payload["requested_reasoning"] = self.requested_reasoning
         return payload
 
 
@@ -197,10 +177,8 @@ class Candidate:
     auth: AuthFact
     catalog_confidence: CatalogConfidence
     catalog_fingerprint: str | None
-    confidence: dict[str, str]
-    workflow: str
+    model_confidence: CatalogConfidence
     provider_rank: int
-    eligible: bool
     launch_state: LaunchState
     prompt: dict[str, Any] | None = None
 
@@ -220,10 +198,8 @@ class Candidate:
             "auth": self.auth.to_dict(),
             "catalog_confidence": self.catalog_confidence,
             "catalog_fingerprint": self.catalog_fingerprint,
-            "confidence": dict(self.confidence),
-            "workflow": self.workflow,
+            "model_confidence": self.model_confidence,
             "provider_rank": self.provider_rank,
-            "eligible": self.eligible,
             "launch_state": self.launch_state,
         }
         if self.prompt is not None:
