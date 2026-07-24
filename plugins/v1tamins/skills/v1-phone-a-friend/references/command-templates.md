@@ -150,18 +150,18 @@ PEER_RUN="<this skill dir>/scripts/peer-run.sh"
 RUN_DIR="<host-scratch-dir>/v1-phone-a-friend/<run-slug>"
 
 # Launch each peer with a distinct slug under one run dir (multi-peer = N launches):
-"$PEER_RUN" launch --dir "$RUN_DIR" --slug codex  -- <codex-wrapper>
-"$PEER_RUN" launch --dir "$RUN_DIR" --slug claude -- <claude-wrapper>
+"$PEER_RUN" launch --dir "$RUN_DIR" --slug codex  --deadline-seconds 900 -- <codex-wrapper>
+"$PEER_RUN" launch --dir "$RUN_DIR" --slug claude --deadline-seconds 900 -- <claude-wrapper>
 
 # Poll across turns until each slug is complete or stalled, then read the verdict:
-"$PEER_RUN" status  --dir "$RUN_DIR" --slug codex     # running | complete | stalled
-"$PEER_RUN" verdict --dir "$RUN_DIR" --slug codex     # complete | stalled (judged by output, not exit code)
+"$PEER_RUN" status  --dir "$RUN_DIR" --slug codex     # running | complete | empty_output | stalled | timed_out
+"$PEER_RUN" verdict --dir "$RUN_DIR" --slug codex --json
 "$PEER_RUN" teardown --dir "$RUN_DIR" --slug codex    # PID-scoped kill; never pkill -f
 ```
 
-The helper owns the contract: stdin closed per launch, detached background, sentinels recording both the launched leader and the **real peer pid**, teardown that reaps the actual peer (its process group when a true session was created, else the recorded peer pid — always PID/PGID-derived, never a pattern kill), and a single state resolver shared by `status` and `verdict` so they never disagree. Completion is **judged by substantive output rather than exit code** — real content under a nonzero/odd exit code is `complete`; an empty exit is `stalled`; a process still alive with no output yet is `running`, never falsely `stalled`. The byte threshold assumes **plain-text** output: `stream-json`/`--json` emit framing bytes before any content, so consume text for the verdict and use stream-json only for a live progress stream (judge it on a terminal event, not the byte count). Before launching, set `<host-scratch-dir>` to a host-appropriate scratch location and record the first-progress deadline and check-in cadence. Many peer CLIs buffer all output until completion (0 bytes mid-run is normal), so key "still progressing" on **process liveness** (`status` = `running`), not output growth; only when the process has died or genuinely hung past the deadline should you retry with a narrower prompt, switch peers, or mark it `stalled`. On the `nohup` fallback and for long runs, also use the host's own background primitive (e.g. Claude Code `run_in_background`).
+The helper owns the contract: stdin closed per launch, detached background, sentinels recording both the launched leader and the **real peer pid**, a watchdog deadline, teardown that reaps the actual peer (its process group when a true session was created, else the recorded peer pid — always PID/PGID-derived, never a pattern kill), and a single state resolver shared by `status` and `verdict` so they never disagree. Completion is **judged by substantive output rather than exit code** — real content under a nonzero/odd exit code is `complete`; an empty exit is `empty_output`; a process still alive with no terminal sentinel is `running`; a deadline breach is `timed_out`. The byte threshold assumes **plain-text** output: `stream-json`/`--json` emit framing bytes before any content, so consume text for the verdict and use stream-json only for a live progress stream (judge it on a terminal event, not the byte count). Before launching, record the selected catalog and prompt fingerprints, deadline, and check-in cadence. If a peer dies, stalls, or becomes execution-uncertain, do not retry or switch automatically; report the typed result and ask for a new explicit selection. On the `nohup` fallback and for long runs, also use the host's own background primitive (e.g. Claude Code `run_in_background`).
 
-If the helper is unavailable, the manual equivalent is `( <peer-command> </dev/null >"$RUN_DIR/<peer>.stdout" 2>"$RUN_DIR/<peer>.stderr"; printf 'DONE rc=%s\n' "$?" >"$RUN_DIR/<peer>.done" ) &` with `$!` saved to `<peer>.pid` — but this lacks true detachment, so pair it with the host's background primitive.
+If the helper is unavailable, the manual equivalent is `( "$PEER_ENV" --provider <provider> --auth-mode subscription_native -- <peer-command> </dev/null >"$RUN_DIR/<peer>.stdout" 2>"$RUN_DIR/<peer>.stderr"; printf 'DONE rc=%s\n' "$?" >"$RUN_DIR/<peer>.done" ) &` with `$!` saved to `<peer>.pid` — but this lacks true detachment, a watchdog, and the full typed verdict, so report the degradation and pair it with the host's background primitive. API mode must be an explicit user selection in the manual wrapper too.
 
 ## Command Wrapper Matrix
 
@@ -174,33 +174,36 @@ If the helper is unavailable, the manual equivalent is `( <peer-command> </dev/n
 
 Resolve model, effort, permission flags, and output modes from current local help, model lists, config, or the user's explicit request. Do not pin concrete model names in reusable commands, and do not invent permission-mode values that local help does not document.
 
-Two stall-killers apply to every wrapper above and are baked into the per-peer sections: close stdin (`< /dev/null`) so a prompt-as-argument run does not block on stdin, and prefix Claude runs with `env -u ANTHROPIC_API_KEY` so a stale env key cannot shadow the logged-in account. The capability-audit probes (`claude doctor`, etc.) can themselves hang — bound them (e.g. wrap in the host's timeout) and treat a probe that does not return as `auth: not checked`, never as a blocker.
+Two stall-killers and one auth invariant apply to every wrapper above: close stdin (`< /dev/null`) so a prompt-as-argument run does not block on stdin; use `scripts/peer-env.sh` so subscription mode scrubs all known user API-key variables, not only one provider's key; and preserve API keys only when the user explicitly selected `api_explicit`. The capability probes can themselves hang — `peer_catalog.py` bounds them and reports unresolved auth/catalog state, never a replacement launch.
 
 ## Claude Code
+
+Set `PEER_ENV` to this skill's `scripts/peer-env.sh` before using the examples.
 
 Read-only consult:
 
 ```bash
-env -u ANTHROPIC_API_KEY claude -p \
+"$PEER_ENV" --provider claude --auth-mode subscription_native -- claude -p \
   --allowedTools "Read,Grep,Glob" \
   --disallowedTools "Edit,Write,Bash" \
   --output-format stream-json \
-  --model <model-or-alias> \
+  --model <current-model-from-catalog> \
+  --effort <current-reasoning-level> \
   "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
 Trusted verification or isolated delegation:
 
 ```bash
-env -u ANTHROPIC_API_KEY claude -p \
+"$PEER_ENV" --provider claude --auth-mode subscription_native -- claude -p \
   --permission-mode bypassPermissions \
   --output-format stream-json \
-  --model <model-or-alias> \
-  --effort <effort-level> \
+  --model <current-model-from-catalog> \
+  --effort <current-reasoning-level> \
   "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
-Prefix `env -u ANTHROPIC_API_KEY` so a stale or invalid `ANTHROPIC_API_KEY` in the environment cannot override the logged-in Claude account and silently fail auth. Keep `--output-format stream-json` so progress is observable and an empty response is distinguishable from a stall, and close stdin (`< /dev/null`) for the same reason as Codex.
+Use `--auth-mode api_explicit` only when the user selected API mode for this run. Keep `--output-format stream-json` so progress is observable and an empty response is distinguishable from a stall, and close stdin (`< /dev/null`) for the same reason as Codex.
 
 Use full permission mode only for a trusted local repo or isolated worktree. Inspect any resulting diff before keeping it.
 
@@ -211,22 +214,22 @@ Do not rely on `--permission-mode plan` alone as this template's read-only Claud
 Read-only consult:
 
 ```bash
-codex exec \
+"$PEER_ENV" --provider codex --auth-mode subscription_native -- codex exec \
   --sandbox read-only \
   --cd <repo> \
   --json \
-  --model <model> \
+  --model <current-model-from-catalog> \
   "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
 Trusted verification or isolated delegation:
 
 ```bash
-codex exec \
+"$PEER_ENV" --provider codex --auth-mode subscription_native -- codex exec \
   --dangerously-bypass-approvals-and-sandbox \
   --cd <trusted-or-isolated-repo> \
   --json \
-  --model <model> \
+  --model <current-model-from-catalog> \
   "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
@@ -241,27 +244,27 @@ Check `cursor-agent --help` locally before relying on exact flags or treating pl
 Read-only consult:
 
 ```bash
-cursor-agent -p \
+"$PEER_ENV" --provider cursor-agent --auth-mode subscription_native -- cursor-agent -p \
   --mode plan \
   --trust \
   --output-format stream-json \
-  --model <model-or-auto> \
-  "$PHONE_A_FRIEND_PROMPT"
+  --model <current-model-from-catalog> \
+  "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
 Use `--mode ask` for pure Q&A. Use `--trust` only for a workspace the user already trusts or for a generated isolated worktree; it answers Cursor's headless workspace-trust prompt and does not replace `--mode plan` or `--mode ask`.
 
-Do not ask headless Cursor plan/ask mode to invoke a named Cursor skill, composer workflow, or subagent workflow unless local evidence shows that workflow works in the selected mode. If a named workflow stalls or returns no output, retry with the rubric inlined as a plain prompt and report `Capability path actually used: prompt-only fallback`.
+Do not ask headless Cursor plan/ask mode to invoke a named Cursor skill, composer workflow, or subagent workflow unless local evidence shows that workflow works in the selected mode. If a named workflow is unavailable or stalls, report the typed degradation and wait for an explicit user decision; do not retry or substitute automatically. A user-approved new launch may inline the rubric as a plain prompt and report `Capability path actually used: prompt-only fallback`.
 
 Trusted verification or isolated delegation:
 
 ```bash
-cursor-agent -p \
+"$PEER_ENV" --provider cursor-agent --auth-mode subscription_native -- cursor-agent -p \
   --worktree <name> \
   --output-format stream-json \
-  --model <model-or-auto> \
+  --model <current-model-from-catalog> \
   --force \
-  "$PHONE_A_FRIEND_PROMPT"
+  "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
 Use `--force` only for trusted verification or delegation. If the installed CLI lacks `--mode` or `--worktree`, prefer Claude/Codex for enforced read-only consults, or run Cursor in a disposable git worktree and discard unexpected diffs after reading its answer.
@@ -285,14 +288,16 @@ fi
 [ -n "$AGY_CMD" ] && "$AGY_CMD" --help 2>/dev/null | sed -n '1,80p' || true
 ```
 
-If `agy` reports that the installed version is unsupported, run `agy update`, then retry `agy --version` and a tiny `--print` probe. If the updated CLI asks for logout/login, stop and ask the user to complete the interactive Google OAuth step.
+If `agy` reports that the installed version is unsupported, record `workflow: unavailable` and stop that branch. Do not run an update or begin an interactive login as an automatic repair; provider account changes are outside this skill's launch contract.
 
 Read-only consult:
 
 ```bash
-agy \
+"$PEER_ENV" --provider agy --auth-mode subscription_native -- agy \
   --sandbox \
   --print-timeout 5m \
+  --model <current-model-from-catalog> \
+  --effort <current-reasoning-level> \
   --print "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
@@ -301,9 +306,11 @@ Pass `--model <model-or-auto>` only when `agy --help` exposes `--model` and the 
 Trusted verification or isolated delegation:
 
 ```bash
-agy \
+"$PEER_ENV" --provider agy --auth-mode subscription_native -- agy \
   --dangerously-skip-permissions \
   --print-timeout 5m \
+  --model <current-model-from-catalog> \
+  --effort <current-reasoning-level> \
   --print "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 

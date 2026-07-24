@@ -91,6 +91,13 @@ evals for natural-phrase traffic: if users reach the skill by describing the
 task rather than naming it, hiding it misroutes that traffic to neighbors
 instead of saving budget.
 
+`/v1-phone-a-friend` is explicit-only because it can launch another runtime.
+Its preflight proposes one current subscription-backed CLI/model/reasoning
+choice and waits for the user's selection. `/v1-review-board` uses the same
+dynamic discovery, proposes a quality roster plus alternatives, defaults to a
+read-only ledger, and never silently adds peers, uses an API key, or applies
+findings.
+
 `/v1-menu` is the explicit-only index over the full skill set — the one name to
 remember when you can't recall which skill fits. It is discoverable by name, but
 does not autonomously open a parent workflow. When a skill is added, renamed,
@@ -101,6 +108,21 @@ Live evals are opt-in because they may require local runtime authentication and
 model calls. Use them after changing high-overlap descriptions, invocation
 posture, or side-effect policy; treat missing runtime/auth as inconclusive
 rather than a static validation failure. Do not commit raw live transcripts.
+
+To verify a refreshed Codex or Claude installation without mutating caches or
+credentials, compare one supplied installed plugin root with the canonical
+source:
+
+```bash
+scripts/verify-installed-plugin.sh \
+  --canonical <canonical-plugin-root> \
+  --installed <installed-plugin-root> \
+  --runtime codex
+```
+
+The read-only result reports `match`, `stale`, `missing`, or `ambiguous`, plus
+source, skill, version, and current model-catalog fingerprints. Repeat with
+`--runtime claude` for the Claude manifest.
 
 ### Recommended companion: compound-engineering
 

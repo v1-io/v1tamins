@@ -1,0 +1,81 @@
+# Peer Execution Contract
+
+Use this contract whenever a peer process is proposed or launched. The
+contract keeps discovery, authentication, selection, execution, and local
+verification separate so one failure cannot be mistaken for another.
+
+## Discovery result
+
+Run `scripts/peer_catalog.py` before every explicit invocation. It must emit
+JSON with `schema: v1-peer-catalog/v1`, `confirmation_required: true`, and one
+record per discovered CLI. The result records:
+
+| Axis | Values | Meaning |
+| --- | --- | --- |
+| installation | `installed`, `unavailable` | Executable presence and version surface. |
+| authentication | `subscription_native`, `api_explicit`, `unverified`, `unavailable` | Credential path, never a credential value. |
+| credential policy | `eligible`, `blocked_api_key_present`, `explicit_api_mode`, `api_key_required`, or another typed state | Whether the selected auth mode may launch. |
+| model catalog | `resolved`, `unresolved` | Whether the current provider-owned catalog returned usable IDs. |
+| catalog confidence | `verified`, `degraded`, `unresolved` | Provider catalog is stronger than help-text examples; unresolved means no model may be invented. |
+| workflow | `available`, `subscription_unsupported`, or another typed state | Whether the selected CLI path is supported for this auth mode and permission. |
+| execution | `running`, `complete`, `empty_output`, `stalled`, `timed_out`, or `execution_uncertain` | Result from `peer-run.sh` plus dispatch-state interpretation. |
+
+The result may list an installed CLI with `auth: unverified` or
+`model_catalog: unresolved`. That is useful evidence, not permission to
+launch. Never silently substitute another CLI, model, auth mode, or prompt.
+
+## Candidate record
+
+Before launch, show the user every field below for the selected candidate:
+
+```text
+CLI + version: <runtime result>
+Model: <current catalog ID, or model_unresolved>
+Reasoning: <current supported level, or unresolved>
+Role: <structural review | correctness/security | maintainability | research | multimodal>
+Prompt: <profile name>, source <path or provider rubric>, digest <sha256>
+Permission: readonly | local-verify | isolated-delegate | external
+Auth: subscription_native | api_explicit | unverified | unavailable
+Catalog confidence: verified | degraded | unresolved
+Deadline: <seconds>
+Selection: recommended | alternative | user-named
+```
+
+The user must approve the exact roster, model, reasoning level, prompt, auth
+mode, and permission before `peer-run.sh launch`. A preview becomes
+`context_stale` if the working-tree snapshot, CLI/version, model-catalog
+fingerprint, or prompt digest changes after approval; rediscover and ask again.
+
+## Authentication policy
+
+`subscription_native` is the default. Run the selected provider through
+`scripts/peer-env.sh --auth-mode subscription_native`; it removes known
+user-supplied API-key variables without printing them and leaves provider-native
+login state available. The wrapper also closes stdin at the child boundary. A
+user-supplied API key is allowed only after the user
+selects `api_explicit` for that run. The wrapper must then report
+`api_explicit`; it must never claim subscription-native auth.
+
+Provider-native login and an API key are different facts. A successful CLI
+version command proves installation only. A status command can prove auth only
+when its structured result or documented status is clear; otherwise report
+`unverified`.
+
+## Launch and lifecycle
+
+1. Save the reviewed prompt and a read-only working-tree snapshot in a
+   run-specific scratch directory.
+2. Launch exactly the approved command through `peer-run.sh`, with stdin
+   closed, a recorded deadline, and a unique slug.
+3. Poll `status` or read `verdict --json`; do not branch on provider exit code
+   alone. Substantive output plus a terminal sentinel is `complete`, an empty
+   terminal result is `empty_output`, a vanished process is `stalled`, and a
+   deadline breach is `timed_out`.
+4. If dispatch occurred and lifecycle state is ambiguous, report
+   `execution_uncertain`. Do not retry, replace the peer, or fan out another
+   run automatically.
+5. Tear down only the recorded PID/PGID. Never use a command-line pattern kill.
+
+Mutation, local verification, and external publication are separate permission
+choices. A read-only peer result is advice until the parent verifies its cited
+files and evidence locally.

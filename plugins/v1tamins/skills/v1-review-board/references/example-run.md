@@ -5,31 +5,47 @@ A worked, public-safe walkthrough of one `v1-review-board` run end to end. Place
 ## Trigger
 
 ```
-/v1-review-board convene the board on this PR — deep-review on the two coding peers, thermo-nuclear on cursor, then address
+/v1-review-board convene a quality board on this PR; show me the current roster first
 ```
 
 ## Phase 1 — Resolve and audit
 
-- Capability audit (bounded probes): coding peer A `installed, auth verified`; coding peer B `installed, auth verified`; Cursor `installed, auth verified`; a fourth peer `not found`.
-- Models resolved from each CLI's model list to the strongest available tier; a second peer chosen from a different model family for independence. No model names committed.
-- Thermo-nuclear rubric resolved under `~/.cursor/**/skills/thermo-nuclear-code-quality-review/SKILL.md` → found.
-- `peer-run.sh` resolved by globbing the shared skills root for `*/v1-phone-a-friend/scripts/peer-run.sh` → found.
+- `peer_catalog.py` discovers current CLI versions, provider-owned model catalogs, supported reasoning levels, auth sources, read-only workflow support, and fingerprints. One installed CLI reports `model_unresolved`, so it is shown as an alternative but not guessed or launched.
+- The `quality` profile recommends two distinct coding CLIs, each with its current catalog model and highest supported reasoning. A maintainability rubric is found and presented as an optional third lens. No model names are committed.
+- The prompt sources and the sibling `peer-run.sh` are resolved and fingerprinted; the canonical source and installed runtime are fingerprinted separately.
 
-Board roster this run: deep-A, deep-B, thermo (3 peers).
+Proposal shown to the user:
+
+```text
+quality (recommended)
+  deep-A: <cli-a> <version>, <model-a>, <reasoning-a>, structural review,
+          prompt <source-a> <digest-a>, subscription_native, readonly
+  deep-B: <cli-b> <version>, <model-b>, <reasoning-b>, correctness/security,
+          prompt <source-b> <digest-b>, subscription_native, readonly
+  optional: <cli-c> <version>, <model-c>, <reasoning-c>, maintainability,
+            prompt <source-c> <digest-c>, subscription_native, readonly
+
+Alternatives: balanced, fast, custom, or remove any candidate.
+Selection required: no peer has launched yet.
+```
+
+The user selects `deep-A` and `deep-B`, removes the optional third lens, keeps
+`subscription_native`, and chooses `ledger`.
+
+Board roster this run: deep-A, deep-B (2 peers).
 
 ## Phase 2 — Brief and fan out
 
 - One shared read-only brief built; `git diff <base>...HEAD` pre-dumped to `pr.diff`.
-- Deep-review lens inlined for deep-A/deep-B; thermo-nuclear rubric inlined for the Cursor peer (peers do not have the named skills installed → `prompt-only fallback`).
-- All three launched concurrently, read-only, each detached via `peer-run.sh`:
+- The selected prompt sources are resolved. A peer without its named workflow is launched only after the user accepts the clearly marked `prompt-only fallback`.
+- Exactly the two selected peers launch concurrently, read-only, each detached via `peer-run.sh` with closed stdin and a bounded deadline:
 
 ```text
 launched slug=deep-a  ...
 launched slug=deep-b  ...
-launched slug=thermo  ...
 ```
 
-- Polled across turns. `deep-a` and `thermo` completed; `deep-b` stalled past its deadline and was torn down by PID. Board proceeds with two surviving peers (above the one-peer floor).
+- Polled across turns. `deep-a` completed; `deep-b` timed out and was torn down by its recorded PID/PGID. The Board records the selected peer's typed failure and does not replace it automatically.
 
 ## Phase 3 — Compile the ledger
 
@@ -45,12 +61,11 @@ Each finding verified against the working tree before disposition:
 
 A Cursor finding that looked like a bug was checked against the source and proved a false positive — dropped, not laundered into the ledger.
 
-## Phase 4 — Address (default: apply, stop before push)
+## Phase 4 — Address (ledger default; explicit mutation)
 
-- Applied F1/F3 (Fix) and F2 (Partial) in batches via `v1-address-review`'s flow.
-- Gate discovered (the project's declared check) and run → green.
-- Stopped with the diff and a summary (dispositions, the F4 deferral, the stalled `deep-b`) for the user to review. **No commit or push** — `apply` is the default, so agent-authored changes wait for a human before landing.
-- **Full-auto opt-in:** invoked with `full-auto`, the run would instead announce its intent, re-check the branch guard (named feature branch; default resolved via `git symbolic-ref`, never assumed `main`), commit naming the peers/models/deferrals, and push — never on a red gate, never force-push.
+- Returned the verified ledger and stopped. The working tree remained unchanged because `ledger` is the default.
+- **Apply opt-in:** a separate explicit selection could hand surviving Fix/Partial dispositions to `v1-address-review`, run the gate, and stop before commit/push.
+- **Full-auto opt-in:** only a separate explicit selection could announce its intent, re-check the branch guard (named feature branch; default resolved via `git symbolic-ref`, never assumed `main`), commit naming the peers/models/deferrals, and push — never on a red gate, never force-push.
 
 ## Degraded variants
 
