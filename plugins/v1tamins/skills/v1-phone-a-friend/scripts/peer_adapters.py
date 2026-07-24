@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import Any, Literal
@@ -357,6 +358,13 @@ def first_version_line(result: CommandResult) -> str | None:
 def discover_provider(
     name: str, mode: str, timeout_seconds: float
 ) -> ProviderDiscovery:
+    """Discover one provider within a total wall-clock budget.
+
+    ``timeout_seconds`` is the budget for the whole provider, not each probe.
+    Version, auth, and catalog commands share the remaining time so a hung
+    provider cannot spend 3× the configured timeout.
+    """
+
     spec = PROVIDERS[name]
     executable = shutil.which(spec.binary)
     unresolved_catalog = ModelCatalog(
@@ -379,20 +387,25 @@ def discover_provider(
             roles=spec.roles,
         )
 
-    version_result = run_command([executable, "--version"], mode, timeout_seconds)
+    deadline = time.monotonic() + max(0.1, timeout_seconds)
+
+    def remaining() -> float:
+        return max(0.1, deadline - time.monotonic())
+
+    version_result = run_command([executable, "--version"], mode, remaining())
     version = first_version_line(version_result)
     version_fingerprint = sha256_text(f"{name}\n{version or ''}\n{version_result.returncode}")
 
     auth_probe = None
     if spec.auth_args is not None:
-        auth_probe = run_command([executable, *spec.auth_args], mode, timeout_seconds)
+        auth_probe = run_command([executable, *spec.auth_args], mode, remaining())
     auth = auth_result(name, spec, mode, auth_probe)
 
     models: list[ModelEntry] = []
     catalog = unresolved_catalog
     if spec.catalog_mode == "command" and spec.catalog_args is not None:
         catalog_result = run_command(
-            [executable, *spec.catalog_args], mode, timeout_seconds
+            [executable, *spec.catalog_args], mode, remaining()
         )
         if catalog_result.returncode == 0 and not catalog_result.timed_out:
             models = parse_model_catalog(catalog_result.stdout)

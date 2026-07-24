@@ -110,6 +110,21 @@ def manifest_version(path: Path) -> str | None:
 def probe_catalog(script: Path) -> tuple[str, str | None]:
     env = dict(os.environ)
     env["PYTHONDONTWRITEBYTECODE"] = "1"
+    # Read-only verification must not expose ambient API credentials to the
+    # discovery subprocess, even when the install hash already matched.
+    for name in (
+        "ANTHROPIC_API_KEY",
+        "ANTHROPIC_AUTH_TOKEN",
+        "CLAUDE_API_KEY",
+        "OPENAI_API_KEY",
+        "OPENAI_AUTH_TOKEN",
+        "CODEX_API_KEY",
+        "CURSOR_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "GOOGLE_GENAI_API_KEY",
+    ):
+        env.pop(name, None)
     try:
         completed = subprocess.run(
             [
@@ -162,7 +177,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--probe-catalog",
         action="store_true",
-        help="run installed peer_catalog once; default leaves catalog not_requested",
+        help="run installed peer_catalog once after a match; default leaves catalog not_requested",
     )
     return parser.parse_args()
 
@@ -238,16 +253,22 @@ def main() -> int:
     canonical_source = tree_hash(canonical.resolve())
     installed_source = tree_hash(installed.resolve())
 
-    catalog_status = "not_requested"
-    catalog_fingerprint: str | None = None
-    if args.probe_catalog:
-        catalog_status, catalog_fingerprint = probe_catalog(
-            installed / "skills/v1-phone-a-friend/scripts/peer_catalog.py"
-        )
-
     verification_status = "match"
     if canonical_version != installed_version or canonical_source != installed_source:
         verification_status = "stale"
+
+    catalog_status = "not_requested"
+    catalog_fingerprint: str | None = None
+    if args.probe_catalog:
+        # Never execute an installed peer_catalog.py until the install hash
+        # matches. A stale/tampered root could otherwise run arbitrary code
+        # under the verifier's credentials.
+        if verification_status != "match":
+            catalog_status = "skipped_stale"
+        else:
+            catalog_status, catalog_fingerprint = probe_catalog(
+                installed / "skills/v1-phone-a-friend/scripts/peer_catalog.py"
+            )
 
     emit(
         {

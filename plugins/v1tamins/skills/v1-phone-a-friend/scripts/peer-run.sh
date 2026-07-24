@@ -189,12 +189,19 @@ case "$cmd" in
 
     # The inner runner records its own PID because GNU setsid may fork before
     # exec. The shell that writes this file is the real session leader.
-    # One detach strategy: setsid when available, otherwise nohup. No perl path.
+    # Prefer true session detach: setsid, then Perl POSIX::setsid on hosts
+    # without setsid (notably macOS), else best-effort nohup.
     if command -v setsid >/dev/null 2>&1; then
       setsid "$INNER" "$pidfile" "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" &
       launcher_pid=$!
       sess=1
       how="setsid"
+    elif command -v perl >/dev/null 2>&1; then
+      perl -e 'use POSIX qw(setsid); POSIX::setsid(); exec { $ARGV[0] } @ARGV' -- \
+        "$INNER" "$pidfile" "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" &
+      launcher_pid=$!
+      sess=1
+      how="perl-setsid"
     else
       nohup "$INNER" "$pidfile" "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" >/dev/null 2>&1 &
       launcher_pid=$!
@@ -221,6 +228,10 @@ case "$cmd" in
     # It honors peer.session the same way terminate_recorded does.
     if command -v setsid >/dev/null 2>&1; then
       setsid "$WATCHDOG" "$DEADLINE_SECONDS" "$donefile" "$pidfile" "$childpidfile" "$sessfile" >/dev/null 2>&1 &
+      watchdog_pid=$!
+    elif command -v perl >/dev/null 2>&1; then
+      perl -e 'use POSIX qw(setsid); POSIX::setsid(); exec { $ARGV[0] } @ARGV' -- \
+        "$WATCHDOG" "$DEADLINE_SECONDS" "$donefile" "$pidfile" "$childpidfile" "$sessfile" >/dev/null 2>&1 &
       watchdog_pid=$!
     else
       nohup "$WATCHDOG" "$DEADLINE_SECONDS" "$donefile" "$pidfile" "$childpidfile" "$sessfile" >/dev/null 2>&1 &

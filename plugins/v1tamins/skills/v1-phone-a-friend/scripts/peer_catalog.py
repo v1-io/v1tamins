@@ -44,7 +44,9 @@ from peer_models import (  # noqa: E402
 from peer_policy import PROVIDERS  # noqa: E402
 
 SCHEMA = "v1-peer-catalog/v1"
-# Provider auth probes (especially `codex doctor --json`) routinely exceed 8s.
+# Total wall-clock budget per provider (shared across version/auth/catalog probes).
+# Slow auth probes such as `codex doctor --json` still fit; hung providers cannot
+# multiply this by the number of probes.
 DEFAULT_TIMEOUT_SECONDS = 45
 PROFILE_NAMES = ("quality", "balanced", "fast", "custom")
 

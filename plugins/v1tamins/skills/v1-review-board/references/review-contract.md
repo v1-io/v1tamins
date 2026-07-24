@@ -39,10 +39,13 @@ Resolve all of the following at every invocation. Commit none of the runtime
 values.
 
 - **Peer availability** — run the sibling `v1-phone-a-friend/scripts/peer_catalog.py` with bounded provider probes. Installation, credential policy, model catalog, launch state, and runner lifecycle are separate states.
-- **Proposal command** — start with the quality proposal and pass the resolved current prompt source when available. Resolve `peer_catalog.py` from the sibling Phone-a-Friend skill directory, not the project cwd:
+- **Proposal command** — start with the quality proposal and pass the resolved current prompt source when available. Resolve the catalog helper from the co-installed Phone-a-Friend skill (same skills root), not the project cwd or Review Board's own `scripts/`:
 
   ```bash
-  PEER_CATALOG="<v1-phone-a-friend skill dir>/scripts/peer_catalog.py"
+  # peer_catalog.py sits at <skills>/v1-phone-a-friend/scripts/peer_catalog.py
+  PEER_CATALOG="$(find "$(dirname "$REVIEW_BOARD_SKILL_DIR")" -maxdepth 4 -type f \
+    -path "*/v1-phone-a-friend/scripts/peer_catalog.py" 2>/dev/null | head -1)"
+  # empty -> report degrade; do not invent a project-local scripts/ path
   python3 "$PEER_CATALOG" \
     --profile quality \
     --count 2 \

@@ -15,6 +15,7 @@ Usage: scripts/verify-installed-plugin.sh \
 Repeat --installed only to receive a fail-closed ambiguous result.
 The command never edits a source, cache, credential, or installed target.
 By default model catalog probing is skipped (model_catalog_status=not_requested).
+With --probe-catalog, probing runs only after the install hash matches.
 EOF
 }
 

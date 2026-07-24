@@ -115,7 +115,9 @@ To compare one installed Codex or Claude plugin root with the canonical plugin
 package without mutating caches or credentials, run
 `scripts/verify-installed-plugin.sh --canonical <plugin-root> --installed <plugin-root> --runtime <codex|claude>`.
 Add `--probe-catalog` only when you want a read-only installed
-`peer_catalog.py` probe; bytecode writes are disabled for that probe.
+`peer_catalog.py` probe after the install hash already matches; bytecode writes
+are disabled for that probe, and stale installs skip the probe instead of
+executing installed code.
 
 ## Migration Note
 

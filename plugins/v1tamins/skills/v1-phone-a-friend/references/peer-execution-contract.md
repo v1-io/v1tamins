@@ -79,7 +79,7 @@ Do not regex free-form auth prose.
    run-specific scratch directory.
 2. Launch exactly the approved command through `peer-run.sh`, with stdin
    closed, a recorded deadline, and a unique slug. Detach with `setsid` when
-   available, else `nohup`.
+   available, else Perl `POSIX::setsid`, else `nohup`.
 3. Poll `status` or read `verdict --json`; do not branch on provider exit code
    alone. Substantive output plus a terminal sentinel is `complete`, an empty
    terminal result is `empty_output`, a vanished process is `stalled`, and a

@@ -16,9 +16,14 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p "$CANONICAL" "$INSTALLED" "$MISSING"
-cp -R "$ROOT_DIR/plugins/v1tamins/." "$CANONICAL/"
-cp -R "$CANONICAL/." "$INSTALLED/"
+reset_trees() {
+  rm -rf "$CANONICAL" "$INSTALLED"
+  mkdir -p "$CANONICAL" "$INSTALLED" "$MISSING"
+  cp -R "$ROOT_DIR/plugins/v1tamins/." "$CANONICAL/"
+  cp -R "$CANONICAL/." "$INSTALLED/"
+}
+
+reset_trees
 
 json_field() {
   python3 - "$1" "$2" <<'PY'
@@ -41,7 +46,6 @@ if grep -F "$TEST_DIR" "$TEST_DIR/match.json" >/dev/null; then
   exit 1
 fi
 
-# Optional catalog probe uses the installed discovery script when requested.
 FAKE_CATALOG='#!/usr/bin/env python3
 import json
 print(json.dumps({
@@ -49,18 +53,29 @@ print(json.dumps({
   "catalog_fingerprint": "synthetic-catalog",
   "discovered": [{"cli": "fake", "model_catalog": {"status": "resolved", "confidence": "verified"}}]
 }))'
+
+# Stale installs must not execute installed peer_catalog.py.
 printf '%s\n' "$FAKE_CATALOG" > "$INSTALLED/skills/v1-phone-a-friend/scripts/peer_catalog.py"
 chmod +x "$INSTALLED/skills/v1-phone-a-friend/scripts/peer_catalog.py"
-# Tree hash changes because we replaced the installed catalog script.
 if "$VERIFIER" --canonical "$CANONICAL" --installed "$INSTALLED" --runtime codex --probe-catalog > "$TEST_DIR/probe-stale.json"; then
   printf 'probe against drifted install unexpectedly matched\n' >&2
   exit 1
 fi
 [ "$(json_field "$TEST_DIR/probe-stale.json" verification_status)" = 'stale' ]
-[ "$(json_field "$TEST_DIR/probe-stale.json" model_catalog_status)" = 'resolved' ]
-[ "$(json_field "$TEST_DIR/probe-stale.json" model_catalog_fingerprint)" = 'synthetic-catalog' ]
+[ "$(json_field "$TEST_DIR/probe-stale.json" model_catalog_status)" = 'skipped_stale' ]
+[ "$(json_field "$TEST_DIR/probe-stale.json" model_catalog_fingerprint)" = 'null' ]
 
-# A fingerprint without any resolved provider catalog is unresolved, not resolved.
+# Matching installs may probe.
+printf '%s\n' "$FAKE_CATALOG" > "$CANONICAL/skills/v1-phone-a-friend/scripts/peer_catalog.py"
+printf '%s\n' "$FAKE_CATALOG" > "$INSTALLED/skills/v1-phone-a-friend/scripts/peer_catalog.py"
+chmod +x "$CANONICAL/skills/v1-phone-a-friend/scripts/peer_catalog.py" \
+  "$INSTALLED/skills/v1-phone-a-friend/scripts/peer_catalog.py"
+"$VERIFIER" --canonical "$CANONICAL" --installed "$INSTALLED" --runtime codex --probe-catalog > "$TEST_DIR/probe-match.json"
+[ "$(json_field "$TEST_DIR/probe-match.json" verification_status)" = 'match' ]
+[ "$(json_field "$TEST_DIR/probe-match.json" model_catalog_status)" = 'resolved' ]
+[ "$(json_field "$TEST_DIR/probe-match.json" model_catalog_fingerprint)" = 'synthetic-catalog' ]
+
+# A fingerprint without any resolved provider catalog is unresolved.
 FAKE_UNRESOLVED='#!/usr/bin/env python3
 import json
 print(json.dumps({
@@ -68,14 +83,17 @@ print(json.dumps({
   "catalog_fingerprint": "empty-catalog",
   "discovered": [{"cli": "fake", "model_catalog": {"status": "unresolved", "confidence": "unresolved"}}]
 }))'
+printf '%s\n' "$FAKE_UNRESOLVED" > "$CANONICAL/skills/v1-phone-a-friend/scripts/peer_catalog.py"
 printf '%s\n' "$FAKE_UNRESOLVED" > "$INSTALLED/skills/v1-phone-a-friend/scripts/peer_catalog.py"
-chmod +x "$INSTALLED/skills/v1-phone-a-friend/scripts/peer_catalog.py"
-"$VERIFIER" --canonical "$CANONICAL" --installed "$INSTALLED" --runtime codex --probe-catalog > "$TEST_DIR/probe-unresolved.json" || true
+chmod +x "$CANONICAL/skills/v1-phone-a-friend/scripts/peer_catalog.py" \
+  "$INSTALLED/skills/v1-phone-a-friend/scripts/peer_catalog.py"
+"$VERIFIER" --canonical "$CANONICAL" --installed "$INSTALLED" --runtime codex --probe-catalog > "$TEST_DIR/probe-unresolved.json"
+[ "$(json_field "$TEST_DIR/probe-unresolved.json" verification_status)" = 'match' ]
 [ "$(json_field "$TEST_DIR/probe-unresolved.json" model_catalog_status)" = 'unresolved' ]
 
+reset_trees
+
 # Lost execute bits on a required helper is missing, not a content match.
-rm -rf "$INSTALLED"
-cp -R "$CANONICAL/." "$INSTALLED/"
 chmod a-x "$INSTALLED/skills/v1-phone-a-friend/scripts/peer-run.sh"
 if "$VERIFIER" --canonical "$CANONICAL" --installed "$INSTALLED" --runtime codex > "$TEST_DIR/noexec.json"; then
   printf 'non-executable helper unexpectedly matched\n' >&2
@@ -83,24 +101,16 @@ if "$VERIFIER" --canonical "$CANONICAL" --installed "$INSTALLED" --runtime codex
 fi
 [ "$(json_field "$TEST_DIR/noexec.json" verification_status)" = 'missing' ]
 
+reset_trees
+
 # Private gitignored skills and bytecode must not affect the distributed hash.
-rm -rf "$INSTALLED"
-cp -R "$CANONICAL/." "$INSTALLED/"
 mkdir -p "$CANONICAL/skills/v1-_private" "$CANONICAL/skills/v1-phone-a-friend/scripts/__pycache__"
 printf 'private\n' > "$CANONICAL/skills/v1-_private/SKILL.md"
 printf 'bytecode\n' > "$CANONICAL/skills/v1-phone-a-friend/scripts/__pycache__/peer_catalog.cpython.pyc"
 "$VERIFIER" --canonical "$CANONICAL" --installed "$INSTALLED" --runtime codex > "$TEST_DIR/private-ignored.json"
 [ "$(json_field "$TEST_DIR/private-ignored.json" verification_status)" = 'match' ]
 
-# Restore installed tree for remaining cases.
-rm -rf "$INSTALLED"
-cp -R "$CANONICAL/." "$INSTALLED/"
-# Drop local-only noise from the canonical copy used for drift checks.
-rm -rf "$CANONICAL/skills/v1-_private" "$CANONICAL/skills/v1-phone-a-friend/scripts/__pycache__"
-rm -rf "$INSTALLED/skills/v1-_private" "$INSTALLED/skills/v1-phone-a-friend/scripts/__pycache__"
-cp -R "$ROOT_DIR/plugins/v1tamins/." "$CANONICAL/"
-rm -rf "$INSTALLED"
-cp -R "$CANONICAL/." "$INSTALLED/"
+reset_trees
 
 printf '%s\n' '# synthetic installed drift' >> "$INSTALLED/skills/v1-phone-a-friend/SKILL.md"
 if "$VERIFIER" --canonical "$CANONICAL" --installed "$INSTALLED" --runtime codex > "$TEST_DIR/stale.json"; then
