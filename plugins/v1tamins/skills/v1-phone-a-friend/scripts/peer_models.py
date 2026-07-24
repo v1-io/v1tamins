@@ -3,16 +3,88 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field, replace
-from typing import Any
+from typing import Any, Literal
+
+AuthSource = Literal[
+    "subscription_native",
+    "api_explicit",
+    "unverified",
+    "unavailable",
+]
+AuthConfidence = Literal["verified", "degraded", "unresolved"]
+CredentialPresence = Literal[
+    "none_detected",
+    "api_key_present",
+    "not_checked",
+]
+PolicyState = Literal[
+    "eligible",
+    "not_authenticated",
+    "auth_not_verified",
+    "blocked_api_key_present",
+    "explicit_api_mode",
+    "api_key_required",
+    "not_installed",
+]
+CatalogStatus = Literal["resolved", "unresolved"]
+CatalogConfidence = Literal["verified", "degraded", "unresolved"]
+LaunchState = Literal[
+    "eligible",
+    "blocked_api_key_present",
+    "auth_unavailable",
+    "auth_unverified",
+    "model_unresolved",
+    "workflow_unavailable",
+]
+SelectionErrorCode = Literal[
+    "model_not_current",
+    "reasoning_level_unsupported",
+]
 
 
 @dataclass(frozen=True)
 class AuthFact:
-    source: str
-    confidence: str
-    credential_presence: str
-    policy_state: str
+    source: AuthSource
+    confidence: AuthConfidence
+    credential_presence: CredentialPresence
+    policy_state: PolicyState
     key_env_names: tuple[str, ...] = ()
+
+    @classmethod
+    def eligible(cls) -> AuthFact:
+        return cls(
+            source="subscription_native",
+            confidence="verified",
+            credential_presence="none_detected",
+            policy_state="eligible",
+        )
+
+    @classmethod
+    def not_authenticated(cls) -> AuthFact:
+        return cls(
+            source="unavailable",
+            confidence="verified",
+            credential_presence="none_detected",
+            policy_state="not_authenticated",
+        )
+
+    @classmethod
+    def unverified(cls) -> AuthFact:
+        return cls(
+            source="unverified",
+            confidence="unresolved",
+            credential_presence="none_detected",
+            policy_state="auth_not_verified",
+        )
+
+    @classmethod
+    def not_installed(cls) -> AuthFact:
+        return cls(
+            source="unavailable",
+            confidence="verified",
+            credential_presence="not_checked",
+            policy_state="not_installed",
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -28,25 +100,25 @@ class AuthFact:
 class ModelEntry:
     id: str
     family: str
-    efforts: tuple[str, ...] = ()
     reasoning_levels: tuple[str, ...] = ()
     rank: int = 0
 
     def to_dict(self) -> dict[str, Any]:
-        levels = self.reasoning_levels or self.efforts
+        levels = list(self.reasoning_levels)
         return {
             "id": self.id,
             "family": self.family,
-            "efforts": list(self.efforts),
-            "reasoning_levels": list(levels),
+            # Alias retained for receipt consumers that still read efforts.
+            "efforts": levels,
+            "reasoning_levels": levels,
             "rank": self.rank,
         }
 
 
 @dataclass(frozen=True)
 class ModelCatalog:
-    status: str
-    confidence: str
+    status: CatalogStatus
+    confidence: CatalogConfidence
     source: str | None = None
     fingerprint: str | None = None
 
@@ -85,23 +157,51 @@ class ProviderDiscovery:
 
 
 @dataclass(frozen=True)
+class ModelSelection:
+    model: str | None
+    model_family: str
+    reasoning: str | None
+    model_confidence: CatalogConfidence
+    explicit: bool = False
+
+
+@dataclass(frozen=True)
+class SelectionError:
+    code: SelectionErrorCode
+    alternatives: tuple[str, ...] = ()
+    requested_model: str | None = None
+    requested_effort: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "code": self.code,
+            "alternatives": list(self.alternatives),
+        }
+        if self.requested_model is not None:
+            payload["requested_model"] = self.requested_model
+        if self.requested_effort is not None:
+            payload["requested_effort"] = self.requested_effort
+        return payload
+
+
+@dataclass(frozen=True)
 class Candidate:
     cli: str
     version: str | None
     version_fingerprint: str | None
-    model: str
+    model: str | None
     model_family: str
     reasoning: str | None
     role: str
     permission: str
     auth: AuthFact
-    catalog_confidence: str
+    catalog_confidence: CatalogConfidence
     catalog_fingerprint: str | None
     confidence: dict[str, str]
     workflow: str
     provider_rank: int
     eligible: bool
-    launch_state: str
+    launch_state: LaunchState
     prompt: dict[str, Any] | None = None
 
     def with_prompt(self, prompt: dict[str, Any]) -> Candidate:

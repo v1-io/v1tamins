@@ -8,9 +8,9 @@ import os
 import re
 import shutil
 import subprocess
-from collections.abc import Iterable
-from dataclasses import dataclass
-from typing import Any
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass, replace
+from typing import Any, Literal
 
 from peer_models import AuthFact, ModelCatalog, ModelEntry, ProviderDiscovery
 from peer_policy import PROVIDER_KEY_ENV_VARS, PROVIDERS, ProviderSpec, subscription_environment
@@ -25,6 +25,9 @@ KNOWN_EFFORT_ORDER = (
     "max",
 )
 KNOWN_EFFORT_RANK = {name: index for index, name in enumerate(KNOWN_EFFORT_ORDER)}
+
+CodexAuthState = Literal["eligible", "not_authenticated", "unresolved"]
+AuthParser = Callable[["CommandResult"], AuthFact | None]
 
 
 @dataclass(frozen=True)
@@ -113,7 +116,7 @@ def effort_suffix(model_id: str) -> str | None:
 
 
 def normalize_model_entry(
-    value: Any, rank: int, advertised_efforts: Iterable[str] = ()
+    value: Any, rank: int, advertised_levels: Iterable[str] = ()
 ) -> ModelEntry | None:
     if isinstance(value, str):
         model_id = value.strip()
@@ -130,28 +133,27 @@ def normalize_model_entry(
     if model_id.lower() in {"model", "models", "available", "available-models"}:
         return None
 
-    explicit_efforts = metadata.get("efforts") or metadata.get("reasoning_levels")
-    if isinstance(explicit_efforts, str):
-        explicit_efforts = [explicit_efforts]
-    if isinstance(explicit_efforts, list):
-        efforts = [effort_name(str(item)) for item in explicit_efforts]
-        efforts_list = [item for item in efforts if item]
+    explicit_levels = metadata.get("reasoning_levels") or metadata.get("efforts")
+    if isinstance(explicit_levels, str):
+        explicit_levels = [explicit_levels]
+    if isinstance(explicit_levels, list):
+        levels = [effort_name(str(item)) for item in explicit_levels]
+        levels_list = [item for item in levels if item]
     else:
         suffix = effort_suffix(model_id)
-        efforts_list = [suffix] if suffix else [item for item in advertised_efforts]
+        levels_list = [suffix] if suffix else [item for item in advertised_levels]
 
-    ordered = tuple(sorted(set(efforts_list), key=lambda item: KNOWN_EFFORT_RANK[item]))
+    ordered = tuple(sorted(set(levels_list), key=lambda item: KNOWN_EFFORT_RANK[item]))
     return ModelEntry(
         id=model_id,
         family=str(metadata.get("family") or model_family(model_id)),
-        efforts=ordered,
         reasoning_levels=ordered,
         rank=rank,
     )
 
 
 def parse_model_catalog(
-    text: str, advertised_efforts: Iterable[str] = ()
+    text: str, advertised_levels: Iterable[str] = ()
 ) -> list[ModelEntry]:
     """Parse provider catalog command output only.
 
@@ -191,7 +193,7 @@ def parse_model_catalog(
     models: list[ModelEntry] = []
     seen: set[str] = set()
     for rank, value in enumerate(values):
-        model = normalize_model_entry(value, rank, advertised_efforts)
+        model = normalize_model_entry(value, rank, advertised_levels)
         if model is None or model.id in seen:
             continue
         seen.add(model.id)
@@ -234,10 +236,10 @@ def policy_auth(name: str, mode: str) -> AuthFact | None:
     return None
 
 
-def parse_codex_doctor_auth(payload: Any) -> bool | None:
-    """Recognize only the structured codex doctor credentials shape."""
+def parse_codex_doctor_auth(payload: Any) -> CodexAuthState:
+    """Recognize structured codex doctor credentials: eligible, logged out, or unresolved."""
 
-    def visit(value: Any) -> bool | None:
+    def visit(value: Any) -> CodexAuthState | None:
         if isinstance(value, dict):
             status = str(value.get("status", "")).strip().lower()
             details = value.get("details")
@@ -254,7 +256,15 @@ def parse_codex_doctor_auth(payload: Any) -> bool | None:
                     "subscription",
                     "subscription_native",
                 }:
-                    return True
+                    return "eligible"
+                if stored_tokens in {"false", "no"} or auth_mode in {
+                    "api_key",
+                    "apikey",
+                    "none",
+                    "logged_out",
+                    "unauthenticated",
+                }:
+                    return "not_authenticated"
             for child in value.values():
                 result = visit(child)
                 if result is not None:
@@ -266,7 +276,7 @@ def parse_codex_doctor_auth(payload: Any) -> bool | None:
                     return result
         return None
 
-    return visit(payload)
+    return visit(payload) or "unresolved"
 
 
 def auth_from_claude(probe: CommandResult) -> AuthFact | None:
@@ -280,19 +290,9 @@ def auth_from_claude(probe: CommandResult) -> AuthFact | None:
         return None
     logged_in = payload.get("loggedIn")
     if logged_in is True:
-        return AuthFact(
-            source="subscription_native",
-            confidence="verified",
-            credential_presence="none_detected",
-            policy_state="eligible",
-        )
+        return AuthFact.eligible()
     if logged_in is False:
-        return AuthFact(
-            source="unavailable",
-            confidence="verified",
-            credential_presence="none_detected",
-            policy_state="not_authenticated",
-        )
+        return AuthFact.not_authenticated()
     return None
 
 
@@ -304,20 +304,10 @@ def auth_from_codex(probe: CommandResult) -> AuthFact | None:
     except json.JSONDecodeError:
         return None
     structured = parse_codex_doctor_auth(payload)
-    if structured is True:
-        return AuthFact(
-            source="subscription_native",
-            confidence="verified",
-            credential_presence="none_detected",
-            policy_state="eligible",
-        )
-    if structured is False:
-        return AuthFact(
-            source="unavailable",
-            confidence="verified",
-            credential_presence="none_detected",
-            policy_state="not_authenticated",
-        )
+    if structured == "eligible":
+        return AuthFact.eligible()
+    if structured == "not_authenticated":
+        return AuthFact.not_authenticated()
     return None
 
 
@@ -332,87 +322,46 @@ def auth_from_cursor(probe: CommandResult) -> AuthFact | None:
         return None
     if "isAuthenticated" in payload:
         if payload.get("isAuthenticated") is True:
-            return AuthFact(
-                source="subscription_native",
-                confidence="verified",
-                credential_presence="none_detected",
-                policy_state="eligible",
-            )
+            return AuthFact.eligible()
         if payload.get("isAuthenticated") is False:
-            return AuthFact(
-                source="unavailable",
-                confidence="verified",
-                credential_presence="none_detected",
-                policy_state="not_authenticated",
-            )
+            return AuthFact.not_authenticated()
     status = str(payload.get("status", "")).strip().lower()
     if status in {"authenticated", "authorized", "ok"}:
-        return AuthFact(
-            source="subscription_native",
-            confidence="verified",
-            credential_presence="none_detected",
-            policy_state="eligible",
-        )
+        return AuthFact.eligible()
     if status in {"unauthenticated", "unauthorized", "logged_out"}:
-        return AuthFact(
-            source="unavailable",
-            confidence="verified",
-            credential_presence="none_detected",
-            policy_state="not_authenticated",
-        )
+        return AuthFact.not_authenticated()
     return None
+
+
+def _bind_auth_parsers() -> None:
+    """Attach provider-owned auth parsers without an import cycle."""
+
+    parsers: dict[str, AuthParser] = {
+        "claude": auth_from_claude,
+        "codex": auth_from_codex,
+        "cursor-agent": auth_from_cursor,
+    }
+    for name, parser in parsers.items():
+        PROVIDERS[name] = replace(PROVIDERS[name], parse_auth=parser)
+
+
+_bind_auth_parsers()
 
 
 def auth_result(
     name: str, spec: ProviderSpec, mode: str, auth_probe: CommandResult | None
 ) -> AuthFact:
-    del spec  # reserved for provider-specific extensions
     policy = policy_auth(name, mode)
     if policy is not None:
         return policy
 
-    if mode == "api_explicit":
-        # policy_auth always returns for api_explicit
-        return AuthFact(
-            source="unavailable",
-            confidence="unresolved",
-            credential_presence="none_detected",
-            policy_state="api_key_required",
-        )
+    if auth_probe is None or spec.parse_auth is None:
+        return AuthFact.unverified()
 
-    if name == "agy":
-        return AuthFact(
-            source="unverified",
-            confidence="unresolved",
-            credential_presence="none_detected",
-            policy_state="auth_not_verified",
-        )
-
-    if auth_probe is None:
-        return AuthFact(
-            source="unverified",
-            confidence="unresolved",
-            credential_presence="none_detected",
-            policy_state="auth_not_verified",
-        )
-
-    parsed: AuthFact | None = None
-    if name == "claude":
-        parsed = auth_from_claude(auth_probe)
-    elif name == "codex":
-        parsed = auth_from_codex(auth_probe)
-    elif name == "cursor-agent":
-        parsed = auth_from_cursor(auth_probe)
-
-    if parsed is not None:
+    parsed = spec.parse_auth(auth_probe)
+    if isinstance(parsed, AuthFact):
         return parsed
-
-    return AuthFact(
-        source="unverified",
-        confidence="unresolved",
-        credential_presence="none_detected",
-        policy_state="auth_not_verified",
-    )
+    return AuthFact.unverified()
 
 
 def first_version_line(result: CommandResult) -> str | None:
@@ -441,12 +390,7 @@ def discover_provider(
             executable=None,
             version=None,
             version_fingerprint=None,
-            auth=AuthFact(
-                source="unavailable",
-                confidence="verified",
-                credential_presence="not_checked",
-                policy_state="not_installed",
-            ),
+            auth=AuthFact.not_installed(),
             models=(),
             model_catalog=unresolved_catalog,
             reasoning_levels=(),
@@ -465,7 +409,7 @@ def discover_provider(
 
     models: list[ModelEntry] = []
     catalog = unresolved_catalog
-    if spec.catalog_args is not None:
+    if spec.catalog_mode == "command" and spec.catalog_args is not None:
         catalog_result = run_command(
             [executable, *spec.catalog_args], mode, timeout_seconds
         )
@@ -489,7 +433,6 @@ def discover_provider(
         ModelEntry(
             id=model.id,
             family=model.family,
-            efforts=model.efforts,
             reasoning_levels=model.reasoning_levels or reasoning_levels,
             rank=model.rank,
         )

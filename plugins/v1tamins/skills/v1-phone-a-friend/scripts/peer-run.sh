@@ -12,6 +12,8 @@ set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INNER="$SCRIPT_DIR/peer-run-inner.sh"
 WATCHDOG="$SCRIPT_DIR/peer-run-watchdog.sh"
+# shellcheck source=peer-run-lib.sh
+. "$SCRIPT_DIR/peer-run-lib.sh"
 
 die() {
   printf 'peer-run: %s\n' "$1" >&2
@@ -110,75 +112,30 @@ bytes() {
   fi
 }
 
-alive() {
-  local pid="$1"
-  [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
-}
-
 has_content() {
   [ -s "$1" ] && LC_ALL=C grep -q '[^[:space:]]' "$1" 2>/dev/null
 }
 
-read_number() {
-  local file="$1"
-  local value=""
-  [ -f "$file" ] && value="$(sed -n '1p' "$file")"
-  case "$value" in
-    ''|*[!0-9]*) printf '\n' ;;
-    *) printf '%s\n' "$value" ;;
-  esac
-}
-
 deadline_expired() {
   local deadline
-  deadline="$(read_number "$deadlinefile")"
+  deadline="$(peer_read_number "$deadlinefile")"
   [ -n "$deadline" ] || return 1
   [ "$(date +%s)" -ge "$deadline" ]
 }
 
 terminate_recorded() {
-  local pid cpid sess watchdog killed=""
-  pid="$(read_number "$pidfile")"
-  cpid="$(read_number "$childpidfile")"
-  sess="$(cat "$sessfile" 2>/dev/null || printf '0')"
-  watchdog="$(read_number "$watchdogfile")"
-
-  if alive "$watchdog"; then
+  local watchdog
+  watchdog="$(peer_read_number "$watchdogfile")"
+  if peer_alive "$watchdog"; then
     kill -TERM "$watchdog" 2>/dev/null || true
   fi
-  if [ "$sess" = "1" ] && [ -n "$pid" ]; then
-    if kill -TERM -- "-$pid" 2>/dev/null; then
-      killed="pgid=$pid"
-    fi
-  fi
-  for target in "$cpid" "$pid"; do
-    if alive "$target"; then
-      kill -TERM "$target" 2>/dev/null || true
-      killed="${killed:+$killed }pid=$target"
-    fi
-  done
-
-  for _ in 1 2 3 4 5 6 7 8 9 10; do
-    if ! alive "$pid" && ! alive "$cpid"; then
-      break
-    fi
-    sleep 0.1
-  done
-  if [ "$sess" = "1" ] && [ -n "$pid" ] && alive "$pid"; then
-    kill -KILL -- "-$pid" 2>/dev/null || true
-  fi
-  for target in "$cpid" "$pid"; do
-    if alive "$target"; then
-      kill -KILL "$target" 2>/dev/null || true
-    fi
-  done
-  printf '%s\n' "$killed"
+  terminate_peer_processes "$pidfile" "$childpidfile" "$sessfile" 10
 }
 
 resolve_state() {
   local cpid lpid
-  cpid="$(read_number "$childpidfile")"
-  lpid="$(read_number "$pidfile")"
+  cpid="$(peer_read_number "$childpidfile")"
+  lpid="$(peer_read_number "$pidfile")"
 
   # A done sentinel is stronger than a deadline: the peer exited and the
   # wrapper recorded its result. Substantive output, not the exit code, makes
@@ -189,13 +146,13 @@ resolve_state() {
   fi
 
   if deadline_expired; then
-    if alive "$cpid" || alive "$lpid" || [ ! -f "$donefile" ]; then
+    if peer_alive "$cpid" || peer_alive "$lpid" || [ ! -f "$donefile" ]; then
       printf 'timed_out\n'
       return 1
     fi
   fi
 
-  if alive "$cpid" || alive "$lpid"; then
+  if peer_alive "$cpid" || peer_alive "$lpid"; then
     printf 'running\n'
     return 2
   fi
@@ -248,7 +205,7 @@ case "$cmd" in
 
     pid=""
     for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-      pid="$(read_number "$pidfile")"
+      pid="$(peer_read_number "$pidfile")"
       [ -n "$pid" ] && break
       sleep 0.01
     done
@@ -291,9 +248,9 @@ case "$cmd" in
     if [ -f "$donefile" ]; then
       exit_code="$(sed -n 's/^DONE rc=//p' "$donefile" | head -1)"
     fi
-    deadline="$(read_number "$deadlinefile")"
-    pid="$(read_number "$pidfile")"
-    child_pid="$(read_number "$childpidfile")"
+    deadline="$(peer_read_number "$deadlinefile")"
+    pid="$(peer_read_number "$pidfile")"
+    child_pid="$(peer_read_number "$childpidfile")"
     if [ "$JSON" = true ]; then
       printf '{"schema":"v1-peer-run/v1","slug":"%s","state":"%s","output_bytes":%s,"exit_code":%s,"deadline_epoch":%s,"pid":%s,"child_pid":%s}\n' \
         "$SLUG" "$state" "$output_bytes" "$(json_number_or_null "$exit_code")" \

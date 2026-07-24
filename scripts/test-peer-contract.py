@@ -31,6 +31,55 @@ import peer_models  # noqa: E402
 import peer_policy  # noqa: E402
 
 
+def make_provider(
+    *,
+    cli: str = "fake",
+    installed: bool = True,
+    models: list[dict] | None = None,
+    reasoning_levels: list[str] | None = None,
+    catalog_status: str = "resolved",
+    catalog_confidence: str = "verified",
+    auth_source: str = "subscription_native",
+    auth_confidence: str = "verified",
+    policy_state: str = "eligible",
+    roles: list[str] | None = None,
+    workflow: str = "available",
+    version: str = "synthetic",
+    version_fingerprint: str = "version",
+    catalog_fingerprint: str | None = "catalog",
+) -> peer_models.ProviderDiscovery:
+    payload: dict = {
+        "cli": cli,
+        "installed": installed,
+        "version": version,
+        "version_fingerprint": version_fingerprint,
+        "models": models or [],
+        "reasoning_levels": reasoning_levels
+        or (
+            sorted(
+                {
+                    level
+                    for model in (models or [])
+                    for level in model.get("reasoning_levels", [])
+                }
+            )
+        ),
+        "model_catalog": {
+            "status": catalog_status,
+            "confidence": catalog_confidence,
+            "fingerprint": catalog_fingerprint,
+        },
+        "auth": {
+            "source": auth_source,
+            "confidence": auth_confidence,
+            "policy_state": policy_state,
+        },
+        "roles": roles or ["structural review"],
+        "workflow": workflow,
+    }
+    return peer_catalog.provider_from_dict(payload)
+
+
 class PeerContractTests(unittest.TestCase):
     def test_provider_catalog_contains_only_supported_cli_surfaces(self) -> None:
         self.assertEqual(
@@ -40,6 +89,9 @@ class PeerContractTests(unittest.TestCase):
         self.assertEqual(set(peer_catalog.PROVIDERS), set(peer_policy.PROVIDERS))
         self.assertNotIn("oracle", peer_policy.PROVIDERS)
         self.assertNotIn("gemini", peer_policy.PROVIDERS)
+        self.assertEqual(peer_policy.PROVIDERS["claude"].catalog_mode, "explicit_required")
+        self.assertEqual(peer_policy.PROVIDERS["codex"].catalog_mode, "explicit_required")
+        self.assertEqual(peer_policy.PROVIDERS["cursor-agent"].catalog_mode, "command")
 
     def test_provider_catalog_changes_are_reflected_without_source_edits(self) -> None:
         first = peer_adapters.parse_model_catalog(
@@ -56,13 +108,11 @@ class PeerContractTests(unittest.TestCase):
             "Available models\nauto - Auto (default)\ngpt-demo-high - Demo High\n"
         )
         self.assertEqual([model.id for model in models], ["auto", "gpt-demo-high"])
-        self.assertIn("high", models[1].efforts)
+        self.assertIn("high", models[1].reasoning_levels)
 
     def test_quality_and_fast_profiles_use_exposed_levels(self) -> None:
-        provider = {
-            "cli": "fake",
-            "installed": True,
-            "models": [
+        provider = make_provider(
+            models=[
                 {
                     "id": "fake-fast",
                     "family": "fast",
@@ -76,28 +126,22 @@ class PeerContractTests(unittest.TestCase):
                     "reasoning_levels": ["low", "high"],
                 },
             ],
-            "reasoning_levels": ["low", "high"],
-            "model_catalog": {"status": "resolved", "confidence": "verified"},
-            "auth": {
-                "source": "subscription_native",
-                "confidence": "verified",
-                "policy_state": "eligible",
-            },
-            "roles": ["structural review"],
-            "workflow": "available",
-        }
-        quality, quality_error = peer_catalog.choose_model(provider, "quality")
-        fast, fast_error = peer_catalog.choose_model(provider, "fast")
-        self.assertIsNone(quality_error)
-        self.assertIsNone(fast_error)
-        self.assertEqual(quality["model"], "fake-strong")
-        self.assertEqual(quality["reasoning"], "high")
-        self.assertEqual(fast["model"], "fake-fast")
-        self.assertEqual(fast["reasoning"], "low")
+            reasoning_levels=["low", "high"],
+        )
+        quality = peer_catalog.choose_model(provider, "quality")
+        fast = peer_catalog.choose_model(provider, "fast")
+        self.assertIsInstance(quality, peer_models.ModelSelection)
+        self.assertIsInstance(fast, peer_models.ModelSelection)
+        assert isinstance(quality, peer_models.ModelSelection)
+        assert isinstance(fast, peer_models.ModelSelection)
+        self.assertEqual(quality.model, "fake-strong")
+        self.assertEqual(quality.reasoning, "high")
+        self.assertEqual(fast.model, "fake-fast")
+        self.assertEqual(fast.reasoning, "low")
 
     def test_unsupported_explicit_values_return_current_alternatives(self) -> None:
-        provider = {
-            "models": [
+        provider = make_provider(
+            models=[
                 {
                     "id": "fake-current",
                     "family": "fake",
@@ -105,44 +149,35 @@ class PeerContractTests(unittest.TestCase):
                     "reasoning_levels": ["medium"],
                 }
             ],
-            "reasoning_levels": ["medium"],
-            "model_catalog": {"status": "resolved", "confidence": "verified"},
-        }
-        _, model_error = peer_catalog.choose_model(provider, "custom", "fake-old")
-        _, effort_error = peer_catalog.choose_model(
+            reasoning_levels=["medium"],
+        )
+        model_error = peer_catalog.choose_model(provider, "custom", "fake-old")
+        effort_error = peer_catalog.choose_model(
             provider, "custom", "fake-current", "max"
         )
-        self.assertEqual(model_error["code"], "model_not_current")
-        self.assertEqual(effort_error["code"], "reasoning_level_unsupported")
-        self.assertEqual(effort_error["alternatives"], ["medium"])
+        self.assertIsInstance(model_error, peer_models.SelectionError)
+        self.assertIsInstance(effort_error, peer_models.SelectionError)
+        assert isinstance(model_error, peer_models.SelectionError)
+        assert isinstance(effort_error, peer_models.SelectionError)
+        self.assertEqual(model_error.code, "model_not_current")
+        self.assertEqual(effort_error.code, "reasoning_level_unsupported")
+        self.assertEqual(list(effort_error.alternatives), ["medium"])
 
     def test_custom_explicit_model_when_catalog_empty(self) -> None:
-        provider = {
-            "cli": "cursor-agent",
-            "installed": True,
-            "version": "synthetic",
-            "version_fingerprint": "version",
-            "models": [],
-            "model_catalog": {
-                "status": "unresolved",
-                "confidence": "unresolved",
-                "fingerprint": None,
-            },
-            "reasoning_levels": [],
-            "roles": ["structural review"],
-            "auth": {
-                "source": "subscription_native",
-                "confidence": "verified",
-                "policy_state": "eligible",
-            },
-            "workflow": "available",
-        }
-        selection, error = peer_catalog.choose_model(provider, "custom", "auto")
-        self.assertIsNone(error)
-        assert selection is not None
-        self.assertEqual(selection["model"], "auto")
-        self.assertTrue(selection["explicit"])
-        self.assertEqual(selection["model_confidence"], "unresolved")
+        provider = make_provider(
+            cli="cursor-agent",
+            models=[],
+            catalog_status="unresolved",
+            catalog_confidence="unresolved",
+            catalog_fingerprint=None,
+            reasoning_levels=[],
+        )
+        selection = peer_catalog.choose_model(provider, "custom", "auto")
+        self.assertIsInstance(selection, peer_models.ModelSelection)
+        assert isinstance(selection, peer_models.ModelSelection)
+        self.assertEqual(selection.model, "auto")
+        self.assertTrue(selection.explicit)
+        self.assertEqual(selection.model_confidence, "unresolved")
         selected, alternatives, errors = peer_catalog.build_candidates(
             [provider], "custom", 1, "cursor-agent", "auto", None
         )
@@ -150,6 +185,25 @@ class PeerContractTests(unittest.TestCase):
         self.assertEqual(len(selected), 1)
         self.assertTrue(selected[0].eligible)
         self.assertEqual(selected[0].launch_state, "eligible")
+        self.assertEqual(alternatives, [])
+
+    def test_catalog_less_installed_peer_is_visible_ineligible_candidate(self) -> None:
+        provider = make_provider(
+            cli="claude",
+            models=[],
+            catalog_status="unresolved",
+            catalog_confidence="unresolved",
+            catalog_fingerprint=None,
+            reasoning_levels=[],
+        )
+        selected, alternatives, errors = peer_catalog.build_candidates(
+            [provider], "quality", 1, None, None, None
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(len(selected), 1)
+        self.assertIsNone(selected[0].model)
+        self.assertFalse(selected[0].eligible)
+        self.assertEqual(selected[0].launch_state, "model_unresolved")
         self.assertEqual(alternatives, [])
 
     def test_malformed_catalog_is_unresolved(self) -> None:
@@ -215,7 +269,7 @@ class PeerContractTests(unittest.TestCase):
                 "network.provider_reachability": {"status": "ok"},
             },
         }
-        self.assertTrue(peer_adapters.parse_codex_doctor_auth(doctor))
+        self.assertEqual(peer_adapters.parse_codex_doctor_auth(doctor), "eligible")
         with mock.patch.dict(os.environ, {}, clear=True):
             auth = peer_adapters.auth_result(
                 "codex",
@@ -226,6 +280,32 @@ class PeerContractTests(unittest.TestCase):
         self.assertEqual(auth.source, "subscription_native")
         self.assertEqual(auth.confidence, "verified")
         self.assertEqual(auth.policy_state, "eligible")
+
+    def test_codex_doctor_verified_logout_is_not_authenticated(self) -> None:
+        doctor = {
+            "checks": {
+                "auth.credentials": {
+                    "status": "ok",
+                    "details": {
+                        "stored ChatGPT tokens": "false",
+                        "stored auth mode": "none",
+                    },
+                }
+            }
+        }
+        self.assertEqual(
+            peer_adapters.parse_codex_doctor_auth(doctor), "not_authenticated"
+        )
+        with mock.patch.dict(os.environ, {}, clear=True):
+            auth = peer_adapters.auth_result(
+                "codex",
+                peer_policy.PROVIDERS["codex"],
+                "subscription_native",
+                peer_adapters.CommandResult(0, json.dumps(doctor), ""),
+            )
+        self.assertEqual(auth.source, "unavailable")
+        self.assertEqual(auth.confidence, "verified")
+        self.assertEqual(auth.policy_state, "not_authenticated")
 
     def test_claude_structured_auth_uses_logged_in(self) -> None:
         payload = {
@@ -242,39 +322,34 @@ class PeerContractTests(unittest.TestCase):
             )
         self.assertEqual(auth.source, "subscription_native")
         self.assertEqual(auth.policy_state, "eligible")
+        self.assertIsNotNone(peer_policy.PROVIDERS["claude"].parse_auth)
 
     def test_quality_roster_prefers_different_families(self) -> None:
-        def provider(cli: str, family: str) -> dict[str, object]:
-            return {
-                "cli": cli,
-                "installed": True,
-                "version": "synthetic",
-                "version_fingerprint": "version",
-                "models": [
-                    {
-                        "id": f"{family}-current",
-                        "family": family,
-                        "rank": 0,
-                        "reasoning_levels": ["high"],
-                    }
-                ],
-                "model_catalog": {
-                    "status": "resolved",
-                    "confidence": "verified",
-                    "fingerprint": "catalog",
-                },
-                "reasoning_levels": ["high"],
-                "roles": ["structural review"],
-                "auth": {
-                    "source": "subscription_native",
-                    "confidence": "verified",
-                    "policy_state": "eligible",
-                },
-                "workflow": "available",
-            }
-
         selected, alternatives, errors = peer_catalog.build_candidates(
-            [provider("fake-a", "family-a"), provider("fake-b", "family-b")],
+            [
+                make_provider(
+                    cli="fake-a",
+                    models=[
+                        {
+                            "id": "family-a-current",
+                            "family": "family-a",
+                            "rank": 0,
+                            "reasoning_levels": ["high"],
+                        }
+                    ],
+                ),
+                make_provider(
+                    cli="fake-b",
+                    models=[
+                        {
+                            "id": "family-b-current",
+                            "family": "family-b",
+                            "rank": 0,
+                            "reasoning_levels": ["high"],
+                        }
+                    ],
+                ),
+            ],
             "quality",
             2,
             None,
@@ -289,37 +364,22 @@ class PeerContractTests(unittest.TestCase):
         self.assertEqual(alternatives, [])
 
     def test_alternatives_built_without_rebuild(self) -> None:
-        providers = []
-        for index, cli in enumerate(("fake-a", "fake-b", "fake-c")):
-            providers.append(
-                {
-                    "cli": cli,
-                    "installed": True,
-                    "version": "synthetic",
-                    "version_fingerprint": f"v{index}",
-                    "models": [
-                        {
-                            "id": f"{cli}-model",
-                            "family": f"family-{index}",
-                            "rank": 0,
-                            "reasoning_levels": ["high"],
-                        }
-                    ],
-                    "model_catalog": {
-                        "status": "resolved",
-                        "confidence": "verified",
-                        "fingerprint": f"c{index}",
-                    },
-                    "reasoning_levels": ["high"],
-                    "roles": ["structural review"],
-                    "auth": {
-                        "source": "subscription_native",
-                        "confidence": "verified",
-                        "policy_state": "eligible",
-                    },
-                    "workflow": "available",
-                }
+        providers = [
+            make_provider(
+                cli=cli,
+                version_fingerprint=f"v{index}",
+                catalog_fingerprint=f"c{index}",
+                models=[
+                    {
+                        "id": f"{cli}-model",
+                        "family": f"family-{index}",
+                        "rank": 0,
+                        "reasoning_levels": ["high"],
+                    }
+                ],
             )
+            for index, cli in enumerate(("fake-a", "fake-b", "fake-c"))
+        ]
         selected, alternatives, errors = peer_catalog.build_candidates(
             providers, "quality", 1, None, None, None
         )
@@ -331,12 +391,12 @@ class PeerContractTests(unittest.TestCase):
             self.assertNotIn((alt.cli, alt.model), selected_keys)
 
     def test_unverified_auth_is_visible_but_not_launch_eligible(self) -> None:
-        provider = {
-            "cli": "fake-unverified",
-            "installed": True,
-            "version": "synthetic",
-            "version_fingerprint": "version",
-            "models": [
+        provider = make_provider(
+            cli="fake-unverified",
+            auth_source="unverified",
+            auth_confidence="unresolved",
+            policy_state="auth_not_verified",
+            models=[
                 {
                     "id": "fake-current",
                     "family": "fake",
@@ -344,20 +404,7 @@ class PeerContractTests(unittest.TestCase):
                     "reasoning_levels": ["high"],
                 }
             ],
-            "model_catalog": {
-                "status": "resolved",
-                "confidence": "verified",
-                "fingerprint": "catalog",
-            },
-            "reasoning_levels": ["high"],
-            "roles": ["structural review"],
-            "auth": {
-                "source": "unverified",
-                "confidence": "unresolved",
-                "policy_state": "auth_not_verified",
-            },
-            "workflow": "available",
-        }
+        )
         selected, _alternatives, errors = peer_catalog.build_candidates(
             [provider], "quality", 1, None, None, None
         )
@@ -398,15 +445,21 @@ class PeerContractTests(unittest.TestCase):
         )
 
     def test_typed_models_round_trip(self) -> None:
-        auth = peer_models.AuthFact(
-            source="subscription_native",
-            confidence="verified",
-            credential_presence="none_detected",
-            policy_state="eligible",
-        )
+        auth = peer_models.AuthFact.eligible()
         payload = auth.to_dict()
         self.assertEqual(payload["policy_state"], "eligible")
         self.assertIsInstance(payload["key_env_names"], list)
+        self.assertEqual(peer_models.AuthFact.not_authenticated().policy_state, "not_authenticated")
+        self.assertEqual(peer_models.AuthFact.unverified().policy_state, "auth_not_verified")
+
+    def test_model_entry_emits_efforts_alias_only(self) -> None:
+        entry = peer_models.ModelEntry(
+            id="demo", family="demo", reasoning_levels=("high",), rank=0
+        )
+        payload = entry.to_dict()
+        self.assertEqual(payload["reasoning_levels"], ["high"])
+        self.assertEqual(payload["efforts"], ["high"])
+        self.assertFalse(hasattr(entry, "efforts"))
 
     def test_shared_sources_do_not_pin_concrete_model_ids(self) -> None:
         source_paths = [
@@ -427,6 +480,7 @@ class PeerContractTests(unittest.TestCase):
 
     def test_support_module_removed(self) -> None:
         self.assertFalse((SCRIPTS / "peer_catalog_support.py").exists())
+        self.assertTrue((SCRIPTS / "peer-run-lib.sh").exists())
 
 
 if __name__ == "__main__":

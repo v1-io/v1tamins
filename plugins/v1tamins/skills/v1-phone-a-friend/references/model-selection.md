@@ -21,7 +21,10 @@ auth status probes, read-only workflow support, and known API-key presence. It
 accepts only structured catalog command output (JSON preferred; line-oriented
 lists for dedicated commands such as `agy models` and cursor-agent
 `--list-models`). Help text is not a catalog source. When no usable catalog
-command exists, the result is `model_unresolved`.
+command exists, the result is `model_unresolved`. Installed catalog-less
+providers still appear as Candidates with `eligible=false` and
+`launch_state=model_unresolved`; they are never dropped into silent
+`selection_errors`.
 
 Current provider surfaces are discovered rather than copied into this file:
 

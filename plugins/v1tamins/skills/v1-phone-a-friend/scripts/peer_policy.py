@@ -6,8 +6,11 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Literal
 
+CatalogMode = Literal["command", "explicit_required"]
 
 # These are names only. Values are never printed, hashed, or passed through in
 # subscription_native mode. Provider-native OAuth variables remain available.
@@ -37,32 +40,39 @@ PROVIDER_IDS = tuple(PROVIDER_KEY_ENV_VARS)
 @dataclass(frozen=True)
 class ProviderSpec:
     binary: str
+    catalog_mode: CatalogMode
     catalog_args: tuple[str, ...] | None
     auth_args: tuple[str, ...] | None
     roles: tuple[str, ...]
+    # Bound by peer_adapters after parser definitions to avoid import cycles.
+    parse_auth: Callable[..., object] | None = None
 
 
 PROVIDERS: dict[str, ProviderSpec] = {
     "claude": ProviderSpec(
         "claude",
+        "explicit_required",
         None,
         ("auth", "status"),
         ("correctness/security", "structural review", "maintainability"),
     ),
     "codex": ProviderSpec(
         "codex",
+        "explicit_required",
         None,
         ("doctor", "--json"),
         ("structural review", "correctness/security", "verification"),
     ),
     "cursor-agent": ProviderSpec(
         "cursor-agent",
+        "command",
         ("--list-models",),
         ("status", "--format", "json"),
         ("structural review", "maintainability", "verification"),
     ),
     "agy": ProviderSpec(
         "agy",
+        "command",
         ("models",),
         None,
         ("large-context", "multimodal", "research"),
