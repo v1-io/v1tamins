@@ -229,32 +229,48 @@ case "$cmd" in
     mkdir -p "$peerdir" || die "cannot create run directory"
     : > "$outfile"
     : > "$errfile"
-    rm -f "$donefile" "$childpidfile" "$watchdogfile"
+    rm -f "$pidfile" "$sessfile" "$donefile" "$childpidfile" "$watchdogfile"
     deadline_epoch=$(( $(date +%s) + DEADLINE_SECONDS ))
     printf '%s\n' "$deadline_epoch" > "$deadlinefile"
 
-    # The inner runner backgrounds only the real peer so its PID can be
-    # recorded before waiting. stdin is closed at the final child boundary.
-    inner='of="$1"; ef="$2"; df="$3"; cf="$4"; shift 4; "$@" >"$of" 2>"$ef" </dev/null & cpid=$!; printf "%s\n" "$cpid" >"$cf"; wait "$cpid"; printf "DONE rc=%s\n" "$?" >"$df"'
+    # The inner runner records its own PID because GNU setsid may fork before
+    # exec. The shell that writes this file is the real session leader; the
+    # parent must not assume that its background-job PID is the leader.
+    # It backgrounds only the real peer so its PID can be recorded before
+    # waiting. stdin is closed at the final child boundary.
+    inner='pf="$1"; of="$2"; ef="$3"; df="$4"; cf="$5"; shift 5; printf "%s\n" "$$" >"$pf"; "$@" >"$of" 2>"$ef" </dev/null & cpid=$!; printf "%s\n" "$cpid" >"$cf"; wait "$cpid"; printf "DONE rc=%s\n" "$?" >"$df"'
     sess=0
     if command -v setsid >/dev/null 2>&1; then
-      setsid sh -c "$inner" sh "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" &
-      pid=$!
+      setsid sh -c "$inner" sh "$pidfile" "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" &
+      launcher_pid=$!
       sess=1
       how="setsid"
     elif command -v perl >/dev/null 2>&1; then
       perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV or die "exec: $!"' \
-        sh -c "$inner" sh "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" &
-      pid=$!
+        sh -c "$inner" sh "$pidfile" "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" &
+      launcher_pid=$!
       sess=1
       how="perl-setsid"
     else
-      nohup sh -c "$inner" sh "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" >/dev/null 2>&1 &
-      pid=$!
+      nohup sh -c "$inner" sh "$pidfile" "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" >/dev/null 2>&1 &
+      launcher_pid=$!
       how="nohup (best-effort; use the host background primitive)"
     fi
 
-    printf '%s\n' "$pid" > "$pidfile"
+    pid=""
+    for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+      pid="$(read_number "$pidfile")"
+      [ -n "$pid" ] && break
+      sleep 0.01
+    done
+    if [ -z "$pid" ]; then
+      # Preserve a diagnostic PID if the detached command failed before it
+      # could record its leader. This branch is fail-closed: it may report a
+      # stalled launch, but never guesses a process group to kill.
+      pid="$launcher_pid"
+      sess=0
+      printf '%s\n' "$pid" > "$pidfile"
+    fi
     printf '%s\n' "$sess" > "$sessfile"
 
     # The watchdog is itself detached and records no peer output. It enforces

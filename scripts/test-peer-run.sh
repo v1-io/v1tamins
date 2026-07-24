@@ -88,6 +88,14 @@ poll_verdict "$TEST_DIR" empty "$TEST_DIR/empty.json"
 sleep 4 &
 UNRELATED_PID=$!
 "$RUNNER" launch --dir "$TEST_DIR" --slug hang --deadline-seconds 1 -- "$FAKE_HANG" >/dev/null
+if [ "$(cat "$TEST_DIR/hang/peer.session")" = '1' ]; then
+  recorded_pid="$(cat "$TEST_DIR/hang/peer.pid")"
+  recorded_pgid="$(ps -o pgid= -p "$recorded_pid" | tr -d ' ' | head -1)"
+  [ "$recorded_pid" = "$recorded_pgid" ] || {
+    printf 'runner recorded the launcher PID instead of the session leader\n' >&2
+    exit 1
+  }
+fi
 sleep 2
 "$RUNNER" verdict --dir "$TEST_DIR" --slug hang --json > "$TEST_DIR/hang.json"
 [ "$(json_field "$TEST_DIR/hang.json" state)" = 'timed_out' ]
