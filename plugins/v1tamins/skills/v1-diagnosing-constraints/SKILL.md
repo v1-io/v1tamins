@@ -1,6 +1,6 @@
 ---
 name: v1-diagnosing-constraints
-description: Use when diagnosing a throughput bottleneck in a process, funnel, queue, or WIP system. Triggers on "find the bottleneck", "too much WIP", or "where is the constraint".
+description: Use when diagnosing a throughput bottleneck in a process, funnel, queue, or WIP system. Triggers on "where is this process stuck?", "find the bottleneck", or "too much WIP".
 allowed-tools:
   - Bash
   - Read

@@ -1,6 +1,6 @@
 ---
 name: v1-html-it
-description: Use when creating a self-contained HTML page, report, or interactive explainer. Triggers on "make an HTML page", "HTML artifact", or "interactive report".
+description: Use when creating a self-contained HTML page, report, or interactive explainer. Triggers on "one-page dashboard", "shareable page", or "interactive report".
 allowed-tools:
   - Bash
   - Read

@@ -1,6 +1,6 @@
 ---
 name: v1-stickify
-description: Use when making communication copy more memorable or persuasive. Triggers on "stickify", "make this memorable", or "improve this pitch".
+description: Use when making communication copy more memorable or persuasive. Triggers on "make this stick", "stickify", or "improve this pitch".
 ---
 # Stickify
 

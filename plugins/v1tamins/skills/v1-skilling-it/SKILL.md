@@ -1,6 +1,6 @@
 ---
 name: v1-skilling-it
-description: Use when creating, editing, auditing, or validating an Agent Skill. Triggers on "create a skill", "audit this SKILL.md", or "skill description".
+description: Use when creating, editing, auditing, validating, or locating an Agent Skill. Triggers on "create a skill", "audit this SKILL.md", or "where should this skill live?".
 ---
 # Skilling It
 
