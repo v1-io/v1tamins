@@ -1,166 +1,391 @@
 #!/usr/bin/env bash
-# peer-run.sh — launch and supervise a peer agent as a detached background process.
+# peer-run.sh — launch and supervise one detached peer process.
 #
-# Encodes the v1-phone-a-friend run-supervision contract once, so peer runs are
-# not hand-assembled per invocation. Peer-agnostic: you pass the full peer
-# command; this script owns stdin handling, detachment, sentinels, polling,
-# PID-scoped teardown, and a completion verdict that trusts substantive output
-# over exit code.
-#
-# WHY DETACHMENT MATTERS: a host command-timeout (e.g. an agent's 2-minute Bash
-# default) kills the parent shell's process group. A peer launched with a bare
-# `( ... ) &` stays in that group and dies with the parent — the exact stall this
-# skill exists to prevent. `launch` puts the peer in its OWN session/process
-# group so a parent-shell timeout cannot reap it, trying in order:
-#   1. setsid (Linux)                      — true new session
-#   2. perl POSIX::setsid (macOS has perl) — true new session
-#   3. nohup + disown (last resort)        — NOT a new session; survives SIGHUP
-#      only. On this path detachment is best-effort, so for runs that may exceed
-#      the host command timeout, ALSO use your host's background primitive
-#      (e.g. Claude Code's run_in_background). `launch` reports which path it took.
-#
-# Multi-peer: call `launch` once per peer with a distinct --slug under one
-# --dir; each peer gets its own run subdirectory and sentinels. Slugs are
-# isolated, so one peer stalling never blocks another.
-#
-# Usage:
-#   peer-run.sh launch   --dir <rundir> --slug <slug> -- <peer-command...>
-#   peer-run.sh status   --dir <rundir> --slug <slug>     # running|complete|stalled
-#   peer-run.sh verdict  --dir <rundir> --slug <slug>     # state + reason (content over exit code)
-#   peer-run.sh teardown --dir <rundir> --slug <slug>     # PID/PGID-scoped kill (never pattern-kill)
-#
-# Exit codes: 0 ok; 2 usage error; 3 unknown slug.
+# The caller supplies a complete provider wrapper. This helper owns stdin
+# closure, detached sessions, bounded deadlines, sentinels, typed verdicts,
+# and PID/PGID-scoped teardown. It never searches for or kills a command-line
+# pattern. status and verdict are pure observation; watchdog and teardown own
+# mutation.
 
 set -u
 
-die() { printf 'peer-run: %s\n' "$1" >&2; exit "${2:-2}"; }
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INNER="$SCRIPT_DIR/peer-run-inner.sh"
+WATCHDOG="$SCRIPT_DIR/peer-run-watchdog.sh"
+# shellcheck source=peer-run-lib.sh
+. "$SCRIPT_DIR/peer-run-lib.sh"
 
-# --- arg parsing -------------------------------------------------------------
-cmd="${1:-}"; shift || true
-RUNDIR=""; SLUG=""
+die() {
+  printf 'peer-run: %s\n' "$1" >&2
+  exit "${2:-2}"
+}
+
+usage() {
+  cat >&2 <<'EOF'
+Usage:
+  peer-run.sh launch   --dir <run-dir> --slug <slug> [--deadline-seconds <n>] -- <command...>
+  peer-run.sh status   --dir <run-dir> --slug <slug>
+  peer-run.sh verdict  --dir <run-dir> --slug <slug> [--json]
+  peer-run.sh teardown --dir <run-dir> --slug <slug>
+
+States: running | complete | empty_output | stalled | timed_out
+EOF
+}
+
+cmd="${1:-}"
+[ -n "$cmd" ] || { usage; exit 2; }
+shift || true
+
+RUNDIR=""
+SLUG=""
+DEADLINE_SECONDS=""
+JSON=false
 PEER_CMD=()
-while [ $# -gt 0 ]; do
+
+while [ "$#" -gt 0 ]; do
   case "$1" in
-    --dir)  RUNDIR="${2:-}"; shift 2 || die "--dir needs a value" ;;
-    --slug) SLUG="${2:-}";  shift 2 || die "--slug needs a value" ;;
-    --)     shift; PEER_CMD=("$@"); break ;;
-    *)      die "unexpected arg: $1" ;;
+    --dir)
+      [ "$#" -ge 2 ] || die "--dir needs a value"
+      RUNDIR="$2"
+      shift 2
+      ;;
+    --slug)
+      [ "$#" -ge 2 ] || die "--slug needs a value"
+      SLUG="$2"
+      shift 2
+      ;;
+    --deadline-seconds)
+      [ "$#" -ge 2 ] || die "--deadline-seconds needs a value"
+      DEADLINE_SECONDS="$2"
+      shift 2
+      ;;
+    --json)
+      JSON=true
+      shift
+      ;;
+    --)
+      shift
+      PEER_CMD=("$@")
+      break
+      ;;
+    *)
+      die "unexpected argument: $1"
+      ;;
   esac
 done
 
-[ -n "$cmd" ]    || die "missing subcommand (launch|status|verdict|teardown)"
 [ -n "$RUNDIR" ] || die "--dir is required"
-[ -n "$SLUG" ]   || die "--slug is required"
-
-peerdir="$RUNDIR/$SLUG"
-pidfile="$peerdir/peer.pid"          # the launched leader (session leader on the setsid paths)
-childpidfile="$peerdir/peer.child.pid"  # the ACTUAL peer process, so teardown reaps it
-sessfile="$peerdir/peer.session"     # "1" = real new session (group kill is safe), "0" = fallback
-donefile="$peerdir/peer.done"
-outfile="$peerdir/peer.stdout"
-errfile="$peerdir/peer.stderr"
-
-# Substantive-output threshold, in bytes. NOTE: this assumes PLAIN-TEXT peer
-# output. stream-json/--json modes emit framing events (often >40 bytes) before
-# any review content, which would read as "complete" prematurely — so consume
-# text output for the verdict and use stream-json only for a live progress
-# stream (see references/command-templates.md). Once a peer has exited, any
-# non-whitespace output counts as complete so concise smoke tests do not look
-# stalled just because they are shorter than the running-output threshold.
-MIN_CONTENT_BYTES="${PEER_RUN_MIN_CONTENT_BYTES:-40}"
-
-bytes() { [ -f "$1" ] && wc -c < "$1" | tr -d ' ' || echo 0; }
-alive() { p="$1"; [ -n "$p" ] && kill -0 "$p" 2>/dev/null; }
-has_content() { [ -s "$1" ] && LC_ALL=C grep -q '[^[:space:]]' "$1" 2>/dev/null; }
-
-# Single source of truth for "what state is this peer in?" — status and verdict
-# both resolve through this, so they can never disagree (a live peer is always
-# `running`, never falsely `stalled`).
-#   prints: running | complete | stalled    returns: 0 complete, 1 stalled, 2 running
-resolve_state() {
-  ob="$(bytes "$outfile")"
-  if [ "$ob" -ge "$MIN_CONTENT_BYTES" ]; then echo complete; return 0; fi
-  if [ -f "$donefile" ] && has_content "$outfile"; then echo complete; return 0; fi
-  cpid="$(cat "$childpidfile" 2>/dev/null || echo)"
-  lpid="$(cat "$pidfile" 2>/dev/null || echo)"
-  if alive "$cpid" || alive "$lpid"; then echo running; return 2; fi
-  echo stalled; return 1   # not alive, and no substantive output (done-but-empty, or vanished)
-}
+[ -n "$SLUG" ] || die "--slug is required"
+case "$SLUG" in
+  *[!A-Za-z0-9._-]*) die "slug must contain only letters, numbers, dot, underscore, and hyphen" ;;
+esac
 
 case "$cmd" in
   launch)
     [ "${#PEER_CMD[@]}" -gt 0 ] || die "launch needs: -- <peer-command...>"
-    mkdir -p "$peerdir" || die "cannot create $peerdir"
-    : > "$outfile"; : > "$errfile"; rm -f "$donefile" "$childpidfile"
+    [ -n "$DEADLINE_SECONDS" ] || DEADLINE_SECONDS="${PEER_RUN_DEADLINE_SECONDS:-900}"
+    case "$DEADLINE_SECONDS" in
+      ''|*[!0-9]*) die "deadline must be a positive number of seconds" ;;
+      0) die "deadline must be greater than zero" ;;
+    esac
+    ;;
+  *)
+    [ -z "$DEADLINE_SECONDS" ] || die "--deadline-seconds is valid only for launch"
+    ;;
+esac
 
-    # Inner runner: out/err/done/childpid paths as the first four args, then the
-    # peer command. Backgrounds the peer so it can record the peer's REAL pid
-    # (teardown must reap the peer itself, not this wrapper), runs it with stdin
-    # closed (< /dev/null), then writes a DONE sentinel with the real exit code
-    # the PARENT reads later. Paths are args, not interpolated, so spaces are safe.
-    inner='of="$1"; ef="$2"; df="$3"; cf="$4"; shift 4; "$@" >"$of" 2>"$ef" </dev/null & cpid=$!; printf "%s\n" "$cpid" >"$cf"; wait "$cpid"; printf "DONE rc=%s\n" "$?" >"$df"'
+peerdir="$RUNDIR/$SLUG"
+pidfile="$peerdir/peer.pid"
+childpidfile="$peerdir/peer.child.pid"
+sessfile="$peerdir/peer.session"
+donefile="$peerdir/peer.done"
+deadlinefile="$peerdir/peer.deadline"
+watchdogfile="$peerdir/peer.watchdog.pid"
+outfile="$peerdir/peer.stdout"
+errfile="$peerdir/peer.stderr"
 
-    sess=0
+bytes() {
+  if [ -f "$1" ]; then
+    wc -c < "$1" | tr -d ' '
+  else
+    printf '0\n'
+  fi
+}
+
+has_content() {
+  [ -s "$1" ] && LC_ALL=C grep -q '[^[:space:]]' "$1" 2>/dev/null
+}
+
+# Plain text: any non-whitespace is enough. JSON / stream-json / --json: require a
+# terminal answer payload, not framing, progress, or error-only events.
+has_peer_answer() {
+  local path="$1"
+  has_content "$path" || return 1
+  python3 - "$path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+text = path.read_text(encoding="utf-8", errors="replace")
+stripped = text.strip()
+if not stripped:
+    raise SystemExit(1)
+
+def text_blocks(value) -> bool:
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, list):
+        for item in value:
+            if isinstance(item, str) and item.strip():
+                return True
+            if isinstance(item, dict):
+                if item.get("type") == "text" and text_blocks(item.get("text")):
+                    return True
+                if text_blocks(item.get("text")) or text_blocks(item.get("content")):
+                    return True
+    if isinstance(value, dict):
+        return text_blocks(value.get("text")) or text_blocks(value.get("content"))
+    return False
+
+
+def is_terminal_answer(obj) -> bool:
+    if not isinstance(obj, dict):
+        return False
+    if obj.get("is_error") is True:
+        return False
+    typ = str(obj.get("type") or obj.get("event") or "").lower()
+    if typ in {
+        "system",
+        "status",
+        "progress",
+        "ping",
+        "heartbeat",
+        "tool_progress",
+        "user",
+        "rate_limit_event",
+    }:
+        return False
+    subtype = str(obj.get("subtype") or "").lower()
+    if subtype in {"error", "failure", "failed"}:
+        return False
+    if typ == "result":
+        return text_blocks(obj.get("result"))
+    for key in ("result", "message", "text", "content", "output", "response"):
+        if key in obj and text_blocks(obj.get(key)):
+            if typ in {
+                "",
+                "result",
+                "message",
+                "assistant",
+                "agent_message",
+                "response",
+                "item.completed",
+                "agent.completed",
+            }:
+                return True
+            if typ.startswith("item.") and "completed" in typ:
+                return True
+    return False
+
+
+objects: list[object] = []
+json_lines = 0
+nonempty = 0
+for line in text.splitlines():
+    line = line.strip()
+    if not line:
+        continue
+    nonempty += 1
+    try:
+        objects.append(json.loads(line))
+        json_lines += 1
+    except json.JSONDecodeError:
+        objects.append(None)
+
+if nonempty and json_lines == nonempty:
+    raise SystemExit(0 if any(is_terminal_answer(obj) for obj in objects) else 1)
+
+try:
+    payload = json.loads(stripped)
+except json.JSONDecodeError:
+    # Plain text with non-whitespace content.
+    raise SystemExit(0)
+
+if isinstance(payload, list):
+    raise SystemExit(0 if any(is_terminal_answer(obj) for obj in payload) else 1)
+raise SystemExit(0 if is_terminal_answer(payload) else 1)
+PY
+}
+
+deadline_expired() {
+  local deadline
+  deadline="$(peer_read_number "$deadlinefile")"
+  [ -n "$deadline" ] || return 1
+  [ "$(date +%s)" -ge "$deadline" ]
+}
+
+terminate_recorded() {
+  local watchdog
+  watchdog="$(peer_read_number "$watchdogfile")"
+  if peer_alive "$watchdog"; then
+    kill -TERM "$watchdog" 2>/dev/null || true
+  fi
+  terminate_peer_processes "$pidfile" "$childpidfile" "$sessfile" 10
+}
+
+resolve_state() {
+  local cpid lpid
+  cpid="$(peer_read_number "$childpidfile")"
+  lpid="$(peer_read_number "$pidfile")"
+
+  # A done sentinel is the terminal boundary. Zombie wrappers can still answer
+  # kill -0, so never treat "alive" as stronger than a recorded exit.
+  if [ -f "$donefile" ]; then
+    if has_peer_answer "$outfile"; then
+      printf 'complete\n'
+      return 0
+    fi
+    printf 'empty_output\n'
+    return 1
+  fi
+
+  if deadline_expired; then
+    if peer_alive "$cpid" || peer_alive "$lpid"; then
+      printf 'timed_out\n'
+      return 1
+    fi
+    # Deadline passed, process gone, no done sentinel: interrupted/stalled.
+    printf 'timed_out\n'
+    return 1
+  fi
+
+  if peer_alive "$cpid" || peer_alive "$lpid"; then
+    printf 'running\n'
+    return 2
+  fi
+
+  # Content without a done sentinel is an interrupted recorder, not complete.
+  printf 'stalled\n'
+  return 1
+}
+
+json_number_or_null() {
+  case "$1" in
+    ''|\?) printf 'null' ;;
+    *[!0-9-]*) printf 'null' ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
+case "$cmd" in
+  launch)
+    [ -x "$INNER" ] || die "missing executable peer-run-inner.sh"
+    [ -x "$WATCHDOG" ] || die "missing executable peer-run-watchdog.sh"
+    mkdir -p "$peerdir" || die "cannot create run directory"
+    # Reusing a slug must not leave a prior watchdog/peer to kill the new run.
+    if [ -f "$pidfile" ] || [ -f "$watchdogfile" ] || [ -f "$childpidfile" ]; then
+      terminate_recorded >/dev/null || true
+    fi
+    : > "$outfile"
+    : > "$errfile"
+    rm -f "$pidfile" "$sessfile" "$donefile" "$childpidfile" "$watchdogfile"
+    deadline_epoch=$(( $(date +%s) + DEADLINE_SECONDS ))
+    printf '%s\n' "$deadline_epoch" > "$deadlinefile"
+
+    # The inner runner records its own PID because GNU setsid may fork before
+    # exec. The shell that writes this file is the real session leader.
+    # Prefer true session detach: setsid, then Perl POSIX::setsid on hosts
+    # without setsid (notably macOS), else best-effort nohup.
     if command -v setsid >/dev/null 2>&1; then
-      setsid sh -c "$inner" sh "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" &
-      pid=$!; sess=1; how="setsid"
+      setsid "$INNER" "$pidfile" "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" &
+      launcher_pid=$!
+      sess=1
+      how="setsid"
     elif command -v perl >/dev/null 2>&1; then
-      # macOS has no setsid but ships perl; POSIX::setsid creates a real new
-      # session/group, then exec replaces perl with the wrapper (pid stays valid).
-      perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV or die "exec: $!"' \
-        sh -c "$inner" sh "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" &
-      pid=$!; sess=1; how="perl-setsid"
+      perl -e 'use POSIX qw(setsid); POSIX::setsid(); exec { $ARGV[0] } @ARGV' -- \
+        "$INNER" "$pidfile" "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" &
+      launcher_pid=$!
+      sess=1
+      how="perl-setsid"
     else
-      nohup sh -c "$inner" sh "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" >/dev/null 2>&1 &
-      pid=$!; sess=0; how="nohup (best-effort; pair with host background primitive)"
-      disown "$pid" 2>/dev/null || true
+      nohup "$INNER" "$pidfile" "$outfile" "$errfile" "$donefile" "$childpidfile" "${PEER_CMD[@]}" >/dev/null 2>&1 &
+      launcher_pid=$!
+      sess=0
+      how="nohup"
     fi
 
-    printf '%s\n' "$pid"  > "$pidfile"
+    pid=""
+    for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+      pid="$(peer_read_number "$pidfile")"
+      [ -n "$pid" ] && break
+      sleep 0.01
+    done
+    if [ -z "$pid" ]; then
+      # Preserve a diagnostic PID if the detached command failed before it
+      # could record its leader. Fail-closed: never guess a process group.
+      pid="$launcher_pid"
+      sess=0
+      printf '%s\n' "$pid" > "$pidfile"
+    fi
     printf '%s\n' "$sess" > "$sessfile"
-    printf 'launched slug=%s pid=%s detach=%s dir=%s\n' "$SLUG" "$pid" "$how" "$peerdir"
+
+    # Watchdog enforces the maximum lifetime even when the caller is delayed.
+    # It honors peer.session the same way terminate_recorded does.
+    if command -v setsid >/dev/null 2>&1; then
+      setsid "$WATCHDOG" "$DEADLINE_SECONDS" "$donefile" "$pidfile" "$childpidfile" "$sessfile" >/dev/null 2>&1 &
+      watchdog_pid=$!
+    elif command -v perl >/dev/null 2>&1; then
+      perl -e 'use POSIX qw(setsid); POSIX::setsid(); exec { $ARGV[0] } @ARGV' -- \
+        "$WATCHDOG" "$DEADLINE_SECONDS" "$donefile" "$pidfile" "$childpidfile" "$sessfile" >/dev/null 2>&1 &
+      watchdog_pid=$!
+    else
+      nohup "$WATCHDOG" "$DEADLINE_SECONDS" "$donefile" "$pidfile" "$childpidfile" "$sessfile" >/dev/null 2>&1 &
+      watchdog_pid=$!
+    fi
+    printf '%s\n' "$watchdog_pid" > "$watchdogfile"
+
+    printf 'launched slug=%s pid=%s deadline=%s detach=%s\n' "$SLUG" "$pid" "$deadline_epoch" "$how"
     ;;
 
   status)
     [ -f "$pidfile" ] || die "unknown slug: $SLUG" 3
-    resolve_state   # already prints running|complete|stalled
+    state="$(resolve_state)"
+    rc=$?
+    printf '%s\n' "$state"
+    exit "$rc"
     ;;
 
   verdict)
     [ -f "$pidfile" ] || die "unknown slug: $SLUG" 3
-    resolve_state >/dev/null; rc=$?
-    ob="$(bytes "$outfile")"
-    drc="?"; [ -f "$donefile" ] && drc="$(sed -n 's/^DONE rc=//p' "$donefile" | head -1)"
-    case "$rc" in
-      0) printf 'complete (content=%s bytes, rc=%s)\n' "$ob" "$drc" ;;
-      2) printf 'running (no substantive output yet; still alive)\n' ;;
-      *) if [ -f "$donefile" ]; then
-           printf 'stalled (exited rc=%s but no substantive output)\n' "$drc"
-         else
-           printf 'stalled (vanished: no output, no .done sentinel)\n'
-         fi ;;
-    esac
+    state="$(resolve_state)"
+    output_bytes="$(bytes "$outfile")"
+    exit_code="?"
+    if [ -f "$donefile" ]; then
+      exit_code="$(sed -n 's/^DONE rc=//p' "$donefile" | head -1)"
+    fi
+    deadline="$(peer_read_number "$deadlinefile")"
+    pid="$(peer_read_number "$pidfile")"
+    child_pid="$(peer_read_number "$childpidfile")"
+    if [ "$JSON" = true ]; then
+      printf '{"schema":"v1-peer-run/v1","slug":"%s","state":"%s","output_bytes":%s,"exit_code":%s,"deadline_epoch":%s,"pid":%s,"child_pid":%s}\n' \
+        "$SLUG" "$state" "$output_bytes" "$(json_number_or_null "$exit_code")" \
+        "$(json_number_or_null "$deadline")" "$(json_number_or_null "$pid")" "$(json_number_or_null "$child_pid")"
+    else
+      case "$state" in
+        complete) printf 'complete (content=%s bytes, rc=%s)\n' "$output_bytes" "$exit_code" ;;
+        running) printf 'running (no terminal sentinel yet; process is alive)\n' ;;
+        empty_output) printf 'empty_output (exited rc=%s with no substantive output)\n' "$exit_code" ;;
+        timed_out) printf 'timed_out (deadline exceeded)\n' ;;
+        *) printf 'stalled (vanished without substantive output or terminal sentinel)\n' ;;
+      esac
+    fi
     exit 0
     ;;
 
   teardown)
-    # PID/PGID-scoped only. Never `pkill -f`/`killall` — a pattern kill can reap
-    # an unrelated peer the user is running elsewhere.
     [ -f "$pidfile" ] || die "unknown slug: $SLUG" 3
-    pid="$(cat "$pidfile" 2>/dev/null || echo)"
-    cpid="$(cat "$childpidfile" 2>/dev/null || echo)"
-    sess="$(cat "$sessfile" 2>/dev/null || echo 0)"
-    killed=""
-    if [ "$sess" = "1" ] && [ -n "$pid" ]; then
-      # Real new session: the leader's pid IS the process-group id, so a negative
-      # signal reaps the peer AND any grandchildren it spawned — still PID-derived.
-      kill -TERM -- "-$pid" 2>/dev/null && killed="pgid=$pid"
-    fi
-    # Always also target the real peer pid and the leader by PID (covers the
-    # nohup fallback, where there is no separate group to signal).
-    for p in "$cpid" "$pid"; do
-      if alive "$p"; then kill "$p" 2>/dev/null && killed="${killed:+$killed }pid=$p"; fi
-    done
+    killed="$(terminate_recorded)"
     if [ -n "$killed" ]; then
       printf 'terminated slug=%s %s\n' "$SLUG" "$killed"
     else

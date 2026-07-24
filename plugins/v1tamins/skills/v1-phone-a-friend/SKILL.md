@@ -1,6 +1,7 @@
 ---
 name: v1-phone-a-friend
-description: Use when getting a second opinion or delegating work to another agent or model. Triggers on "phone a friend", "second opinion", or "ask another agent".
+description: Use when the user explicitly requests phone-a-friend, a counterpart review, steelman, or peer consult. Triggers on /v1-phone-a-friend or $v1-phone-a-friend only.
+disable-model-invocation: true
 allowed-tools:
   - Bash
   - Read
@@ -10,7 +11,7 @@ allowed-tools:
 ---
 # Phone a Friend
 
-Coordinate another agent or model for counterpart review, steelmanning, delegation, deep research, or verification, then validate the result locally.
+Coordinate another agent or model for counterpart review, steelmanning, delegation, deep research, or verification, then validate the result locally. This is an explicit-only launch surface: discovery may propose a peer, but no peer process starts until the user approves the exact candidate.
 
 ## Usage
 
@@ -27,20 +28,20 @@ Examples:
 
 ## Quick Start
 
-1. Inspect the local capability surface before choosing a peer.
-2. Follow the decision path below to select the peer, work type, permission mode, and reference file.
-3. Package the smallest useful context and remove secrets, private URLs, customer data, tokens, account IDs, and proprietary incident details.
-4. Run the selected peer with the narrowest permission mode that fits the work.
-5. Treat the result as advice until verified with local evidence, tests, diffs, or source review.
+1. Run the dynamic discovery command in [references/model-selection.md](references/model-selection.md); do not launch during discovery.
+2. Show the recommended one-peer roster, current CLI/version, model, reasoning level, prompt source/digest, auth policy, launch state, permission, deadline, catalog/model confidence, and alternatives.
+3. Wait for explicit selection. API mode, multiple peers, delegation, research, and write-capable permissions require explicit choices in addition to the skill invocation. If the user has not selected a candidate, return `confirmation_required` and launch zero peers.
+4. Package the smallest useful context and remove secrets, private URLs, customer data, tokens, account IDs, and proprietary incident details.
+5. Run exactly the selected peer with [scripts/peer-env.sh](scripts/peer-env.sh) and [scripts/peer-run.sh](scripts/peer-run.sh), then verify the typed result locally.
 
 ## Decision Path
 
 1. Use a direct in-agent skill instead when independence is not needed: `v1-deep-review` for in-agent PR review (merge-risk and structural), and `v1-deep-research` for in-agent sourced research.
-2. Prefer a counterpart runtime by default: Codex -> Claude Code, Claude Code -> Codex, Cursor -> Claude Code or Codex, unknown host -> best authenticated coding peer not already in use.
-3. Override the counterpart default only for a named user preference or a real specialist fit: ChatGPT Pro Deep Research, Antigravity/Gemini long-context or multimodal review, Cursor Agent/Cloud Agent, or Oracle/browser-mode review.
-4. Use the decision matrix to pick one work type and one permission mode.
-5. Resolve the current model and effort from local CLI help, model lists, config, or the user's explicit request. Do not hardcode concrete model names.
-6. Load the relevant reference file and run one bounded template.
+2. Ask the discovery script for the `quality`, `balanced`, `fast`, or `custom` profile. The recommended default is one read-only counterpart, not a fan-out.
+3. Prefer a verified subscription-native counterpart with a current provider catalog and a role fit; use model-family diversity only when more than one peer was explicitly requested.
+4. Override the recommendation only after showing the user the current alternatives: a named peer, ChatGPT Pro Deep Research, Antigravity/Gemini large-context or multimodal review, Cursor Agent/Cloud Agent, or Oracle/browser-mode review.
+5. Use the decision matrix to pick one work type and one permission mode, then resolve the prompt/rubric source and digest.
+6. Load the relevant reference file and run one bounded template. A failed or uncertain dispatch stops that branch; it does not auto-retry or replace the peer.
 
 ## When To Use
 
@@ -60,45 +61,40 @@ Examples:
 
 ## Capability Audit
 
-Run a small audit before selecting a peer. Check command presence and authentication status without printing secrets.
+Run the bundled discovery before selecting a peer. It checks command presence, versions, current model catalogs, reasoning levels, and auth policy without printing secrets. In `subscription_native` mode, unset ambient API-key variables first (or run `eval "$(python3 "$PEER_POLICY" --emit-shell-unset)"`) so discovery matches the scrubbed launch environment; otherwise ambient keys are a visible `blocked_api_key_present` policy block.
 
 ```bash
-for cmd in claude codex cursor-agent agy gemini oracle; do
-  if command -v "$cmd" >/dev/null 2>&1; then
-    printf '%s: installed at %s\n' "$cmd" "$(command -v "$cmd")"
-    "$cmd" --version 2>/dev/null || true
-  else
-    printf '%s: not found\n' "$cmd"
-  fi
-done
-
-claude doctor 2>/dev/null || true
-codex doctor --json 2>/dev/null || true
-cursor-agent status 2>/dev/null || true
-agy --version 2>/dev/null || true
+# Resolve helpers from this skill's installed directory, not the project cwd.
+PEER_CATALOG="<this skill dir>/scripts/peer_catalog.py"
+PEER_POLICY="<this skill dir>/scripts/peer_policy.py"
+eval "$(python3 "$PEER_POLICY" --emit-shell-unset)"
+python3 "$PEER_CATALOG" \
+  --profile quality \
+  --auth-mode subscription_native
 ```
 
 Report:
 - **host:** current runtime when known, otherwise `unknown`
-- **installed peers:** `claude`, `codex`, `cursor-agent`, `agy` (Antigravity CLI), legacy `gemini`, `oracle`
-- **auth:** `verified`, `unverified`, or `not checked`
-- **peer skill/plugin surface:** named skill or plugin availability when a named peer workflow is requested, otherwise `not needed`
-- **default peer:** selected counterpart and reason
+- **installed peers:** `claude`, `codex`, `cursor-agent`, `agy` (Antigravity CLI); Oracle remains a manual/browser path outside the discovery allowlist
+- **credential policy:** `eligible`, `not_authenticated`, `auth_not_verified`, `blocked_api_key_present`, `explicit_api_mode`, `api_key_required`, or `not_installed`
+- **launch state:** derived readiness such as `eligible`, `model_unresolved`, or a distinct policy failure
+- **model catalog:** `resolved`/`unresolved`, with `verified`/`unresolved` confidence from provider catalog commands only
+- **default peer:** proposed counterpart and reason; not yet launched
 - **limits:** subscription tier, browser access, and cloud-agent access if not directly verified
 
-Treat command presence as `installed`, not authenticated. Do not claim a specific subscription tier unless the tool explicitly reports it or a safe probe succeeds. If a peer has no safe status command, report `auth: not checked` and lower confidence in that peer choice. Do not spend tokens, make network calls, or start a model run just to prove auth unless the user asked for a live probe.
+Treat command presence as `installed`, not authenticated. Do not claim a specific subscription tier unless the tool explicitly reports it or a safe probe succeeds. A current CLI with no reliable model-list surface is `model_unresolved`; never guess a model. In `subscription_native` mode, an API-key variable being present is a visible policy block, not permission to use it.
 
-Bound the probes themselves: `claude doctor` and similar status commands can hang. Wrap them in a short host timeout, and treat a probe that does not return as `auth: not checked` rather than letting it stall the audit. The audit is a quick orientation, never a blocker.
+The script bounds every provider probe. A timeout becomes `auth_not_verified`/`unresolved` evidence rather than a launch or a replacement-peer trigger. The audit is a quick orientation, never a blocker.
 
 ## Peer Capability Boundaries
 
 Skills, plugins, slash commands, agents, and subagents are host-local capabilities. Do not assume a skill available in the parent runtime is installed, callable, or semantically identical inside the peer runtime.
 
 - Before asking a peer to invoke a named skill, plugin, slash command, or subagent workflow, verify that peer's surface with a safe local listing, help command, installed-skill path, or tool-visible evidence.
-- If the named workflow is not verified, send a plain prompt that inlines the requested review standard, rubric, or task criteria. Ask the peer to report this as a prompt-only fallback. See [references/command-templates.md](references/command-templates.md) (Inlining a Named Skill's Rubric) for a runtime pattern that resolves a named skill's `SKILL.md` and embeds it, with no committed host path.
+- If the named workflow is not verified, send a plain prompt that inlines the requested review standard, rubric, or task criteria. Ask the peer to report this as a prompt-only fallback. See [references/command-templates.md](references/command-templates.md) (Inlining a Named Skill's Rubric) for a runtime pattern that resolves a named skill's `SKILL.md` and embeds it, with no committed host path. Mark the prompt source and digest in the proposal.
 - For headless or read-only peer runs, avoid named workflows that require subagents, task tools, file edits, shell access, or interactive orchestration unless the installed peer documents that mode as supported.
 - If the user specifically wants the named workflow's full machinery and it is not compatible with the selected headless/read-only wrapper, switch to an interactive visible peer surface or an isolated worktree with the needed permissions.
-- Report the capability path actually used: `verified named skill/plugin`, `verified CLI only`, `prompt-only fallback`, or `unavailable`.
+- Report the capability path actually used: `verified named skill/plugin`, `verified CLI only`, `prompt-only fallback`, or `unavailable`. A missing workflow is a typed degradation; do not select a replacement without the user.
 
 ## Decision Matrix
 
@@ -150,19 +146,19 @@ Long-running delegation needs a visible lifecycle, not just a prompt.
 
 Do not wait on a peer run with no observable contract.
 
-- **Background by default.** Launch any peer that could exceed the host's command timeout as a detached background process — never foreground-`wait` on it. The host's timeout (e.g. an agent's 2-minute Bash default) signals the parent's process group and reaps a peer backgrounded with a bare `&`. Use the bundled `scripts/peer-run.sh` helper, which puts the peer in its own session — `setsid`, or `perl POSIX::setsid` on macOS (no `setsid` there), with a best-effort `nohup` fallback when neither exists — so a parent-shell timeout does not reap it. On the `nohup` fallback this is best-effort, so pair it with the host's background primitive. See [references/command-templates.md](references/command-templates.md) (Supervised Local Runs).
+- **Background by default.** Launch any peer that could exceed the host's command timeout as a detached background process — never foreground-`wait` on it. The host's timeout (e.g. an agent's 2-minute Bash default) signals the parent's process group and reaps a peer backgrounded with a bare `&`. Use the bundled `scripts/peer-run.sh` helper, which detaches with `setsid` when available, otherwise Perl `POSIX::setsid`, and only then `nohup`, so a parent-shell timeout does not reap it. On the `nohup` fallback this is best-effort, so pair it with the host's background primitive. See [references/command-templates.md](references/command-templates.md) (Supervised Local Runs).
 - Before launch, state the run slug, peer, permission mode, output location, completion signal, first-progress deadline, and maximum wait or check-in cadence.
 - For background or concurrent local runs, capture stdout, stderr, and a completion sentinel per peer. Keep artifacts in a run-specific scratch directory.
 - **Judge completion by substantive output, not exit code.** A peer that returned real content under a nonzero or unusual exit code is complete; an empty success exit is a stall. Wrapper exit codes are advisory.
 - **Tear down by recorded PID only.** Kill a stalled peer by the PID you captured at launch — never a pattern kill like `pkill -f "codex exec"`, which can reap an unrelated peer the user is running elsewhere.
 - If there is no output, artifact update, completion signal, or visible progress by the first-progress deadline, inspect the process state, stderr, run directory, and resume handle before deciding what to do next.
-- If a peer stalls, either reattach, retry once with a narrower plain prompt, switch to a more reliable peer, or mark that peer `stalled` and continue with completed peer outputs.
-- **Routing is reliability-aware.** Headless reliability differs by peer and recipe: apply the hardened invocations (stdin closed, `env -u ANTHROPIC_API_KEY` for Claude, streaming output) before sending real work to a peer, and prefer a peer with a proven headless recipe when the counterpart default points at one that stalls in your environment.
+- If a peer stalls, inspect its recorded status, stderr, sentinel, and PID. Record the runner lifecycle (`stalled` or `timed_out`) or, when dispatch occurred but evidence is ambiguous, parent-level `execution_uncertain`. Do not retry, switch, or add a peer automatically; ask for a fresh explicit selection if the user wants another attempt.
+- **Routing is reliability-aware.** Headless reliability differs by peer and recipe: apply the hardened invocations (stdin closed, `peer-env.sh` subscription scrubbing, streaming output) before sending real work to a peer, and show reliability evidence in the proposal. A stalled peer does not make another peer the silent default.
 - Never report a multi-peer consult as complete without saying which peers completed, which were partial, which stalled, and which suggestions were locally verified.
 
 ## Quick Consult Express Lane
 
-Not every consult needs the full delegation lifecycle. For a **single read-only peer** giving a quick sanity check — no artifact handoff, no fixes applied — skip the run-slug/run-directory/deadline ceremony: package the question, run one read-only wrapper (stdin closed, streaming), read the answer, verify locally. Graduate to the full Run Supervision lifecycle the moment any of these is true: more than one peer is involved, the work is `verify`/`delegate` (the peer touches the worktree), or the run could outlast the host's command timeout. When in doubt, graduate — the express lane is only for the genuinely quick, single-peer, read-only case.
+Not every consult needs a large packet, but even the single-peer express lane runs the discovery/proposal gate and records a deadline. Package the question, wait for explicit selection, run one read-only wrapper with stdin closed, read the typed verdict, and verify locally. Graduate to the full Run Supervision lifecycle when more than one peer is involved, the work is `verify`/`delegate`, or the run could outlast the host's command timeout.
 
 ## Command Templates
 
@@ -196,19 +192,13 @@ Peer invocation is a child process or external workflow, not shared consciousnes
 
 ## Model And Effort Selection
 
-Choose the model and reasoning level from task risk, not habit.
-
-Do not hardcode concrete model names in reusable skill instructions. Resolve the current model from local CLI help, model lists, config, or the user's explicit request, then pass that model explicitly for serious work. If the peer does not reveal the actual model used, report `model: not reported`.
-
-| Task | Default |
-| --- | --- |
-| Quick sanity check | Default or auto model, normal effort. |
-| Serious code review | Strongest available coding model, high reasoning. |
-| Architecture, security, or migration risk | Strongest available model, high/max reasoning, structured findings. |
-| Deep external research | ChatGPT Pro Deep Research first when available. |
-| Large-context or multimodal review | Antigravity CLI (`agy`) or browser-mode strong model when available. |
-| Delegated implementation | Coding-strong model, full permissions in isolated/trusted worktree, mandatory validation evidence. |
-| Repeated cheap checks | Lower-cost model is acceptable if the result is locally verified. |
+Load [references/model-selection.md](references/model-selection.md) for the
+profiles and candidate contract. `quality` is the opinionated default for a
+serious counterpart review: choose the strongest current eligible model and
+highest reasoning level that its catalog exposes. `balanced` and `fast` remain
+available, and `custom` requires the user to select current values. If the
+peer does not reveal the actual model used, report `model: not reported`; do
+not treat the requested model as proof of the actual model.
 
 ## Verification Rule
 
@@ -224,5 +214,10 @@ Before acting on advice:
 
 ## Reference Files
 
+- **[scripts/peer_catalog.py](scripts/peer_catalog.py)** - bounded provider/version/model/reasoning/auth discovery and profile proposal; it never launches a model.
+- **[scripts/peer-env.sh](scripts/peer-env.sh)** - explicit subscription-native/API credential policy wrapper.
+- **[scripts/peer-run.sh](scripts/peer-run.sh)** - detached, stdin-safe, deadline-bounded lifecycle and typed verdict.
+- **[references/peer-execution-contract.md](references/peer-execution-contract.md)** - typed discovery, auth, selection, execution, and stale-context contract.
+- **[references/model-selection.md](references/model-selection.md)** - dynamic profile ranking and current-catalog rules.
 - **[references/command-templates.md](references/command-templates.md)** - Coding-agent prompt bodies and command wrappers for Claude Code, Codex, Cursor Agent, and Antigravity CLI.
 - **[references/oracle-browser.md](references/oracle-browser.md)** - External Oracle/browser-mode consults, manual packets, and ChatGPT Pro Deep Research packet format.

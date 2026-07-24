@@ -24,9 +24,9 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 
 - `/v1-deep-review` — review a branch or PR (code, docs, or config) for merge risk and structural maintainability.
 - `/v1-pr-walkthrough` — create a dated self-contained HTML explanation of a PR with Background, Intuition, Code, and interactive Quiz sections.
-- `/v1-review-board` **(explicit)** — fan review out to multiple peer agents.
+- `/v1-review-board` **(explicit)** — propose current peers/models first, wait for a roster, then run a read-only multi-agent ledger.
 - `/v1-address-review` — resolve review comments that already exist.
-- `/v1-phone-a-friend` — one second opinion from a counterpart agent.
+- `/v1-phone-a-friend` **(explicit)** — propose one current OAuth-backed counterpart and wait for approval before launching it.
 
 ## Diagnosing problems
 

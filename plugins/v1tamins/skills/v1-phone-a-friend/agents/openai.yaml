@@ -1,10 +1,10 @@
 interface:
   display_name: "Phone a Friend"
-  short_description: "Route work to another agent or model for counterpart review, delegation, or research."
-  default_prompt: "Use $v1-phone-a-friend to consult the best available counterpart on this work."
+  short_description: "After explicit invocation, propose and run one current OAuth-backed counterpart for review, delegation, or research."
+  default_prompt: "Use $v1-phone-a-friend to propose one current subscription-backed counterpart; wait for my selection before launch."
 
 policy:
-  allow_implicit_invocation: true
-  invocation_posture: selective_implicit
+  allow_implicit_invocation: false
+  invocation_posture: explicit_only
   side_effects:
     - peer_launch

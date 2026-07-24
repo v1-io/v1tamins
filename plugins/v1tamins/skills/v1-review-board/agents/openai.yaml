@@ -1,7 +1,7 @@
 interface:
   display_name: "Review Board"
-  short_description: "Fan out a parallel read-only review to several peer agents, compile a verified finding ledger, then address it."
-  default_prompt: "Use $v1-review-board to convene a multi-agent review board on this PR."
+  short_description: "Propose a current OAuth-backed peer roster, wait for selection, then compile a read-only verified review ledger."
+  default_prompt: "Use $v1-review-board to propose a current quality roster for this PR; wait for my selection and stop at the ledger."
 
 policy:
   allow_implicit_invocation: false

@@ -24,6 +24,7 @@ Checks:
   - package.json and both runtime plugin manifest versions stay in lockstep
   - each SKILL.md stays within the 500-line budget (disclose detail to references/)
   - legacy tracked .agents/skills mirrors are absent
+  - dynamic peer discovery, launch supervision, routing, and installed-source verifier contracts pass
 
 Options:
   --verbose print each successful check
@@ -579,6 +580,40 @@ validate_metadata_checker_tests() {
   fi
 }
 
+validate_peer_contract_tests() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    fail "python3 is required to run peer contract tests"
+    return 0
+  fi
+
+  local test
+  local tests=(
+    "$repo_root/scripts/test-peer-contract.py"
+    "$repo_root/scripts/test-phone-routing-contract.py"
+    "$repo_root/scripts/test-review-board-contract.py"
+  )
+  for test in "${tests[@]}"; do
+    if python3 "$test"; then
+      ok "$(relpath "$test")"
+    else
+      fail "$(relpath "$test") failed"
+    fi
+  done
+
+  local shell_test
+  local shell_tests=(
+    "$repo_root/scripts/test-peer-run.sh"
+    "$repo_root/scripts/test-installed-plugin-verifier.sh"
+  )
+  for shell_test in "${shell_tests[@]}"; do
+    if bash "$shell_test"; then
+      ok "$(relpath "$shell_test")"
+    else
+      fail "$(relpath "$shell_test") failed"
+    fi
+  done
+}
+
 main() {
   require_dir "$plugin_dir"
 
@@ -601,6 +636,7 @@ main() {
   validate_skill_references
   validate_skill_assets
   validate_portable_host_paths
+  validate_peer_contract_tests
 
   if [ "$failures" -ne 0 ]; then
     print_failure_summary
