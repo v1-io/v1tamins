@@ -40,7 +40,7 @@ done
 
 [ -n "$provider" ] || die "--provider is required"
 case "$provider" in
-  claude|codex|cursor-agent|agy|gemini|oracle) ;;
+  claude|codex|cursor-agent|agy|oracle) ;;
   *) die "unsupported provider: $provider" ;;
 esac
 

@@ -28,8 +28,9 @@ Current provider surfaces are discovered rather than copied into this file:
 | Claude Code | A provider-owned model picker/catalog when available | Current `--help` examples, marked degraded | Do not use a non-interactive API-key path in subscription mode. |
 | Codex | A provider-owned model catalog or structured doctor/config surface when available | Current help only, otherwise unresolved | Do not invent a model from the parent ChatGPT session. |
 | Cursor Agent | Its current model-list surface | Current help only, marked degraded | Browser login and API-key auth are separate. |
-| Antigravity CLI | Its current model-list command | Current help only, marked degraded | Use the supported native login path; do not piggyback legacy Gemini OAuth. |
-| Legacy Gemini CLI | A current provider-owned surface only | No subscription-native fallback | API mode requires explicit user selection. |
+| Antigravity CLI (`agy`) | Its current model-list command | Current help only, marked degraded | Use Agy's supported native login path; do not assume another Google CLI's login state applies. |
+
+For Codex subscription auth, use the provider-owned `codex login status` surface. Its current model catalog may still be `model_unresolved` when the installed CLI does not expose a usable list command; do not substitute a model from the parent session.
 
 The output contains a CLI/version fingerprint, catalog fingerprint, model ID,
 model family, supported reasoning levels, auth source, role, permission,

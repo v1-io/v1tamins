@@ -29,6 +29,10 @@ printf '%s\n' '#!/usr/bin/env bash' 'if [ -n "${OPENAI_API_KEY:-}" ] || [ -n "${
 chmod +x "$FAKE_OUTPUT" "$FAKE_EMPTY" "$FAKE_HANG" "$FAKE_ENV"
 
 ENV_WRAPPER="$ROOT_DIR/plugins/v1tamins/skills/v1-phone-a-friend/scripts/peer-env.sh"
+if "$ENV_WRAPPER" --provider gemini --auth-mode subscription_native -- "$FAKE_EMPTY" >/dev/null 2>&1; then
+  printf 'legacy gemini provider was accepted\n' >&2
+  exit 1
+fi
 OPENAI_API_KEY=synthetic ANTHROPIC_API_KEY=synthetic CURSOR_API_KEY=synthetic \
   "$ENV_WRAPPER" --provider codex --auth-mode subscription_native -- "$FAKE_ENV" > "$TEST_DIR/env.txt"
 grep -qx 'keys-scrubbed' "$TEST_DIR/env.txt"

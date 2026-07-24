@@ -271,15 +271,13 @@ Use `--force` only for trusted verification or delegation. If the installed CLI 
 
 ## Antigravity CLI
 
-Use Antigravity CLI when installed and authenticated, especially for Gemini-backed large-context, multimodal, or Google-grounded packets. Google is transitioning consumer Gemini CLI users to Antigravity CLI; prefer the `agy` command. Treat `gemini` as a legacy fallback only when `agy` is unavailable and `gemini --help` proves the old CLI still works locally.
+Use Antigravity CLI (`agy`) when installed and authenticated, especially for Gemini-backed large-context, multimodal, or Google-grounded packets.
 
 Capability probe:
 
 ```bash
 if command -v agy >/dev/null 2>&1; then
   AGY_CMD=agy
-elif command -v gemini >/dev/null 2>&1; then
-  AGY_CMD=gemini
 else
   AGY_CMD=""
 fi
@@ -314,4 +312,4 @@ Trusted verification or isolated delegation:
   --print "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
-Use `--dangerously-skip-permissions` only in a trusted repo or isolated worktree. Record the starting dirty state first, require final `git status`, and inspect any diff before keeping it. If falling back to legacy `gemini`, check local help and adapt flags from the installed CLI rather than assuming Antigravity flags are present.
+Use `--dangerously-skip-permissions` only in a trusted repo or isolated worktree. Record the starting dirty state first, require final `git status`, and inspect any diff before keeping it.

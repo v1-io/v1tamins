@@ -13,9 +13,9 @@ import os
 import re
 import shutil
 import subprocess
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Iterable
-
+from typing import Any
 
 SCHEMA = "v1-peer-catalog/v1"
 DEFAULT_TIMEOUT_SECONDS = 8
@@ -50,7 +50,6 @@ PROVIDER_KEY_ENV_VARS = {
     "codex": ("OPENAI_API_KEY", "OPENAI_AUTH_TOKEN", "CODEX_API_KEY"),
     "cursor-agent": ("CURSOR_API_KEY",),
     "agy": ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENAI_API_KEY"),
-    "gemini": ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENAI_API_KEY"),
 }
 
 
@@ -59,7 +58,6 @@ class ProviderSpec:
     binary: str
     catalog_args: tuple[str, ...] | None
     auth_args: tuple[str, ...] | None
-    subscription_supported: bool
     roles: tuple[str, ...]
 
 
@@ -68,36 +66,25 @@ PROVIDERS: dict[str, ProviderSpec] = {
         "claude",
         None,
         ("doctor",),
-        True,
         ("correctness/security", "structural review", "maintainability"),
     ),
     "codex": ProviderSpec(
         "codex",
         None,
-        ("doctor", "--json"),
-        True,
+        ("login", "status"),
         ("structural review", "correctness/security", "verification"),
     ),
     "cursor-agent": ProviderSpec(
         "cursor-agent",
         ("--list-models",),
         ("status",),
-        True,
         ("structural review", "maintainability", "verification"),
     ),
     "agy": ProviderSpec(
         "agy",
         ("models",),
         None,
-        True,
         ("large-context", "multimodal", "research"),
-    ),
-    "gemini": ProviderSpec(
-        "gemini",
-        None,
-        None,
-        False,
-        ("large-context", "research"),
     ),
 }
 
@@ -131,9 +118,7 @@ def subscription_environment(mode: str) -> dict[str, str]:
     return environment
 
 
-def run_command(
-    command: list[str], mode: str, timeout_seconds: float
-) -> CommandResult:
+def run_command(command: list[str], mode: str, timeout_seconds: float) -> CommandResult:
     try:
         completed = subprocess.run(
             command,
@@ -291,7 +276,9 @@ def parse_model_catalog(
     return models
 
 
-def help_model_aliases(text: str, advertised_efforts: Iterable[str]) -> list[dict[str, Any]]:
+def help_model_aliases(
+    text: str, advertised_efforts: Iterable[str]
+) -> list[dict[str, Any]]:
     """Extract aliases only when the current help text explicitly advertises them."""
 
     values: list[str] = []
@@ -309,7 +296,9 @@ def help_model_aliases(text: str, advertised_efforts: Iterable[str]) -> list[dic
     # still useful for effort discovery, but only model-looking aliases that
     # occur next to a model option are accepted.
     model_section = " ".join(
-        line for line in text.splitlines() if "--model" in line or "model" in line.lower()
+        line
+        for line in text.splitlines()
+        if "--model" in line or "model" in line.lower()
     )
     allowed = set(
         re.findall(
@@ -329,8 +318,35 @@ def parse_structured_auth(text: str) -> bool | None:
 
     def visit(value: Any) -> bool | None:
         if isinstance(value, dict):
+            status = str(value.get("status", "")).strip().lower()
+            details = value.get("details")
+            if status in {
+                "ok",
+                "pass",
+                "passed",
+                "authenticated",
+                "authorized",
+            } and isinstance(details, dict):
+                normalized_details = {
+                    str(key).strip().lower(): str(child).strip().lower()
+                    for key, child in details.items()
+                }
+                stored_tokens = normalized_details.get("stored chatgpt tokens")
+                auth_mode = normalized_details.get("stored auth mode")
+                if stored_tokens in {"true", "yes"} or auth_mode in {
+                    "chatgpt",
+                    "oauth",
+                    "subscription",
+                    "subscription_native",
+                }:
+                    return True
             for key, child in value.items():
-                if key.lower() in {"authenticated", "logged_in", "loggedin", "authorized"} and isinstance(child, bool):
+                if key.lower() in {
+                    "authenticated",
+                    "logged_in",
+                    "loggedin",
+                    "authorized",
+                } and isinstance(child, bool):
                     return child
                 result = visit(child)
                 if result is not None:
@@ -348,7 +364,9 @@ def parse_structured_auth(text: str) -> bool | None:
 def auth_result(
     name: str, spec: ProviderSpec, mode: str, auth_probe: CommandResult | None
 ) -> dict[str, Any]:
-    key_names = [name for name in PROVIDER_KEY_ENV_VARS.get(name, ()) if os.environ.get(name)]
+    key_names = [
+        name for name in PROVIDER_KEY_ENV_VARS.get(name, ()) if os.environ.get(name)
+    ]
     if mode == "subscription_native" and key_names:
         return {
             "source": "unverified",
@@ -375,15 +393,6 @@ def auth_result(
             "key_env_names": [],
         }
 
-    if not spec.subscription_supported:
-        return {
-            "source": "unavailable",
-            "confidence": "verified",
-            "credential_presence": "not_applicable",
-            "policy_state": "subscription_workflow_unsupported",
-            "key_env_names": [],
-        }
-
     if auth_probe is not None and not auth_probe.timed_out:
         structured = parse_structured_auth(auth_probe.stdout)
         if structured is True:
@@ -404,7 +413,9 @@ def auth_result(
             }
 
         status_text = f"{auth_probe.stdout}\n{auth_probe.stderr}"
-        if re.search(r"(?i)\bnot\s+(?:logged\s+in|authenticated|authorized)\b", status_text):
+        if re.search(
+            r"(?i)\bnot\s+(?:logged\s+in|authenticated|authorized)\b", status_text
+        ):
             return {
                 "source": "unavailable",
                 "confidence": "degraded",
@@ -413,9 +424,14 @@ def auth_result(
                 "key_env_names": [],
             }
         if re.search(r"(?i)\b(?:logged\s+in|authenticated|authorized)\b", status_text):
+            confidence = (
+                "verified"
+                if re.search(r"(?i)\blogged\s+in\s+(?:using|as)\b", status_text)
+                else "degraded"
+            )
             return {
                 "source": "subscription_native",
-                "confidence": "degraded",
+                "confidence": confidence,
                 "credential_presence": "none_detected",
                 "policy_state": "eligible",
                 "key_env_names": [],
@@ -442,9 +458,7 @@ def first_version_line(result: CommandResult) -> str | None:
     return None
 
 
-def discover_provider(
-    name: str, mode: str, timeout_seconds: float
-) -> dict[str, Any]:
+def discover_provider(name: str, mode: str, timeout_seconds: float) -> dict[str, Any]:
     spec = PROVIDERS[name]
     executable = shutil.which(spec.binary)
     base: dict[str, Any] = {
@@ -463,7 +477,7 @@ def discover_provider(
         },
         "reasoning_levels": [],
         "roles": list(spec.roles),
-        "workflow": "available" if spec.subscription_supported else "subscription_unsupported",
+        "workflow": "available",
     }
     if executable is None:
         base["auth"] = {
@@ -495,11 +509,13 @@ def discover_provider(
     catalog_source = None
     catalog_confidence = "unresolved"
     if spec.catalog_args is not None:
-        catalog_result = run_command([executable, *spec.catalog_args], mode, timeout_seconds)
+        catalog_result = run_command(
+            [executable, *spec.catalog_args], mode, timeout_seconds
+        )
         if catalog_result.returncode == 0 and not catalog_result.timed_out:
             catalog_source = "provider_catalog"
             catalog_confidence = "verified"
-    elif help_text and spec.subscription_supported:
+    elif help_text:
         aliases = help_model_aliases(help_text, efforts)
         if aliases:
             base["models"] = aliases
@@ -515,10 +531,11 @@ def discover_provider(
             catalog_confidence = "unresolved"
 
     raw_catalog = ""
-    if catalog_result is not None:
-        raw_catalog = catalog_result.stdout
-    elif help_text and base["models"]:
-        raw_catalog = "\n".join(model["id"] for model in base["models"])
+    if catalog_source and base["models"]:
+        if catalog_result is not None:
+            raw_catalog = catalog_result.stdout
+        elif help_text:
+            raw_catalog = "\n".join(model["id"] for model in base["models"])
     if raw_catalog:
         base["model_catalog"] = {
             "status": "resolved",

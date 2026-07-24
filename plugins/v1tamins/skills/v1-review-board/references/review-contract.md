@@ -51,7 +51,7 @@ values.
   ```
 
   The result is still `confirmation_required`; `--count 2` describes the proposed roster and does not authorize two launches.
-- **Antigravity/Gemini peer** — prefer the current `agy` model catalog for large-context or multimodal work. Treat legacy `gemini` as subscription-unsupported; API mode requires an explicit user choice and a documented current surface.
+- **Antigravity (`agy`) peer** — prefer its current model catalog for Gemini-backed large-context or multimodal work. Use Agy's native login path; API mode requires an explicit user choice and a documented current surface.
 - **Models and reasoning** — use the current provider-owned model catalog or picker. A help example is degraded; no reliable surface is `model_unresolved`. If a peer does not report its actual model, record `model: not reported` rather than treating the requested model as proof.
 - **Auth** — use `subscription_native` by default and scrub user API-key variables with `peer-env.sh`. `api_explicit` is a separate user-selected mode. An ambient key in subscription mode is `blocked_api_key_present`, not an invitation to use it.
 - **Thermo-nuclear rubric** — glob the Cursor install location, not the Codex/Claude plugin caches:

@@ -71,7 +71,7 @@ python3 scripts/peer_catalog.py \
 
 Report:
 - **host:** current runtime when known, otherwise `unknown`
-- **installed peers:** `claude`, `codex`, `cursor-agent`, `agy` (Antigravity CLI), legacy `gemini`, `oracle`
+- **installed peers:** `claude`, `codex`, `cursor-agent`, `agy` (Antigravity CLI), `oracle`
 - **auth:** `subscription_native`, `api_explicit`, `unverified`, or `unavailable`
 - **credential policy:** `eligible`, `blocked_api_key_present`, `api_key_required`, or another typed state
 - **model catalog:** `resolved`/`unresolved`, with `verified`/`degraded`/`unresolved` confidence

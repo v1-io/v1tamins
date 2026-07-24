@@ -17,7 +17,7 @@ record per discovered CLI. The result records:
 | credential policy | `eligible`, `blocked_api_key_present`, `explicit_api_mode`, `api_key_required`, or another typed state | Whether the selected auth mode may launch. |
 | model catalog | `resolved`, `unresolved` | Whether the current provider-owned catalog returned usable IDs. |
 | catalog confidence | `verified`, `degraded`, `unresolved` | Provider catalog is stronger than help-text examples; unresolved means no model may be invented. |
-| workflow | `available`, `subscription_unsupported`, or another typed state | Whether the selected CLI path is supported for this auth mode and permission. |
+| workflow | `available`, `unavailable`, or another typed state | Whether the selected CLI path is supported for this auth mode and permission. |
 | execution | `running`, `complete`, `empty_output`, `stalled`, `timed_out`, or `execution_uncertain` | Result from `peer-run.sh` plus dispatch-state interpretation. |
 
 The result may list an installed CLI with `auth: unverified` or

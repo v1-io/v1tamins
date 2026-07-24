@@ -17,22 +17,28 @@ sys.dont_write_bytecode = True
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = (
-    REPO_ROOT
-    / "plugins/v1tamins/skills/v1-phone-a-friend/scripts/peer_catalog.py"
+    REPO_ROOT / "plugins/v1tamins/skills/v1-phone-a-friend/scripts/peer_catalog.py"
 )
 SPEC = importlib.util.spec_from_file_location("peer_catalog", MODULE_PATH)
 assert SPEC and SPEC.loader
 peer_catalog = importlib.util.module_from_spec(SPEC)
 sys.modules["peer_catalog"] = peer_catalog
 SPEC.loader.exec_module(peer_catalog)
+peer_catalog_support = importlib.import_module("peer_catalog_support")
 
 
 class PeerContractTests(unittest.TestCase):
+    def test_provider_catalog_contains_only_supported_cli_surfaces(self) -> None:
+        self.assertEqual(
+            set(peer_catalog.PROVIDERS),
+            {"claude", "codex", "cursor-agent", "agy"},
+        )
+
     def test_provider_catalog_changes_are_reflected_without_source_edits(self) -> None:
-        first = peer_catalog.parse_model_catalog(
+        first = peer_catalog_support.parse_model_catalog(
             json.dumps({"models": [{"id": "fake-alpha", "efforts": ["low"]}]})
         )
-        second = peer_catalog.parse_model_catalog(
+        second = peer_catalog_support.parse_model_catalog(
             json.dumps({"models": [{"id": "fake-beta", "efforts": ["high"]}]})
         )
         self.assertEqual([model["id"] for model in first], ["fake-alpha"])
@@ -41,8 +47,18 @@ class PeerContractTests(unittest.TestCase):
     def test_quality_and_fast_profiles_use_exposed_levels(self) -> None:
         provider = {
             "models": [
-                {"id": "fake-fast", "family": "fast", "rank": 0, "reasoning_levels": ["low"]},
-                {"id": "fake-strong", "family": "strong", "rank": 1, "reasoning_levels": ["low", "high"]},
+                {
+                    "id": "fake-fast",
+                    "family": "fast",
+                    "rank": 0,
+                    "reasoning_levels": ["low"],
+                },
+                {
+                    "id": "fake-strong",
+                    "family": "strong",
+                    "rank": 1,
+                    "reasoning_levels": ["low", "high"],
+                },
             ],
             "reasoning_levels": ["low", "high"],
             "model_catalog": {"confidence": "verified"},
@@ -58,18 +74,49 @@ class PeerContractTests(unittest.TestCase):
 
     def test_unsupported_explicit_values_return_current_alternatives(self) -> None:
         provider = {
-            "models": [{"id": "fake-current", "family": "fake", "rank": 0, "reasoning_levels": ["medium"]}],
+            "models": [
+                {
+                    "id": "fake-current",
+                    "family": "fake",
+                    "rank": 0,
+                    "reasoning_levels": ["medium"],
+                }
+            ],
             "reasoning_levels": ["medium"],
             "model_catalog": {"confidence": "verified"},
         }
         _, model_error = peer_catalog.choose_model(provider, "custom", "fake-old")
-        _, effort_error = peer_catalog.choose_model(provider, "custom", "fake-current", "max")
+        _, effort_error = peer_catalog.choose_model(
+            provider, "custom", "fake-current", "max"
+        )
         self.assertEqual(model_error["code"], "model_not_current")
         self.assertEqual(effort_error["code"], "reasoning_level_unsupported")
         self.assertEqual(effort_error["alternatives"], ["medium"])
 
     def test_malformed_catalog_is_unresolved(self) -> None:
-        self.assertEqual(peer_catalog.parse_model_catalog("not a model catalog"), [])
+        self.assertEqual(
+            peer_catalog_support.parse_model_catalog("not a model catalog"), []
+        )
+
+    def test_failed_provider_catalog_with_output_stays_unresolved(self) -> None:
+        results = [
+            peer_catalog_support.CommandResult(0, "agy 1.0\n", ""),
+            peer_catalog_support.CommandResult(0, "", ""),
+            peer_catalog_support.CommandResult(
+                3, '{"models":[{"id":"should-not-resolve"}]}', ""
+            ),
+        ]
+        with (
+            mock.patch.object(
+                peer_catalog_support.shutil, "which", return_value="/fake/agy"
+            ),
+            mock.patch.object(peer_catalog_support, "run_command", side_effect=results),
+        ):
+            discovered = peer_catalog_support.discover_provider(
+                "agy", "subscription_native", 1
+            )
+        self.assertEqual(discovered["models"], [])
+        self.assertEqual(discovered["model_catalog"]["status"], "unresolved")
 
     def test_subscription_environment_scrubs_keys_but_keeps_native_login(self) -> None:
         values = {
@@ -79,7 +126,9 @@ class PeerContractTests(unittest.TestCase):
             "CLAUDE_CODE_OAUTH_TOKEN": "native-oauth-token",
         }
         with mock.patch.dict(os.environ, values, clear=False):
-            environment = peer_catalog.subscription_environment("subscription_native")
+            environment = peer_catalog_support.subscription_environment(
+                "subscription_native"
+            )
         self.assertNotIn("OPENAI_API_KEY", environment)
         self.assertNotIn("ANTHROPIC_API_KEY", environment)
         self.assertNotIn("CURSOR_API_KEY", environment)
@@ -87,7 +136,7 @@ class PeerContractTests(unittest.TestCase):
 
     def test_provider_auth_only_considers_that_provider_key(self) -> None:
         with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "redacted"}, clear=True):
-            auth = peer_catalog.auth_result(
+            auth = peer_catalog_support.auth_result(
                 "claude",
                 peer_catalog.PROVIDERS["claude"],
                 "subscription_native",
@@ -96,6 +145,31 @@ class PeerContractTests(unittest.TestCase):
         self.assertEqual(auth["source"], "unverified")
         self.assertEqual(auth["policy_state"], "auth_not_verified")
 
+    def test_codex_doctor_chatgpt_auth_shape_is_recognized(self) -> None:
+        doctor = {
+            "overallStatus": "fail",
+            "checks": {
+                "auth.credentials": {
+                    "status": "ok",
+                    "details": {
+                        "stored ChatGPT tokens": "true",
+                        "stored auth mode": "chatgpt",
+                    },
+                },
+                "network.provider_reachability": {"status": "ok"},
+            },
+        }
+        self.assertTrue(peer_catalog_support.parse_structured_auth(json.dumps(doctor)))
+        with mock.patch.dict(os.environ, {}, clear=True):
+            auth = peer_catalog_support.auth_result(
+                "codex",
+                peer_catalog.PROVIDERS["codex"],
+                "subscription_native",
+                peer_catalog_support.CommandResult(0, "Logged in using ChatGPT\n", ""),
+            )
+        self.assertEqual(auth["source"], "subscription_native")
+        self.assertEqual(auth["confidence"], "verified")
+
     def test_quality_roster_prefers_different_families(self) -> None:
         def provider(cli: str, family: str, rank: int) -> dict[str, object]:
             return {
@@ -103,11 +177,26 @@ class PeerContractTests(unittest.TestCase):
                 "installed": True,
                 "version": "synthetic",
                 "version_fingerprint": "version",
-                "models": [{"id": f"{family}-current", "family": family, "rank": 0, "reasoning_levels": ["high"]}],
-                "model_catalog": {"status": "resolved", "confidence": "verified", "fingerprint": "catalog"},
+                "models": [
+                    {
+                        "id": f"{family}-current",
+                        "family": family,
+                        "rank": 0,
+                        "reasoning_levels": ["high"],
+                    }
+                ],
+                "model_catalog": {
+                    "status": "resolved",
+                    "confidence": "verified",
+                    "fingerprint": "catalog",
+                },
                 "reasoning_levels": ["high"],
                 "roles": ["structural review"],
-                "auth": {"source": "subscription_native", "confidence": "verified", "policy_state": "eligible"},
+                "auth": {
+                    "source": "subscription_native",
+                    "confidence": "verified",
+                    "policy_state": "eligible",
+                },
                 "workflow": "available",
             }
 
@@ -120,7 +209,10 @@ class PeerContractTests(unittest.TestCase):
             None,
         )
         self.assertEqual(errors, [])
-        self.assertEqual({candidate["model_family"] for candidate in selected}, {"family-a", "family-b"})
+        self.assertEqual(
+            {candidate["model_family"] for candidate in selected},
+            {"family-a", "family-b"},
+        )
 
     def test_unverified_auth_is_visible_but_not_launch_eligible(self) -> None:
         provider = {
@@ -128,21 +220,41 @@ class PeerContractTests(unittest.TestCase):
             "installed": True,
             "version": "synthetic",
             "version_fingerprint": "version",
-            "models": [{"id": "fake-current", "family": "fake", "rank": 0, "reasoning_levels": ["high"]}],
-            "model_catalog": {"status": "resolved", "confidence": "verified", "fingerprint": "catalog"},
+            "models": [
+                {
+                    "id": "fake-current",
+                    "family": "fake",
+                    "rank": 0,
+                    "reasoning_levels": ["high"],
+                }
+            ],
+            "model_catalog": {
+                "status": "resolved",
+                "confidence": "verified",
+                "fingerprint": "catalog",
+            },
             "reasoning_levels": ["high"],
             "roles": ["structural review"],
-            "auth": {"source": "unverified", "confidence": "unresolved", "policy_state": "auth_not_verified"},
+            "auth": {
+                "source": "unverified",
+                "confidence": "unresolved",
+                "policy_state": "auth_not_verified",
+            },
             "workflow": "available",
         }
-        selected, errors = peer_catalog.build_candidates([provider], "quality", 1, None, None, None)
+        selected, errors = peer_catalog.build_candidates(
+            [provider], "quality", 1, None, None, None
+        )
         self.assertEqual(errors, [])
         self.assertFalse(selected[0]["eligible"])
         self.assertEqual(selected[0]["launch_state"], "auth_unverified")
 
     def test_prompt_fingerprint_changes_with_source(self) -> None:
-        with mock.patch("pathlib.Path.is_file", return_value=True), mock.patch(
-            "pathlib.Path.read_bytes", side_effect=[b"prompt-a", b"prompt-b"]
+        with (
+            mock.patch("pathlib.Path.is_file", return_value=True),
+            mock.patch(
+                "pathlib.Path.read_bytes", side_effect=[b"prompt-a", b"prompt-b"]
+            ),
         ):
             first = peer_catalog.prompt_fingerprints(["prompt.md"])
             second = peer_catalog.prompt_fingerprints(["prompt.md"])
@@ -151,7 +263,11 @@ class PeerContractTests(unittest.TestCase):
     def test_changed_preview_context_is_stale(self) -> None:
         preview = {
             "catalog_fingerprint": "old-catalog",
-            "prompt_resolution": {"profile": "structural", "status": "resolved", "sources": []},
+            "prompt_resolution": {
+                "profile": "structural",
+                "status": "resolved",
+                "sources": [],
+            },
             "snapshot_fingerprint": "old-tree",
         }
         current = peer_catalog.compare_preview_context(
@@ -161,18 +277,26 @@ class PeerContractTests(unittest.TestCase):
             "new-tree",
         )
         self.assertEqual(current["status"], "context_stale")
-        self.assertEqual(current["reasons"], ["catalog_changed", "working_tree_changed"])
+        self.assertEqual(
+            current["reasons"], ["catalog_changed", "working_tree_changed"]
+        )
 
     def test_shared_sources_do_not_pin_concrete_model_ids(self) -> None:
         source_paths = [
             REPO_ROOT / "plugins/v1tamins/skills/v1-phone-a-friend/SKILL.md",
-            REPO_ROOT / "plugins/v1tamins/skills/v1-phone-a-friend/references/model-selection.md",
+            REPO_ROOT
+            / "plugins/v1tamins/skills/v1-phone-a-friend/references/model-selection.md",
             REPO_ROOT / "plugins/v1tamins/skills/v1-review-board/SKILL.md",
-            REPO_ROOT / "plugins/v1tamins/skills/v1-review-board/references/review-contract.md",
+            REPO_ROOT
+            / "plugins/v1tamins/skills/v1-review-board/references/review-contract.md",
         ]
-        concrete_id = re.compile(r"\b(?:gpt|claude|gemini|sonnet|opus)[-_][0-9]", re.IGNORECASE)
+        concrete_id = re.compile(
+            r"\b(?:gpt|claude|gemini|sonnet|opus)[-_][0-9]", re.IGNORECASE
+        )
         for path in source_paths:
-            self.assertIsNone(concrete_id.search(path.read_text(encoding="utf-8")), path)
+            self.assertIsNone(
+                concrete_id.search(path.read_text(encoding="utf-8")), path
+            )
 
 
 if __name__ == "__main__":
