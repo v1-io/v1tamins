@@ -1,6 +1,6 @@
 ---
 name: v1-docs-freshness
-description: Use when existing documentation (README, AGENTS.md, CLAUDE.md, guides) should be synchronized after code changes or shipped work. Triggers on "update the docs", "sync docs", "post-ship docs", "documentation is stale", "refresh README". For generating release notes from merged PRs, use v1-changelog.
+description: Use when synchronizing existing documentation with shipped code or changes. Triggers on "update the docs", "sync docs", or "refresh README".
 allowed-tools:
   - Bash
   - Read

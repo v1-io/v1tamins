@@ -1,6 +1,6 @@
 ---
 name: v1-land-pr
-description: "Use when completed work should be committed, pushed, opened as a PR, monitored through CI, and marked ready. Triggers on 'land this PR', 'open and monitor a PR', 'commit push and watch CI', 'get this ready for review', or 'finish the PR workflow'."
+description: Use when explicitly handing completed work through commit, push, PR, CI, and review readiness. Triggers on "land this PR" or "commit, push, and watch CI".
 disable-model-invocation: true
 allowed-tools:
   - Bash

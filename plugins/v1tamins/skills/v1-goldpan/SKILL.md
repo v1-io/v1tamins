@@ -1,6 +1,6 @@
 ---
 name: v1-goldpan
-description: Use when the user explicitly asks to goldpan — mine recent PRs and agent sessions for compound-worthy lessons to document.
+description: Use when explicitly mining recent PRs and agent sessions for lessons to document. Triggers on "goldpan" or "mine recent sessions".
 disable-model-invocation: true
 allowed-tools:
   - Bash

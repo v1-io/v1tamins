@@ -1,6 +1,6 @@
 ---
 name: v1-prompt-engineering
-description: Use when writing, reviewing, or migrating prompts, system prompts, hooks, skills, or sub-agent instructions for any model or host. Triggers on "optimize prompt", "system prompt", "GPT-5.5 prompt", "OpenRouter prompt", "reasoning effort", "prompt migration".
+description: Use when writing, reviewing, or migrating prompts, system prompts, hooks, skills, or agent instructions. Triggers on "optimize prompt", "system prompt", or "prompt migration".
 ---
 # Prompt Engineering
 

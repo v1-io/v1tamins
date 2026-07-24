@@ -1,6 +1,6 @@
 ---
 name: v1-pr-walkthrough
-description: Use when explaining a pull request or branch. Triggers on "walk me through this PR", "explain this pr", "PR walkthrough", "visual code review", "show touched files", "what changed across files", "execution order".
+description: Use when explaining a PR or branch through a visual walkthrough. Triggers on "walk me through this PR", "explain this PR", or "PR walkthrough".
 allowed-tools:
   - Bash
   - Read

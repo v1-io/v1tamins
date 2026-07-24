@@ -42,11 +42,27 @@ Updates flow through the runtime's marketplace refresh — there's nothing to re
 
 ## Autonomous use
 
-v1tamins is designed for explicit invocation and autonomous routing. Codex and
-Claude Code decide whether to load a skill from compact metadata before they
-read the full `SKILL.md`, and both runtimes can shorten skill descriptions when
-many skills are installed. Treat the skill name and first description clause as
-the routing contract.
+v1tamins supports explicit invocation and autonomous routing. Codex and Claude
+Code select from compact metadata before loading the full `SKILL.md`, and both
+runtimes may shorten descriptions when many skills are installed.
+
+Every skill declares one runtime posture in `agents/openai.yaml`:
+
+- `implicit` — model-selectable and directly invocable for ordinary local work.
+- `selective_implicit` — model-selectable, but costly or high-impact work stays
+  separately gated at the action boundary.
+- `explicit_only` — callable only by a human or explicitly named automation;
+  paired with `allow_implicit_invocation: false` and
+  `disable-model-invocation: true`.
+
+There is no supported `agent-only` posture. Explicit orchestration entry points
+such as `/v1-implement-unit`, `/v1-review-board`, `/v1-pr`, and `/v1-land-pr`
+stay explicit even when their child skills are model-selectable.
+
+Frontmatter descriptions are routing metadata, not miniature manuals. Keep
+each non-empty description to the core purpose plus distinct natural trigger
+phrases, targeting 180 characters or fewer. Put methods, outputs, edge cases,
+and routing boundaries in the body or a directly linked reference.
 
 The package keeps that contract reviewable with:
 
@@ -75,10 +91,9 @@ evals for natural-phrase traffic: if users reach the skill by describing the
 task rather than naming it, hiding it misroutes that traffic to neighbors
 instead of saving budget.
 
-`/v1-menu` is the index over the full skill set — the one name to remember
-when you can't recall which skill fits, and where `explicit_only` skills stay
-discoverable. It stays model-reachable (`selective_implicit`) so a plain
-"which skill should I use?" routes to it. When a skill is added, renamed,
+`/v1-menu` is the explicit-only index over the full skill set — the one name to
+remember when you can't recall which skill fits. It is discoverable by name, but
+does not autonomously open a parent workflow. When a skill is added, renamed,
 removed, or changes posture, update `v1-menu` in the same change;
 `scripts/validate-plugin.sh` fails on menu drift.
 
@@ -134,6 +149,7 @@ mindmap
       ("v1-refine")
       ("v1-deep-review")
       ("v1-diagnosing-constraints")
+      ("v1-designing-habit-systems")
     Ship
       ("v1-pr")
       ("v1-pr-description")
@@ -413,6 +429,7 @@ flowchart LR
 | [`/v1-refine`](./plugins/v1tamins/skills/v1-refine/SKILL.md) | Refine working code via quality passes, AI-slop removal (`deslop`), or hindsight rewrite |
 | [`/v1-deep-review`](./plugins/v1tamins/skills/v1-deep-review/SKILL.md) | Review any PR or branch (code, docs, config) for merge risk and structural maintainability; `--post` or ask to post to GitHub |
 | [`/v1-diagnosing-constraints`](./plugins/v1tamins/skills/v1-diagnosing-constraints/SKILL.md) | Find the bottleneck or constraint governing throughput in a stuck process, team, queue, or roadmap |
+| [`/v1-designing-habit-systems`](./plugins/v1tamins/skills/v1-designing-habit-systems/SKILL.md) | Design or diagnose a habit, routine, or cadence that should stick |
 
 ### Ship
 

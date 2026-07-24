@@ -1,6 +1,6 @@
 ---
 name: v1-e2e-testing
-description: Use when implementing E2E tests, debugging flaky tests, testing web applications with Playwright, or establishing E2E testing standards. Triggers on "e2e test", "end-to-end", "Playwright", "flaky test", "browser test".
+description: Use when implementing or debugging browser end-to-end tests, especially Playwright or flaky tests. Triggers on "E2E test", "Playwright", or "flaky browser test".
 ---
 # E2E Testing with Playwright
 

@@ -6,6 +6,7 @@ require "json"
 require "yaml"
 
 VALID_INVOCATION_POSTURES = %w[implicit selective_implicit explicit_only].freeze
+DESCRIPTION_TARGET_CHARS = 180
 # Grammar of a v1-menu entry: a backtick-wrapped slash-name, optionally
 # followed by the bold explicit marker. Centralized here; the menu body is
 # free-form Markdown, so this is the one scan the format allows.
@@ -125,8 +126,8 @@ Dir.glob(File.join(skills_dir, "v1-*", "SKILL.md")).sort.each do |skill_path|
 
   first_clause = description.split(/[.;]/, 2).first.to_s.strip
 
-  if description.length > 350
-    warnings << "#{rel(skill_path, repo_root)}: description is #{description.length} chars; target <= 350 for budget resilience"
+  if description.length > DESCRIPTION_TARGET_CHARS
+    warnings << "#{rel(skill_path, repo_root)}: description is #{description.length} chars; target <= #{DESCRIPTION_TARGET_CHARS} for budget resilience"
   end
 
   unless description.match?(/\A(Use when|Conducts?|Create|Convert|Extract|Commit|Autonomous)\b/i)

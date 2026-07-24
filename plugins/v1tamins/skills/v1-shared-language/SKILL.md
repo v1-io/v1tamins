@@ -1,6 +1,6 @@
 ---
 name: v1-shared-language
-description: Extract a DDD-style ubiquitous-language glossary from the current conversation into LANGUAGE.md, flagging ambiguities and proposing canonical terms. Triggers on "define the domain terms", "build a glossary", "ubiquitous language", "harden this terminology".
+description: Use when extracting a domain glossary or canonical terminology from a conversation. Triggers on "build a glossary", "ubiquitous language", or "define the domain terms".
 ---
 # Ubiquitous Language
 

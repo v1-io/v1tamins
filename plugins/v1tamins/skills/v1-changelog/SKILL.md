@@ -1,6 +1,6 @@
 ---
 name: v1-changelog
-description: Use when generating a changelog from recent merged PRs or documenting releases. Triggers on "write changelog", "release notes", "what shipped".
+description: Use when writing release notes from merged PRs. Triggers on "write changelog", "release notes", or "what shipped".
 allowed-tools:
   - Bash
   - Read

@@ -4,6 +4,16 @@ These files make autonomous skill selection reviewable. Runtime agents often
 choose a skill from compact metadata before loading the full `SKILL.md`, so
 description edits are behavior changes.
 
+Description contract: keep `SKILL.md` frontmatter descriptions non-empty and
+target 180 characters or fewer. Include only the skill's core purpose and
+distinct natural trigger phrases. Keep methods, outputs, edge cases, and
+neighbor boundaries in the loaded body or a directly linked reference.
+
+Invocation contract: `policy.invocation_posture` is `implicit`,
+`selective_implicit`, or `explicit_only`. The package has no `agent-only`
+posture. Explicit parent workflows stay explicit even when their children are
+model-selectable.
+
 ## Files
 
 - `trigger-inventory.md` records each packaged skill's trigger contract, likely

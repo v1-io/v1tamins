@@ -1,6 +1,6 @@
 ---
 name: v1-md2docs
-description: Use when the user explicitly wants a Markdown file converted into a formatted Google Doc. Triggers on "turn this .md into a Google Doc", "publish this markdown as a doc", "md2docs".
+description: Use when explicitly converting a Markdown file into a formatted Google Doc. Triggers on "Markdown to Google Doc" or "publish this markdown as a doc".
 disable-model-invocation: true
 allowed-tools:
   - Bash

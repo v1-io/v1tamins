@@ -1,9 +1,6 @@
 ---
 name: v1-autoresearch-skill
-description: >-
-  Autonomous optimization loop inspired by Karpathy's AutoResearch, run when the user
-  explicitly asks for it. Point the skill at any measurable target and it will modify,
-  measure, keep improvements, and discard regressions.
+description: Use when explicitly running a measured optimization loop against a target. Triggers on "run autoresearch" or "keep only measured improvements".
 disable-model-invocation: true
 allowed-tools:
   - Bash

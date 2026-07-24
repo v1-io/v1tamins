@@ -1,6 +1,6 @@
 ---
 name: v1-designing-habit-systems
-description: Use when designing a habit, routine, or cadence that sticks for a person, team, or process, or when an existing one keeps failing. Triggers on "help me build a habit", "make this schedule stick", "design a routine", "why do we keep falling off", "habit system", "standing cadence that sticks".
+description: Use when designing or diagnosing a habit, routine, or cadence that should stick. Triggers on "build a habit", "design a routine", or "why do we keep falling off".
 allowed-tools:
   - Bash
   - Read

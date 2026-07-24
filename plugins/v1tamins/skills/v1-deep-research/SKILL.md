@@ -1,10 +1,6 @@
 ---
 name: v1-deep-research
-description: >
-  Conducts multi-source deep research with iterative refinement and structured synthesis.
-  Triggers on "deep research", "research report", "comprehensive analysis", "analyze X",
-  "compare X vs Y", "state of the art", "what does the research say about".
-  NOT for: simple lookups, debugging, questions answerable in 1-2 searches, code review.
+description: Use when conducting multi-source research with structured synthesis. Triggers on "deep research", "research report", or "compare the state of the art".
 allowed-tools:
   - WebSearch
   - WebFetch
