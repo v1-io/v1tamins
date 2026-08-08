@@ -161,5 +161,5 @@ Use the canonical triage vocabulary and its Linear workflow-state mapping. See
 
 ### Domain docs
 
-Single-context repository. Read `context.md` and relevant ADRs under
+Single-context repository. Read `CONTEXT.md` and relevant ADRs under
 `docs/adr/`. See `docs/agents/domain.md`.
