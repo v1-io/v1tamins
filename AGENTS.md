@@ -146,3 +146,20 @@ Before publishing shared skills or instructions, run a privacy and portability s
 - **Plugin-only distribution**: `plugins/v1tamins/` ships both a Claude Code plugin (`.claude-plugin/plugin.json`) and a Codex plugin (`.codex-plugin/plugin.json`) from one shared `skills/` directory
 - **Project-agnostic**: Skills work across different project types without modification
 - **Single source of truth**: All skill content lives in `plugins/v1tamins/skills/`; there is no tracked `.agents/skills` mirror
+
+## Agent skills
+
+### Issue tracker
+
+Work is tracked in Linear, workspace `v1io`, team `VER`. See
+`docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the canonical triage vocabulary and its Linear workflow-state mapping. See
+`docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repository. Read `context.md` and relevant ADRs under
+`docs/adr/`. See `docs/agents/domain.md`.

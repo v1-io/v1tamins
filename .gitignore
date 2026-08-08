@@ -37,5 +37,7 @@ plugins/v1tamins/skills/v1-_*
 # Local-only repo guidance (kept on disk, not distributed)
 .github/copilot-instructions.md
 
-# Planning docs
-docs/
+# Planning docs stay local; agent guidance and ADRs are tracked
+docs/*
+!docs/agents/
+!docs/adr/
