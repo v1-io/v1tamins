@@ -151,7 +151,7 @@ Before publishing shared skills or instructions, run a privacy and portability s
 
 ### Issue tracker
 
-Work is tracked in Linear, workspace `v1io`, team `VER`. See
+Work is tracked in GitHub Issues on this public repository, not Linear. See
 `docs/agents/issue-tracker.md`.
 
 ### Triage labels

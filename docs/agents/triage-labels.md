@@ -1,18 +1,26 @@
 # Triage Labels
 
-These are the canonical triage roles and how they map onto Linear.
+These are the canonical triage roles and the label strings this repository uses
+on GitHub Issues.
 
-| Role | Label | Linear mapping |
+| Role | Label in this repo | Exists today |
 | --- | --- | --- |
-| Needs triage | `needs-triage` | Triage state, or Backlog when untriaged |
-| Needs information | `needs-info` | Blocked, with the open question in a comment |
-| Ready for agent | `ready-for-agent` | Todo, fully specified, agent may pick up |
-| Ready for human | `ready-for-human` | Todo, requires human implementation |
-| Won't fix | `wontfix` | Cancelled |
+| Needs triage | `needs-triage` | no |
+| Needs information | `needs-info` | no |
+| Ready for agent | `ready-for-agent` | no |
+| Ready for human | `ready-for-human` | no |
+| Won't fix | `wontfix` | yes |
 
-Linear workflow state is the source of truth. Apply a label only when the
-workspace already defines it — create labels through the Linear UI, not through
-an agent, so the vocabulary stays under human control.
+Only `wontfix` exists in the repository today. The other four are not created
+yet, so a skill that tries to apply one will fail until they exist.
 
-When a skill names a role, map it to the state in this table rather than
-inventing a new label.
+Create them deliberately, through the GitHub UI or `gh label create`, rather
+than letting an agent create them as a side effect of triaging one issue. Label
+vocabulary on a public repository is visible to everyone who reads it, so it
+should be a decision rather than an accident.
+
+The repository also carries GitHub's stock labels — `bug`, `documentation`,
+`duplicate`, `enhancement`, `good first issue`, `help wanted`, `invalid`,
+`question`. Those describe what an issue is about. The five above describe what
+should happen to it next. Keep the two sets separate; do not overload `question`
+to mean `needs-info`.
