@@ -134,11 +134,12 @@ Treat every non-empty review body as a review item. Join it to its review author
 Fetch every check run for the recorded PR head SHA, then fetch every annotation for every run:
 
 ```bash
-gh api repos/{owner}/{repo}/commits/{head-sha}/check-runs --paginate
+gh api --method GET repos/{owner}/{repo}/commits/{head-sha}/check-runs \
+  -f filter=all -f per_page=100 --paginate
 gh api repos/{owner}/{repo}/check-runs/{check-run-id}/annotations --paginate
 ```
 
-Inspect each check run's status, conclusion, details URL, and `output.title`, `output.summary`, and `output.text`, as well as every annotation's level, path, lines, title, message, and raw details. Record actionable output or annotations in the ledger even when the overall check passes. Do not treat a successful conclusion as proof that a check supplied no feedback.
+Always request `filter=all`; GitHub otherwise returns only the latest check run for each check name and can hide feedback from an earlier attempt on the same head SHA. Inspect each run's status, conclusion, details URL, and `output.title`, `output.summary`, and `output.text`, as well as every annotation's level, path, lines, title, message, and raw details. Record actionable output or annotations in the ledger even when the overall check passes. Do not treat a successful conclusion as proof that a check supplied no feedback.
 
 Record the PR head SHA before analysis:
 
