@@ -47,7 +47,7 @@ Before editing files, build a working ledger of every actionable review item:
 Use the ledger to avoid losing line-specific comments, stale bot findings, or false positives that still need a reply. If GitHub API access fails, say so explicitly and do not claim comments were addressed; fall back only to local diff review and mark replies as blocked.
 
 ### 2. Fetch Review Comments
-Checks **four** sources of review feedback:
+Check every source of review feedback:
 
 #### A. Line-specific review comments
 ```bash
@@ -119,6 +119,27 @@ If `reviewThreads.pageInfo.hasNextPage` is true, continue fetching with `after: 
 
 Join review threads to line-specific comments by GraphQL `databaseId` matching the REST comment `id`. Track unresolved and outdated thread state in the ledger.
 
+#### E. Submitted review bodies
+
+Fetch submitted reviews because an approval, comment, or request-changes review can contain actionable feedback only in its top-level body:
+
+```bash
+gh api repos/{owner}/{repo}/pulls/{pr}/reviews --paginate
+```
+
+Treat every non-empty review body as a review item. Join it to its review author, state, commit ID, and URL in the ledger. Do not assume its line comments duplicate the body.
+
+#### F. Check-run output and annotations
+
+Fetch every check run for the recorded PR head SHA, then fetch every annotation for every run:
+
+```bash
+gh api repos/{owner}/{repo}/commits/{head-sha}/check-runs --paginate
+gh api repos/{owner}/{repo}/check-runs/{check-run-id}/annotations --paginate
+```
+
+Inspect each check run's status, conclusion, details URL, and `output.title`, `output.summary`, and `output.text`, as well as every annotation's level, path, lines, title, message, and raw details. Record actionable output or annotations in the ledger even when the overall check passes. Do not treat a successful conclusion as proof that a check supplied no feedback.
+
 Record the PR head SHA before analysis:
 
 ```bash
@@ -131,6 +152,9 @@ Before posting replies, adding reactions, resolving threads, committing, or push
 
 #### Line-specific and general comments
 Each comment = one finding. Read the referenced file and code section.
+
+#### Submitted reviews and check feedback
+Treat each distinct finding in a submitted review body, check output, or check annotation as a ledger item. Use its review URL or check details URL as the source when no line-comment URL exists.
 
 #### Aggregate bot comments
 Follow [references/code-factory.md](references/code-factory.md) when the body matches multi-finding markers. Otherwise treat the issue comment as a single finding like any other PR-level comment.
@@ -159,6 +183,9 @@ Reply inline: `gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies -f b
 
 #### General PR-level comments
 Summary comment: `gh api repos/{owner}/{repo}/issues/{pr}/comments`
+
+#### Submitted reviews and check feedback
+Post one PR-level summary comment that links each source review or check and records the disposition of every finding that cannot receive an inline reply.
 
 #### Aggregate bot multi-finding comments
 Use the summary-reply template in [references/code-factory.md](references/code-factory.md).
@@ -250,6 +277,7 @@ Before reporting done:
 - Only review-fix files are staged.
 - The commit is pushed if the user asked for push/PR completion.
 - Every GitHub review thread or aggregate bot comment has a reply, unless API access was unavailable and that gap is stated.
+- Every submitted review-body finding and check-run finding has a disposition and a linked PR-level reply when no inline reply surface exists.
 - Every review thread that should be resolved is resolved, unless GitHub API access was unavailable and that gap is stated.
 - Usefulness reactions are applied for clearly useful or clearly unhelpful bot/human comments when appropriate, and skipped when they would add noise.
 
