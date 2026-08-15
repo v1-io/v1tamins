@@ -165,12 +165,51 @@ If the helper is unavailable, the manual equivalent is `( "$PEER_ENV" --provider
 
 ## Command Wrapper Matrix
 
+`scripts/peer_launch.py` is the authority for every wrapper below. It converts an
+approved selection into an argv list and refuses, before any process starts,
+when the selection has no launch representation. The blocks in this file are
+rendered from that adapter (`peer_launch.py --emit-doc-examples`) and a contract
+test compares them flag for flag, so a hand edit here that the adapter would not
+produce fails validation. Build the real command with the adapter; read these
+blocks to see the shape.
+
+```bash
+PEER_LAUNCH="<this skill dir>/scripts/peer_launch.py"
+python3 "$PEER_LAUNCH" \
+  --cli <provider> \
+  --permission readonly \
+  --model <current-model-from-catalog> \
+  --reasoning <current-reasoning-level> \
+  --prompt-file "$RUN_DIR/prompt.txt" \
+  --probe-syntax
+```
+
 | Peer | `readonly` wrapper | `local-verify` or `isolated-delegate` wrapper |
 | --- | --- | --- |
-| Claude Code | `claude -p --tools "Read,Grep,Glob" --allowedTools "Read,Grep,Glob" --disallowedTools "Edit,Write,Bash,mcp__*" --strict-mcp-config ...` | `claude -p --permission-mode bypassPermissions ...` |
-| Codex | `codex exec --sandbox read-only --cd <repo> ...` | `codex exec --dangerously-bypass-approvals-and-sandbox --cd <repo> ...` |
-| Cursor Agent | `cursor-agent -p --mode plan --trust ...` | `cursor-agent -p --worktree <name> --force ...` |
-| Antigravity CLI (`agy`) | `agy --sandbox --print ...` | `agy --dangerously-skip-permissions --print ...` only in a trusted or isolated worktree. |
+| Claude Code | `claude -p --tools=… --allowedTools=… --disallowedTools=… --strict-mcp-config …` | `claude -p --permission-mode bypassPermissions …` |
+| Codex | `codex exec --sandbox read-only --cd <repo> …` | `codex exec --dangerously-bypass-approvals-and-sandbox --cd <repo> …` |
+| Cursor Agent | `cursor-agent -p --mode plan --trust …` | `cursor-agent -p --worktree <name> --force …` |
+| Antigravity CLI (`agy`) | `agy --sandbox --print …` | `agy --dangerously-skip-permissions --print …` only in a trusted or isolated worktree. |
+
+Three wrapper rules the adapter enforces so a local defect cannot look like a
+peer failure:
+
+- **The prompt is always the last argument.** A variadic option (for example
+  `--add-dir`) attaches its value with `=` so the parser cannot keep consuming
+  tokens and swallow the prompt. A prompt that would land next to a bare
+  variadic option is `launch_recipe_unresolved`, not a launch.
+- **Companion flags travel with the mode that needs them.** Claude's streaming
+  JSON output carries `--verbose`; a provider's read-only mode carries its own
+  tool or sandbox restrictions.
+- **A model argument is used exactly as validated.** Never synthesize an
+  effort-parameterized model ID. When a requested reasoning level has no
+  advertised launch argument for that provider, the result is
+  `launch_recipe_unresolved`.
+
+`--probe-syntax` reads the installed CLI's own help surface — no model request —
+and returns `wrapper_validation_failed` with the missing option names when the
+installed CLI does not document one. An unreadable help surface leaves the
+recipe `unverified`; the adapter never repairs a recipe on its own.
 
 Resolve model, effort, permission flags, and output modes from current local help, model lists, config, or the user's explicit request. Do not pin concrete model names in reusable commands, and do not invent permission-mode values that local help does not document.
 
@@ -184,13 +223,14 @@ Read-only consult:
 
 ```bash
 "$PEER_ENV" --provider claude --auth-mode subscription_native -- claude -p \
-  --tools "Read,Grep,Glob" \
-  --allowedTools "Read,Grep,Glob" \
-  --disallowedTools "Edit,Write,Bash,mcp__*" \
+  --tools=Read,Grep,Glob \
+  --allowedTools=Read,Grep,Glob \
+  "--disallowedTools=Edit,Write,Bash,mcp__*" \
   --strict-mcp-config \
   --output-format stream-json \
-  --model <current-model-from-catalog> \
-  --effort <current-reasoning-level> \
+  --verbose \
+  --model "<current-model-from-catalog>" \
+  --effort "<current-reasoning-level>" \
   "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
@@ -200,12 +240,13 @@ Trusted verification or isolated delegation:
 "$PEER_ENV" --provider claude --auth-mode subscription_native -- claude -p \
   --permission-mode bypassPermissions \
   --output-format stream-json \
-  --model <current-model-from-catalog> \
-  --effort <current-reasoning-level> \
+  --verbose \
+  --model "<current-model-from-catalog>" \
+  --effort "<current-reasoning-level>" \
   "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
-Use `--auth-mode api_explicit` only when the user selected API mode for this run. Keep `--output-format stream-json` so progress is observable; `peer-run.sh` treats framing-only JSON as `empty_output` and requires a terminal answer event for `complete`. Close stdin (`< /dev/null`) for the same reason as Codex.
+Use `--auth-mode api_explicit` only when the user selected API mode for this run. Keep `--output-format stream-json` so progress is observable; it requires the companion `--verbose` flag, and the adapter always emits the pair. `peer-run.sh` treats framing-only JSON as `empty_output` and requires a terminal answer event for `complete`. Close stdin (`< /dev/null`) for the same reason as Codex. The tool lists attach their values with `=` so a later variadic option cannot consume the prompt.
 
 Use full permission mode only for a trusted local repo or isolated worktree. Inspect any resulting diff before keeping it.
 
@@ -218,9 +259,9 @@ Read-only consult:
 ```bash
 "$PEER_ENV" --provider codex --auth-mode subscription_native -- codex exec \
   --sandbox read-only \
-  --cd <repo> \
+  --cd "<repo>" \
   --json \
-  --model <current-model-from-catalog> \
+  --model "<current-model-from-catalog>" \
   "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
@@ -229,11 +270,13 @@ Trusted verification or isolated delegation:
 ```bash
 "$PEER_ENV" --provider codex --auth-mode subscription_native -- codex exec \
   --dangerously-bypass-approvals-and-sandbox \
-  --cd <trusted-or-isolated-repo> \
+  --cd "<trusted-or-isolated-repo>" \
   --json \
-  --model <current-model-from-catalog> \
+  --model "<current-model-from-catalog>" \
   "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
+
+The working directory is required: the adapter returns `launch_recipe_unresolved` rather than letting a sandbox scope default to the caller's cwd. Codex takes no separate reasoning flag, so a reasoning level that the model argument does not already encode is unrepresentable and is refused before launch.
 
 Always close stdin (`< /dev/null`) when the prompt is passed as an argument. Without it, `codex exec` blocks on `Reading additional input from stdin` and the run stalls with no output — a recurring, silent failure.
 
@@ -250,9 +293,11 @@ Read-only consult:
   --mode plan \
   --trust \
   --output-format stream-json \
-  --model <current-model-from-catalog> \
+  --model "<current-model-from-catalog>" \
   "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
+
+Cursor's `--model` takes exactly the ID its own catalog listed. The adapter never appends an effort suffix or builds a parameterized model argument, so a reasoning level the catalog ID does not already encode is `launch_recipe_unresolved`.
 
 Use `--mode ask` for pure Q&A. Use `--trust` only for a workspace the user already trusts or for a generated isolated worktree; it answers Cursor's headless workspace-trust prompt and does not replace `--mode plan` or `--mode ask`.
 
@@ -262,9 +307,9 @@ Trusted verification or isolated delegation:
 
 ```bash
 "$PEER_ENV" --provider cursor-agent --auth-mode subscription_native -- cursor-agent -p \
-  --worktree <name> \
+  --worktree "<name>" \
   --output-format stream-json \
-  --model <current-model-from-catalog> \
+  --model "<current-model-from-catalog>" \
   --force \
   "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
@@ -296,8 +341,8 @@ Read-only consult:
 "$PEER_ENV" --provider agy --auth-mode subscription_native -- agy \
   --sandbox \
   --print-timeout 5m \
-  --model <current-model-from-catalog> \
-  --effort <current-reasoning-level> \
+  --model "<current-model-from-catalog>" \
+  --effort "<current-reasoning-level>" \
   --print "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
@@ -309,8 +354,8 @@ Trusted verification or isolated delegation:
 "$PEER_ENV" --provider agy --auth-mode subscription_native -- agy \
   --dangerously-skip-permissions \
   --print-timeout 5m \
-  --model <current-model-from-catalog> \
-  --effort <current-reasoning-level> \
+  --model "<current-model-from-catalog>" \
+  --effort "<current-reasoning-level>" \
   --print "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 

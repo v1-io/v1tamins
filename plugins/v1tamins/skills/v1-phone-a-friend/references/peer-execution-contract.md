@@ -78,27 +78,36 @@ Do not regex free-form auth prose.
 
 1. Save the reviewed prompt and a read-only working-tree snapshot in a
    run-specific scratch directory.
-2. Launch exactly the approved command through `peer-run.sh`, with stdin
+2. Build the command with `scripts/peer_launch.py`, never by hand. It converts
+   the approved selection into an argv list for the installed CLI, keeps the
+   prompt as the final argument so no variadic option can consume it, emits the
+   companion flags a mode requires, and uses a model argument exactly as
+   validated. It returns `launch_recipe_unresolved` when the selection has no
+   launch representation, and `wrapper_validation_failed` when `--probe-syntax`
+   shows the installed CLI does not document an option. Both are local wrapper
+   defects found before any process starts; neither is a peer failure, and the
+   adapter never repairs a recipe on its own.
+3. Launch exactly that command through `peer-run.sh`, with stdin
    closed, a recorded deadline, and a unique slug. Detach with `setsid` when
    available, else Perl `POSIX::setsid`, else `nohup`.
-3. Poll `status` or read `verdict --json`; do not branch on provider exit code
+4. Poll `status` or read `verdict --json`; do not branch on provider exit code
    alone. A terminal sentinel plus a real peer answer is `complete` (plain text
    non-whitespace, or a terminal JSON / stream-json answer payload — framing,
    reasoning, tool, or error-only JSON alone is not enough), an empty or
    answer-less terminal result is `empty_output`, a vanished process is
    `stalled`, and a deadline breach is `timed_out`. `status` and `verdict` are
    pure observation; the watchdog and explicit `teardown` own process mutation.
-4. `scripts/peer_verdict.py` owns that judgment and reports the matching
+5. `scripts/peer_verdict.py` owns that judgment and reports the matching
    `envelope_family` in the verdict. It reads shapes, not provider names: a
    terminal answer may sit directly in the terminal event or nest below it
    (`result_event_nested`), so a provider that nests its answer is `complete`,
    not a false `empty_output`. Reasoning blocks, tool traffic, and any envelope
    carrying `is_error`, an error subtype, or a nested failure status are never
    an answer.
-5. If dispatch occurred and lifecycle evidence is ambiguous, the parent reports
+6. If dispatch occurred and lifecycle evidence is ambiguous, the parent reports
    `execution_uncertain`. Do not retry, replace the peer, or fan out another
    run automatically.
-6. Tear down only the recorded PID/PGID (PGID only when `peer.session=1`).
+7. Tear down only the recorded PID/PGID (PGID only when `peer.session=1`).
    Never use a command-line pattern kill.
 
 Mutation, local verification, and external publication are separate permission

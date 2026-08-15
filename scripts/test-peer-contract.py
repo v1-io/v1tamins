@@ -7,6 +7,7 @@ import importlib.util
 import json
 import os
 import re
+import shlex
 import sys
 import tempfile
 import unittest
@@ -29,6 +30,7 @@ sys.modules["peer_catalog"] = peer_catalog
 SPEC.loader.exec_module(peer_catalog)
 
 import peer_adapters  # noqa: E402
+import peer_launch  # noqa: E402
 import peer_models  # noqa: E402
 import peer_policy  # noqa: E402
 import peer_verdict  # noqa: E402
@@ -717,6 +719,200 @@ class PeerContractTests(unittest.TestCase):
 
 def stream(*events: dict[str, Any]) -> str:
     return "".join(json.dumps(event) + "\n" for event in events)
+
+
+def wrapper_blocks(markdown: str) -> list[tuple[str, ...]]:
+    """Tokenize every fenced credential-wrapper example in a templates file."""
+
+    blocks: list[tuple[str, ...]] = []
+    current: list[str] | None = None
+    for line in markdown.splitlines():
+        if line.startswith("```"):
+            if current is not None:
+                text = "\n".join(current)
+                if text.lstrip().startswith('"$PEER_ENV"'):
+                    blocks.append(tuple(shlex.split(text.replace("\\\n", " "))))
+                current = None
+            elif line.strip() == "```bash":
+                current = []
+            continue
+        if current is not None:
+            current.append(line)
+    return blocks
+
+
+class PeerLaunchTests(unittest.TestCase):
+    """Provider argv construction, refusals, and doc/adapter agreement."""
+
+    def recipe(self, cli: str, **kwargs: Any) -> Any:
+        kwargs.setdefault("permission", "readonly")
+        kwargs.setdefault("prompt", "SYNTHETIC PROMPT")
+        return peer_launch.build_recipe(cli, **kwargs)
+
+    def test_every_supported_provider_has_a_launch_adapter(self) -> None:
+        self.assertEqual(set(peer_launch.BUILDERS), set(peer_policy.PROVIDERS))
+        self.assertEqual(set(peer_launch.BINARIES), set(peer_policy.PROVIDERS))
+        self.assertEqual(set(peer_launch.VARIADIC_FLAGS), set(peer_policy.PROVIDERS))
+
+    def test_prompt_is_always_the_final_argument(self) -> None:
+        contexts = {
+            "codex": peer_launch.LaunchContext(repo="/synthetic/repo"),
+            "cursor-agent": peer_launch.LaunchContext(worktree="synthetic-tree"),
+        }
+        for cli in peer_policy.PROVIDERS:
+            for permission in peer_launch.PERMISSION_MODES:
+                recipe = self.recipe(
+                    cli,
+                    permission=permission,
+                    model="fake-strong",
+                    context=contexts.get(cli, peer_launch.LaunchContext()),
+                )
+                self.assertIsInstance(recipe, peer_launch.LaunchRecipe, (cli, permission))
+                self.assertEqual(recipe.argv[-1], "SYNTHETIC PROMPT", (cli, permission))
+                self.assertEqual(recipe.prompt_placement, "final_positional")
+
+    def test_claude_stream_json_carries_its_companion_flag(self) -> None:
+        recipe = self.recipe("claude", model="fake-strong", reasoning="high")
+        self.assertIn("--verbose", recipe.argv)
+        index = recipe.argv.index("--output-format")
+        self.assertEqual(recipe.argv[index + 1], "stream-json")
+        self.assertEqual(recipe.reasoning_argument, "high")
+        self.assertEqual(
+            recipe.argv[recipe.argv.index("--effort") + 1], "high"
+        )
+
+    def test_claude_readonly_restricts_tools_and_mcp(self) -> None:
+        recipe = self.recipe("claude", model="fake-strong")
+        self.assertIn("--strict-mcp-config", recipe.argv)
+        self.assertIn("--tools=Read,Grep,Glob", recipe.argv)
+        self.assertIn("--allowedTools=Read,Grep,Glob", recipe.argv)
+        self.assertIn("--disallowedTools=Edit,Write,Bash,mcp__*", recipe.argv)
+        self.assertNotIn("bypassPermissions", recipe.argv)
+
+    def test_variadic_options_attach_their_value(self) -> None:
+        # A bare variadic pair would let the parser reach the prompt.
+        for name in peer_launch.VARIADIC_FLAGS["claude"]:
+            self.assertEqual(
+                peer_launch.option("claude", name, "value"), [f"{name}=value"]
+            )
+        self.assertEqual(
+            peer_launch.option("codex", "--cd", "/synthetic/repo"),
+            ["--cd", "/synthetic/repo"],
+        )
+
+    def test_prompt_next_to_a_variadic_option_is_refused(self) -> None:
+        outcome = peer_launch.finalize(
+            "claude", ["claude", "-p", "--add-dir"], "SYNTHETIC PROMPT"
+        )
+        self.assertIsInstance(outcome, peer_launch.LaunchError)
+        self.assertEqual(outcome.code, "launch_recipe_unresolved")
+        self.assertEqual(outcome.missing_flags, ("--add-dir",))
+
+    def test_codex_requires_an_explicit_working_directory(self) -> None:
+        outcome = self.recipe("codex", model="fake-strong")
+        self.assertIsInstance(outcome, peer_launch.LaunchError)
+        self.assertEqual(outcome.code, "launch_recipe_unresolved")
+        recipe = self.recipe(
+            "codex",
+            model="fake-strong",
+            context=peer_launch.LaunchContext(repo="/synthetic/repo"),
+        )
+        self.assertEqual(
+            recipe.argv[:6],
+            ("codex", "exec", "--sandbox", "read-only", "--cd", "/synthetic/repo"),
+        )
+        self.assertIn("--json", recipe.argv)
+
+    def test_cursor_never_synthesizes_an_effort_model_argument(self) -> None:
+        outcome = self.recipe("cursor-agent", model="fake-strong", reasoning="high")
+        self.assertIsInstance(outcome, peer_launch.LaunchError)
+        self.assertEqual(outcome.code, "launch_recipe_unresolved")
+        # The level is representable only when the catalog ID already carries it.
+        recipe = self.recipe("cursor-agent", model="fake-strong-high", reasoning="high")
+        self.assertEqual(recipe.launch_model_argument, "fake-strong-high")
+        self.assertIsNone(recipe.reasoning_argument)
+        self.assertNotIn("--effort", recipe.argv)
+
+    def test_cursor_elevated_run_requires_a_named_worktree(self) -> None:
+        outcome = self.recipe(
+            "cursor-agent", permission="isolated-delegate", model="fake-strong"
+        )
+        self.assertIsInstance(outcome, peer_launch.LaunchError)
+        recipe = self.recipe(
+            "cursor-agent",
+            permission="isolated-delegate",
+            model="fake-strong",
+            context=peer_launch.LaunchContext(worktree="synthetic-tree"),
+        )
+        self.assertIn("--force", recipe.argv)
+        self.assertEqual(recipe.argv[recipe.argv.index("--worktree") + 1], "synthetic-tree")
+
+    def test_agy_keeps_print_adjacent_to_the_prompt(self) -> None:
+        recipe = self.recipe("agy", model="fake-strong", reasoning="high")
+        self.assertEqual(recipe.argv[-2], "--print")
+        self.assertIn("--sandbox", recipe.argv)
+        self.assertEqual(recipe.argv[recipe.argv.index("--print-timeout") + 1], "5m")
+
+    def test_syntax_probe_reports_missing_flags_without_repairing(self) -> None:
+        recipe = self.recipe("claude", model="fake-strong")
+        with mock.patch.object(
+            peer_launch, "help_surface", return_value="usage\n  --model\n  --verbose\n"
+        ):
+            outcome = peer_launch.validate_syntax(recipe)
+        self.assertIsInstance(outcome, peer_launch.LaunchError)
+        self.assertEqual(outcome.code, "wrapper_validation_failed")
+        self.assertIn("--strict-mcp-config", outcome.missing_flags)
+        self.assertIn("--model", " ".join(recipe.argv))
+
+    def test_syntax_probe_accepts_a_help_surface_documenting_every_flag(self) -> None:
+        recipe = self.recipe("claude", model="fake-strong")
+        help_text = "usage\n" + "\n".join(peer_launch.recipe_flags(recipe))
+        with mock.patch.object(peer_launch, "help_surface", return_value=help_text):
+            outcome = peer_launch.validate_syntax(recipe)
+        self.assertIsInstance(outcome, peer_launch.LaunchRecipe)
+        self.assertEqual(outcome.syntax_validation, "verified")
+
+    def test_syntax_probe_does_not_match_a_longer_option_name(self) -> None:
+        recipe = self.recipe("codex", context=peer_launch.LaunchContext(repo="/r"))
+        with mock.patch.object(
+            peer_launch, "help_surface", return_value="usage\n  --json-schema\n  --cd\n"
+        ):
+            outcome = peer_launch.validate_syntax(recipe)
+        self.assertIsInstance(outcome, peer_launch.LaunchError)
+        self.assertIn("--json", outcome.missing_flags)
+
+    def test_unreadable_help_surface_leaves_the_recipe_unverified(self) -> None:
+        recipe = self.recipe("claude", model="fake-strong")
+        with mock.patch.object(peer_launch, "help_surface", return_value=None):
+            outcome = peer_launch.validate_syntax(recipe)
+        self.assertIsInstance(outcome, peer_launch.LaunchRecipe)
+        self.assertEqual(outcome.syntax_validation, "unverified")
+
+    def test_recipes_never_carry_api_key_environment(self) -> None:
+        recipe = self.recipe("claude", model="fake-strong")
+        self.assertEqual(recipe.auth_mode, "subscription_native")
+        self.assertEqual(
+            set(recipe.env_overrides) & set(peer_policy.API_KEY_ENV_VARS), set()
+        )
+        with mock.patch.dict(
+            os.environ, {"ANTHROPIC_API_KEY": "redacted"}, clear=False
+        ):
+            probe_env = peer_policy.subscription_environment(recipe.auth_mode, recipe.cli)
+        for name in peer_policy.API_KEY_ENV_VARS:
+            self.assertNotIn(name, probe_env)
+
+    def test_documented_wrappers_match_the_adapter_flag_for_flag(self) -> None:
+        templates = (
+            REPO_ROOT
+            / "plugins/v1tamins/skills/v1-phone-a-friend/references/command-templates.md"
+        )
+        documented = wrapper_blocks(templates.read_text(encoding="utf-8"))
+        rendered = [
+            tuple(shlex.split(example["block"].replace("\\\n", " ")))
+            for example in peer_launch.doc_examples()
+        ]
+        self.assertEqual(len(documented), len(rendered))
+        self.assertEqual(sorted(documented), sorted(rendered))
 
 
 class PeerVerdictTests(unittest.TestCase):
