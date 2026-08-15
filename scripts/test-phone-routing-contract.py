@@ -12,8 +12,13 @@ METADATA = ROOT / "plugins/v1tamins/skills/v1-phone-a-friend/agents/openai.yaml"
 RUNNER = ROOT / "plugins/v1tamins/skills/v1-phone-a-friend/scripts/peer-run.sh"
 INNER = ROOT / "plugins/v1tamins/skills/v1-phone-a-friend/scripts/peer-run-inner.sh"
 ENV = ROOT / "plugins/v1tamins/skills/v1-phone-a-friend/scripts/peer-env.sh"
+VERDICT = ROOT / "plugins/v1tamins/skills/v1-phone-a-friend/scripts/peer_verdict.py"
 TEMPLATES = (
     ROOT / "plugins/v1tamins/skills/v1-phone-a-friend/references/command-templates.md"
+)
+CONTRACT = (
+    ROOT
+    / "plugins/v1tamins/skills/v1-phone-a-friend/references/peer-execution-contract.md"
 )
 ROUTING = ROOT / "plugins/v1tamins/evals/skill-routing.jsonl"
 
@@ -25,6 +30,8 @@ def main() -> int:
     inner = INNER.read_text(encoding="utf-8")
     env = ENV.read_text(encoding="utf-8")
     templates = TEMPLATES.read_text(encoding="utf-8")
+    contract = CONTRACT.read_text(encoding="utf-8")
+    verdict = VERDICT.read_text(encoding="utf-8")
 
     checks = {
         "frontmatter disables implicit invocation": "disable-model-invocation: true"
@@ -47,6 +54,14 @@ def main() -> int:
         "cursor closes stdin": 'PHONE_A_FRIEND_PROMPT" < /dev/null' in templates,
         "automatic retry is forbidden": "does not auto-retry or replace" in skill
         and "do not retry or substitute automatically" in templates,
+        "dispatch boundary is typed": "dispatch_state" in runner
+        and "pre_dispatch_failed" in verdict
+        and "dispatch_state" in contract,
+        "one bounded pre-dispatch repair is allowed": "one bounded repair" in skill
+        and "One bounded repair is allowed only when" in contract,
+        "repair allowance closes after dispatch": "after dispatch" in contract.lower()
+        and "Treat as dispatched" in contract,
+        "runner classifies dispatch": "peer_verdict.py" in runner,
     }
     failed = [name for name, passed in checks.items() if not passed]
     if failed:

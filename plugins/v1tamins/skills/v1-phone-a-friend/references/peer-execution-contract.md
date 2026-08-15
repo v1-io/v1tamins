@@ -117,3 +117,31 @@ Do not regex free-form auth prose.
 Mutation, local verification, and external publication are separate permission
 choices. A read-only peer result is advice until the parent verifies its cited
 files and evidence locally.
+
+## Dispatch boundary and bounded repair
+
+This section is the single source for when a failed run may be repeated. Both
+`v1-phone-a-friend` and `v1-review-board` follow it.
+
+The **dispatch boundary** is the first provider receipt on stdout: a session,
+request, or conversation ID; a provider event; or provider output. Everything
+before it is local, and everything after it belongs to the peer. `peer-run.sh`
+reports which side a run reached as `dispatch_state`.
+
+| `dispatch_state` | Evidence | What it allows |
+| --- | --- | --- |
+| `dispatched` | `session_id`, `provider_event`, or `provider_output` | Nothing automatic. Report the typed result and ask for a fresh explicit selection. |
+| `pre_dispatch_failed` | `usage_error`: no receipt, a local argument error on stderr, and a failing exit | Exactly one bounded repair of the same approved seat. |
+| `unknown` | none | Treat as dispatched. An unproven run is never repaired. |
+
+`launch_recipe_unresolved` and `wrapper_validation_failed` from
+`scripts/peer_launch.py` are pre-dispatch by construction: no process started.
+
+One bounded repair is allowed only when **every** one of these is unchanged
+from the approved seat: CLI and version fingerprint, model, reasoning level,
+launch model argument, auth mode, prompt digest, permission, working-tree
+snapshot fingerprint, and deadline. Any change to any of them, a second
+pre-dispatch failure, or any failure after dispatch requires fresh
+approval. Announce the repair and what it changed in the wrapper before running
+it; a repair is never silent, and it never becomes a different peer, model,
+level, or prompt.

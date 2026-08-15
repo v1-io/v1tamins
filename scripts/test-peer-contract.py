@@ -1220,6 +1220,58 @@ class PeerVerdictTests(unittest.TestCase):
             payload = {"response": payload}
         self.assertFalse(peer_verdict.terminal_text(payload))
 
+    def test_dispatch_receipts_close_the_repair_allowance(self) -> None:
+        for text, evidence in (
+            (stream({"type": "system", "session_id": "synthetic"}), "session_id"),
+            (stream({"type": "system", "subtype": "init"}), "provider_event"),
+            ("plain peer answer\n", "provider_output"),
+        ):
+            dispatch = peer_verdict.classify_dispatch(text, "", 1)
+            self.assertEqual(dispatch.dispatch_state, "dispatched", text)
+            self.assertEqual(dispatch.evidence, evidence)
+
+    def test_local_argument_errors_are_pre_dispatch(self) -> None:
+        for stderr in (
+            "error: unknown option --synthetic-flag\n",
+            "usage: synthetic-peer [options] <prompt>\n",
+            "synthetic-peer: unrecognized argument '--synthetic-flag'\n",
+            "  invalid value for --effort\n",
+        ):
+            dispatch = peer_verdict.classify_dispatch("", stderr, 2)
+            self.assertEqual(dispatch.dispatch_state, "pre_dispatch_failed", stderr)
+            self.assertEqual(dispatch.evidence, "usage_error")
+
+    def test_provider_prose_is_not_read_as_a_local_argument_error(self) -> None:
+        for stderr in (
+            "usage limit reached for this account\n",
+            "the peer reported an invalid value for the widget in your code\n",
+            "warning: token usage: 1200\n",
+        ):
+            dispatch = peer_verdict.classify_dispatch("", stderr, 2)
+            self.assertEqual(dispatch.dispatch_state, "unknown", stderr)
+            self.assertIsNone(dispatch.evidence)
+
+    def test_dispatch_classification_fails_closed(self) -> None:
+        # A clean exit is never a pre-dispatch wrapper failure.
+        self.assertEqual(
+            peer_verdict.classify_dispatch("", "usage: peer <prompt>\n", 0).dispatch_state,
+            "unknown",
+        )
+        # Neither is a failure with no local error shape at all.
+        self.assertEqual(
+            peer_verdict.classify_dispatch("", "upstream reset\n", 1).dispatch_state,
+            "unknown",
+        )
+        # A receipt outranks a usage-shaped line in the peer's own output.
+        self.assertEqual(
+            peer_verdict.classify_dispatch(
+                stream({"event": "start", "session_id": "synthetic"}),
+                "usage: peer <prompt>\n",
+                2,
+            ).dispatch_state,
+            "dispatched",
+        )
+
     def test_cli_answer_exit_status_and_family(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "peer.stdout"

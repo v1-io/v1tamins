@@ -41,7 +41,7 @@ Examples:
 3. Prefer a verified subscription-native counterpart with a current provider catalog and a role fit; use model-family diversity only when more than one peer was explicitly requested.
 4. Override the recommendation only after showing the user the current alternatives: a named peer, ChatGPT Pro Deep Research, Antigravity/Gemini large-context or multimodal review, Cursor Agent/Cloud Agent, or Oracle/browser-mode review.
 5. Use the decision matrix to pick one work type and one permission mode, then resolve the prompt/rubric source and digest.
-6. Load the relevant reference file and run one bounded template. A failed or uncertain dispatch stops that branch; it does not auto-retry or replace the peer.
+6. Load the relevant reference file and run one bounded template. A failed or uncertain dispatch stops that branch; it does not auto-retry or replace the peer. A deterministic wrapper failure *before* dispatch is different: it allows exactly one bounded repair of the same approved seat. See the dispatch boundary in [references/peer-execution-contract.md](references/peer-execution-contract.md).
 
 ## When To Use
 
@@ -153,6 +153,7 @@ Do not wait on a peer run with no observable contract.
 - **Tear down by recorded PID only.** Kill a stalled peer by the PID you captured at launch — never a pattern kill like `pkill -f "codex exec"`, which can reap an unrelated peer the user is running elsewhere.
 - If there is no output, artifact update, completion signal, or visible progress by the first-progress deadline, inspect the process state, stderr, run directory, and resume handle before deciding what to do next.
 - If a peer stalls, inspect its recorded status, stderr, sentinel, and PID. Record the runner lifecycle (`stalled` or `timed_out`) or, when dispatch occurred but evidence is ambiguous, parent-level `execution_uncertain`. Do not retry, switch, or add a peer automatically; ask for a fresh explicit selection if the user wants another attempt.
+- **Repair only before dispatch.** `peer-run.sh` reports `dispatch_state`. A `pre_dispatch_failed` run never reached the provider, so it allows exactly one bounded repair of the unchanged approved seat; `dispatched` and `unknown` do not. The full rule lives in [references/peer-execution-contract.md](references/peer-execution-contract.md).
 - **Routing is reliability-aware.** Headless reliability differs by peer and recipe: apply the hardened invocations (stdin closed, `peer-env.sh` subscription scrubbing, streaming output) before sending real work to a peer, and show reliability evidence in the proposal. A stalled peer does not make another peer the silent default.
 - Never report a multi-peer consult as complete without saying which peers completed, which were partial, which stalled, and which suggestions were locally verified.
 

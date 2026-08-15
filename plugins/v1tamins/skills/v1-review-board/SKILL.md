@@ -71,7 +71,7 @@ Resolve concrete models and the thermo-nuclear rubric location at runtime — th
 2. Build one shared read-only brief (see references) and pre-dump `git diff <base>...HEAD` to a file once; hand the same brief + diff to every selected peer.
 3. For peers without the named rubric installed, use only the user-approved prompt-only fallback and record its source digest.
 4. Launch exactly the selected peers concurrently, **read-only**, each via `peer-run.sh` with closed stdin and a deadline. Poll across turns; judge completion by the typed verdict, not exit code.
-5. Auth, model, workflow, and execution failures stop that branch. Do not automatically retry, replace, or add a peer.
+5. After dispatch, auth, model, workflow, and execution failures stop that branch. Do not automatically retry, replace, or add a peer. A `pre_dispatch_failed` run never reached the provider and allows exactly one bounded repair of the unchanged seat — see the dispatch boundary in [references/review-contract.md](references/review-contract.md).
 
 ### Phase 3: Compile the ledger
 
