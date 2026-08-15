@@ -10,6 +10,7 @@ import re
 import shlex
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from typing import Any
@@ -30,6 +31,7 @@ sys.modules["peer_catalog"] = peer_catalog
 SPEC.loader.exec_module(peer_catalog)
 
 import peer_adapters  # noqa: E402
+import peer_boundary  # noqa: E402
 import peer_launch  # noqa: E402
 import peer_models  # noqa: E402
 import peer_policy  # noqa: E402
@@ -906,6 +908,81 @@ def wrapper_blocks(markdown: str) -> list[tuple[str, ...]]:
         if current is not None:
             current.append(line)
     return blocks
+
+
+class PeerBoundaryTests(unittest.TestCase):
+    """A read-only claim must rest on what was observed, not on a flag."""
+
+    def test_permission_state_precedence(self) -> None:
+        state = peer_boundary.permission_state
+        self.assertEqual(state(True, "verified", False), "readonly_violated")
+        # A changed checkout outranks every other signal.
+        self.assertEqual(state(True, "unverified", True), "readonly_violated")
+        self.assertEqual(state(False, "unverified", False), "containment_unverified")
+        self.assertEqual(
+            state(False, "verified", True), "readonly_degraded_provider_state"
+        )
+        self.assertEqual(state(False, "verified", False), "readonly_verified")
+
+    def test_no_provider_redirects_home_by_default(self) -> None:
+        # Moving $HOME would break the subscription login the run depends on.
+        for name, spec in peer_policy.PROVIDERS.items():
+            self.assertNotEqual(spec.state_isolation, "env", name)
+            self.assertIsNone(spec.state_env_var, name)
+            for declared in spec.state_dirs:
+                self.assertFalse(declared.startswith("/"), (name, declared))
+                self.assertFalse(declared.startswith("~"), (name, declared))
+
+    def test_env_isolation_is_wired_when_a_provider_documents_it(self) -> None:
+        isolated = peer_policy.ProviderSpec(
+            "fake",
+            "command",
+            None,
+            None,
+            ("structural review",),
+            state_dirs=(".fake",),
+            state_isolation="env",
+            state_env_var="FAKE_STATE_DIR",
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            with mock.patch.dict(
+                peer_boundary.PROVIDERS, {"fake-isolated": isolated}, clear=False
+            ):
+                overrides = peer_boundary.env_isolation_overrides(
+                    "fake-isolated", run_dir
+                )
+                snapshot_only = peer_boundary.env_isolation_overrides("claude", run_dir)
+        self.assertEqual(
+            overrides, {"FAKE_STATE_DIR": str(run_dir / "provider-state")}
+        )
+        self.assertEqual(snapshot_only, {})
+
+    def test_missing_snapshot_never_reports_a_clean_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            result = peer_boundary.verify_snapshot(Path(tmp))
+        self.assertEqual(result["containment"], "unverified")
+        self.assertEqual(result["permission_state"], "containment_unverified")
+
+    def test_scan_reports_only_files_written_during_the_run(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "before.txt").write_text("old", encoding="utf-8")
+            os.utime(root / "before.txt", (1_000_000, 1_000_000))
+            started = time.time()
+            (root / "nested").mkdir()
+            (root / "nested" / "after.txt").write_text("new", encoding="utf-8")
+            scan = peer_boundary.scan_tree(root, started, peer_boundary.DEFAULT_VISIT_BUDGET)
+        self.assertEqual(scan.changed, ("nested/after.txt",))
+        self.assertFalse(scan.truncated)
+
+    def test_exhausted_scan_budget_blocks_a_verified_claim(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for index in range(5):
+                (root / f"file-{index}.txt").write_text("x", encoding="utf-8")
+            scan = peer_boundary.scan_tree(root, time.time(), budget=2)
+        self.assertTrue(scan.truncated)
 
 
 class PeerLaunchTests(unittest.TestCase):

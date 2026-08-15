@@ -118,6 +118,39 @@ Mutation, local verification, and external publication are separate permission
 choices. A read-only peer result is advice until the parent verifies its cited
 files and evidence locally.
 
+## Read-only boundary
+
+`readonly` covers three separate filesystem surfaces. Report them separately;
+never collapse them into one claim.
+
+| Surface | What it is | Expected under `readonly` |
+| --- | --- | --- |
+| repository | the reviewed checkout | unchanged — any change is a violation |
+| scratch | the run-specific directory | writes are fine and disposable |
+| provider state | the provider's own home-relative directories | provider-owned session and report files may appear |
+
+Pass `--boundary-repo <path> --boundary-provider <name>` to `peer-run.sh launch`
+and it records the boundary through `scripts/peer_boundary.py` before anything
+can write, then reports it in `verdict --json` once the run is terminal:
+
+| `permission_state` | Meaning |
+| --- | --- |
+| `readonly_verified` | Boundary fully observed, repository unchanged, no provider state changes. |
+| `readonly_degraded_provider_state` | Repository unchanged, but the provider wrote its own state or report files. |
+| `readonly_violated` | The reviewed checkout changed. A read-only seat must not do this. |
+| `containment_unverified` | The boundary could not be fully observed, so no read-only claim is available. |
+
+Only `readonly_verified` supports a statement that nothing was written. A
+sandbox flag and a prompt instruction are not proof, and the repository's Git
+state alone cannot see provider-owned artifacts.
+
+`$HOME` is never redirected by default: a subscription peer keeps its login
+state there, and moving it would break the auth the run depends on. A provider
+gets `state_isolation: env` only where it documents a variable for its state
+directory, and that redirect flows into the launch recipe's `env_overrides`.
+Every other provider is observed by snapshot. A provider with no declared state
+surface is `containment_unverified`, which is an honest gap, not a clean result.
+
 ## Dispatch boundary and bounded repair
 
 This section is the single source for when a failed run may be repeated. Both

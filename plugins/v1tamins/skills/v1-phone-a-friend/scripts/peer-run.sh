@@ -13,6 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INNER="$SCRIPT_DIR/peer-run-inner.sh"
 WATCHDOG="$SCRIPT_DIR/peer-run-watchdog.sh"
 VERDICT_HELPER="$SCRIPT_DIR/peer_verdict.py"
+BOUNDARY_HELPER="$SCRIPT_DIR/peer_boundary.py"
 # shellcheck source=peer-run-lib.sh
 . "$SCRIPT_DIR/peer-run-lib.sh"
 
@@ -24,11 +25,13 @@ die() {
 # A missing classifier must fail loudly. Falling back would silently report
 # every terminal answer as empty_output.
 [ -f "$VERDICT_HELPER" ] || die "missing peer_verdict.py beside peer-run.sh"
+[ -f "$BOUNDARY_HELPER" ] || die "missing peer_boundary.py beside peer-run.sh"
 
 usage() {
   cat >&2 <<'EOF'
 Usage:
-  peer-run.sh launch   --dir <run-dir> --slug <slug> [--deadline-seconds <n>] -- <command...>
+  peer-run.sh launch   --dir <run-dir> --slug <slug> [--deadline-seconds <n>]
+                       [--boundary-repo <path> --boundary-provider <name>] -- <command...>
   peer-run.sh status   --dir <run-dir> --slug <slug>
   peer-run.sh verdict  --dir <run-dir> --slug <slug> [--json]
   peer-run.sh teardown --dir <run-dir> --slug <slug>
@@ -44,6 +47,8 @@ shift || true
 RUNDIR=""
 SLUG=""
 DEADLINE_SECONDS=""
+BOUNDARY_REPO=""
+BOUNDARY_PROVIDER=""
 JSON=false
 PEER_CMD=()
 
@@ -62,6 +67,16 @@ while [ "$#" -gt 0 ]; do
     --deadline-seconds)
       [ "$#" -ge 2 ] || die "--deadline-seconds needs a value"
       DEADLINE_SECONDS="$2"
+      shift 2
+      ;;
+    --boundary-repo)
+      [ "$#" -ge 2 ] || die "--boundary-repo needs a value"
+      BOUNDARY_REPO="$2"
+      shift 2
+      ;;
+    --boundary-provider)
+      [ "$#" -ge 2 ] || die "--boundary-provider needs a value"
+      BOUNDARY_PROVIDER="$2"
       shift 2
       ;;
     --json)
@@ -96,6 +111,8 @@ case "$cmd" in
     ;;
   *)
     [ -z "$DEADLINE_SECONDS" ] || die "--deadline-seconds is valid only for launch"
+    [ -z "$BOUNDARY_REPO" ] || die "--boundary-repo is valid only for launch"
+    [ -z "$BOUNDARY_PROVIDER" ] || die "--boundary-provider is valid only for launch"
     ;;
 esac
 
@@ -224,6 +241,17 @@ case "$cmd" in
     rm -f "$pidfile" "$sessfile" "$donefile" "$childpidfile" "$watchdogfile"
     deadline_epoch=$(( $(date +%s) + DEADLINE_SECONDS ))
     printf '%s\n' "$deadline_epoch" > "$deadlinefile"
+    rm -f "$peerdir/boundary.snapshot.json"
+
+    # Record the read-only boundary before anything can write. A snapshot that
+    # cannot be taken must not become a silent "nothing changed" later.
+    if [ -n "$BOUNDARY_REPO" ] || [ -n "$BOUNDARY_PROVIDER" ]; then
+      [ -n "$BOUNDARY_REPO" ] || die "--boundary-provider needs --boundary-repo"
+      [ -n "$BOUNDARY_PROVIDER" ] || die "--boundary-repo needs --boundary-provider"
+      python3 "$BOUNDARY_HELPER" snapshot \
+        --run-dir "$peerdir" --repo "$BOUNDARY_REPO" --provider "$BOUNDARY_PROVIDER" \
+        >/dev/null || die "cannot record the read-only boundary"
+    fi
 
     # The inner runner records its own PID because GNU setsid may fork before
     # exec. The shell that writes this file is the real session leader.
@@ -305,11 +333,22 @@ EOF
     envelope_family="$(peer_token "$envelope_family")"
     dispatch_state="$(peer_token "$dispatch_state")"
     dispatch_evidence="$(peer_token "$dispatch_evidence")"
+    # Verifying the boundary walks the declared state directories, so do it
+    # once the run is terminal rather than on every poll.
+    boundary="null"
+    if [ -f "$peerdir/boundary.snapshot.json" ] && [ "$state" != "running" ]; then
+      boundary="$(python3 "$BOUNDARY_HELPER" verify --run-dir "$peerdir" 2>/dev/null)"
+      case "$boundary" in
+        \{*) ;;
+        *) boundary='{"schema":"v1-peer-boundary/v1","containment":"unverified","permission_state":"containment_unverified"}' ;;
+      esac
+    fi
     if [ "$JSON" = true ]; then
-      printf '{"schema":"v1-peer-run/v1","slug":"%s","state":"%s","envelope_family":"%s","dispatch_state":"%s","dispatch_evidence":"%s","output_bytes":%s,"exit_code":%s,"deadline_epoch":%s,"pid":%s,"child_pid":%s}\n' \
+      printf '{"schema":"v1-peer-run/v1","slug":"%s","state":"%s","envelope_family":"%s","dispatch_state":"%s","dispatch_evidence":"%s","output_bytes":%s,"exit_code":%s,"deadline_epoch":%s,"pid":%s,"child_pid":%s,"boundary":%s}\n' \
         "$SLUG" "$state" "$envelope_family" "$dispatch_state" "$dispatch_evidence" \
         "$output_bytes" "$(json_number_or_null "$exit_code")" \
-        "$(json_number_or_null "$deadline")" "$(json_number_or_null "$pid")" "$(json_number_or_null "$child_pid")"
+        "$(json_number_or_null "$deadline")" "$(json_number_or_null "$pid")" \
+        "$(json_number_or_null "$child_pid")" "$boundary"
     else
       case "$state" in
         complete) printf 'complete (content=%s bytes, rc=%s)\n' "$output_bytes" "$exit_code" ;;

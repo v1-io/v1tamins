@@ -32,7 +32,7 @@ Return:
 - Risks, missing checks, and local verification steps
 ```
 
-For read-only consults, require `Commands run and results: none` and `Files changed: none`.
+For read-only consults, require `Commands run and results: none` and `Files changed: none` — then verify it. A peer's claim is not evidence: launch with `--boundary-repo` and `--boundary-provider` and read the verdict's `permission_state`. Only `readonly_verified` supports repeating `Files changed: none` as fact.
 
 For `local-verify` or `isolated-delegate` runs, record the starting state first:
 
