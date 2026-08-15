@@ -1,5 +1,16 @@
 # v1tamins
 
+## 0.11.1
+
+### Patch Changes
+
+- f1203b8: Add a typed dispatch boundary so a local wrapper failure that never reached the provider allows one bounded repair of the approved seat, while the no-retry rule after dispatch stays unchanged.
+- 989fb98: Parse tab-separated model catalogs, resolve alias-selected models for subscription CLIs without a catalog command, and record the exact launch argument so a selection cannot promise a reasoning level the wrapper cannot send.
+- 4c5abd1: Recognize provider terminal envelopes that nest the answer below the result event, so a peer that answered is no longer reported as `empty_output`.
+- 78f462b: Require the PR landing workflow to address feedback from every source and resolve completed review threads.
+- 993302e: Record and report the full read-only peer boundary, so repository changes, scratch artifacts, and provider state changes stay separate facts and `Files changed: none` is only claimed when it was verified.
+- b51afba: Build peer launch commands from tested per-provider adapters instead of prose templates, with typed refusals for wrapper defects found before dispatch.
+
 ## 0.11.0
 
 ### Minor Changes
