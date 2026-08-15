@@ -101,7 +101,9 @@ For an ordinary Phone-a-Friend request, propose one read-only counterpart. For
 a Review Board request, the Board may ask the discovery script for two
 distinct coding candidates and show an optional third lens, but it must wait
 for an explicit roster selection. A missing or non-eligible preferred candidate
-is a visible typed result; it never causes silent replacement or retry.
+is a visible typed result; it never causes silent replacement or retry. A
+wrapper failure before dispatch is the one bounded exception, under the
+dispatch boundary in `references/peer-execution-contract.md`.
 
 If the user names a model or reasoning level, validate it against this
 invocation's catalog when resolved. Reject unsupported values with the current

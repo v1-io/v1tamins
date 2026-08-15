@@ -16,10 +16,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 # Bounded descent keeps a hostile or pathological payload from costing more
 # than a fixed amount of work.
@@ -85,6 +86,101 @@ class Verdict:
 
     def to_dict(self) -> dict[str, Any]:
         return {"answer": self.answer, "envelope_family": self.envelope_family}
+
+
+# Keys that carry a provider's receipt for a session, request, or conversation.
+RECEIPT_KEYS = (
+    "session_id",
+    "sessionId",
+    "request_id",
+    "requestId",
+    "conversation_id",
+    "conversationId",
+    "thread_id",
+    "threadId",
+    "response_id",
+    "responseId",
+)
+
+# Phrases an argument parser emits before it ever reaches a provider. There is
+# no structured channel for a local argv rejection, so these are matched at the
+# start of a line only, which keeps prose such as "usage limit reached" out.
+USAGE_ERROR_PHRASES = (
+    r"usage:",
+    r"unknown option",
+    r"unknown argument",
+    r"unrecognized option",
+    r"unrecognized argument",
+    r"unexpected argument",
+    r"invalid value for",
+    r"required option",
+    r"missing required argument",
+)
+USAGE_ERROR_PATTERN = re.compile(
+    r"(?im)^\s*(?:[\w.\-]+:\s*)?(?:error:\s*)?(?:" + "|".join(USAGE_ERROR_PHRASES) + ")"
+)
+
+DispatchState = Literal["dispatched", "pre_dispatch_failed", "unknown"]
+
+
+@dataclass(frozen=True)
+class Dispatch:
+    """Whether the provider ever received this run."""
+
+    dispatch_state: DispatchState
+    evidence: str | None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "dispatch_state": self.dispatch_state,
+            "dispatch_evidence": self.evidence,
+        }
+
+
+def stdout_receipt(text: str) -> str | None:
+    """The strongest proof on stdout that a provider received the run."""
+
+    saw_json = False
+    saw_event = False
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        try:
+            parsed = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        saw_json = True
+        if not isinstance(parsed, dict):
+            continue
+        for key in RECEIPT_KEYS:
+            value = parsed.get(key)
+            if isinstance(value, str) and value.strip():
+                return "session_id"
+        if "type" in parsed or "event" in parsed:
+            saw_event = True
+    if saw_event:
+        return "provider_event"
+    if not saw_json and classify_text(text).answer:
+        return "provider_output"
+    return None
+
+
+def classify_dispatch(
+    stdout_text: str, stderr_text: str, exit_code: int | None = None
+) -> Dispatch:
+    """Place a run on either side of the dispatch boundary.
+
+    Fail-closed: without a local error shape, an unproven run is not treated as
+    pre-dispatch, so the strict no-retry rule still applies.
+    """
+
+    receipt = stdout_receipt(stdout_text)
+    if receipt is not None:
+        return Dispatch("dispatched", receipt)
+    if exit_code not in (0, None) and USAGE_ERROR_PATTERN.search(stderr_text):
+        return Dispatch("pre_dispatch_failed", "usage_error")
+    return Dispatch("unknown", None)
 
 
 def is_error_object(obj: dict[str, Any]) -> bool:
@@ -202,12 +298,17 @@ def classify_text(text: str) -> Verdict:
     return Verdict(family is not None, family or UNKNOWN_FAMILY)
 
 
-def classify_path(path: Path) -> Verdict:
+def read_capture(path: str | None) -> str:
+    if not path:
+        return ""
     try:
-        text = path.read_text(encoding="utf-8", errors="replace")
+        return Path(path).read_text(encoding="utf-8", errors="replace")
     except OSError:
-        return Verdict(False, EMPTY_FAMILY)
-    return classify_text(text)
+        return ""
+
+
+def classify_path(path: Path) -> Verdict:
+    return classify_text(read_capture(str(path)))
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -220,18 +321,41 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ):
         subcommand = subcommands.add_parser(name, help=help_text)
         subcommand.add_argument("path", help="captured peer stdout file")
+    for name, help_text in (
+        ("dispatch", "print the typed dispatch classification as JSON"),
+        ("report", "print envelope family, dispatch state, and evidence"),
+    ):
+        subcommand = subcommands.add_parser(name, help=help_text)
+        subcommand.add_argument("path", help="captured peer stdout file")
+        subcommand.add_argument("stderr_path", nargs="?", help="captured peer stderr")
+        subcommand.add_argument("--exit-code", type=int, default=None)
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    verdict = classify_path(Path(args.path))
+    stdout_text = read_capture(args.path)
+    verdict = classify_text(stdout_text)
     if args.command == "answer":
         return 0 if verdict.answer else 1
     if args.command == "family":
         print(verdict.envelope_family)
         return 0
-    print(json.dumps(verdict.to_dict(), sort_keys=True))
+    if args.command == "classify":
+        print(json.dumps(verdict.to_dict(), sort_keys=True))
+        return 0
+
+    dispatch = classify_dispatch(
+        stdout_text, read_capture(args.stderr_path), args.exit_code
+    )
+    if args.command == "dispatch":
+        print(json.dumps(dispatch.to_dict(), sort_keys=True))
+        return 0
+    # report: one line the shell can read without parsing JSON.
+    print(
+        f"{verdict.envelope_family} {dispatch.dispatch_state} "
+        f"{dispatch.evidence or 'none'}"
+    )
     return 0
 
 

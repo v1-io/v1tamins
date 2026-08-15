@@ -208,4 +208,47 @@ chmod +x "$FAKE_THINKING"
 poll_verdict "$TEST_DIR" thinking "$TEST_DIR/thinking.json"
 [ "$(json_field "$TEST_DIR/thinking.json" state)" = 'empty_output' ]
 
+# A local argument error with no provider receipt never reached the provider.
+FAKE_USAGE_ERROR="$TEST_DIR/fake-usage-error.sh"
+cat > "$FAKE_USAGE_ERROR" <<'PEER'
+#!/usr/bin/env bash
+printf 'error: unknown option --synthetic-flag\n' >&2
+printf 'usage: synthetic-peer [options] <prompt>\n' >&2
+exit 2
+PEER
+chmod +x "$FAKE_USAGE_ERROR"
+"$RUNNER" launch --dir "$TEST_DIR" --slug usage --deadline-seconds 5 -- "$FAKE_USAGE_ERROR" >/dev/null
+poll_verdict "$TEST_DIR" usage "$TEST_DIR/usage.json"
+[ "$(json_field "$TEST_DIR/usage.json" state)" = 'empty_output' ]
+[ "$(json_field "$TEST_DIR/usage.json" dispatch_state)" = 'pre_dispatch_failed' ]
+[ "$(json_field "$TEST_DIR/usage.json" dispatch_evidence)" = 'usage_error' ]
+
+# One provider receipt closes the repair allowance even when the run times out.
+FAKE_RECEIPT_HANG="$TEST_DIR/fake-receipt-hang.sh"
+cat > "$FAKE_RECEIPT_HANG" <<'PEER'
+#!/usr/bin/env bash
+printf '%s\n' '{"type":"system","subtype":"init","session_id":"synthetic-session"}'
+while :; do sleep 1; done
+PEER
+chmod +x "$FAKE_RECEIPT_HANG"
+"$RUNNER" launch --dir "$TEST_DIR" --slug receipt --deadline-seconds 1 -- "$FAKE_RECEIPT_HANG" >/dev/null
+sleep 3
+"$RUNNER" verdict --dir "$TEST_DIR" --slug receipt --json > "$TEST_DIR/receipt.json"
+[ "$(json_field "$TEST_DIR/receipt.json" state)" = 'timed_out' ]
+[ "$(json_field "$TEST_DIR/receipt.json" dispatch_state)" = 'dispatched' ]
+[ "$(json_field "$TEST_DIR/receipt.json" dispatch_evidence)" = 'session_id' ]
+"$RUNNER" teardown --dir "$TEST_DIR" --slug receipt >/dev/null
+
+# A failing exit with no local error shape stays unknown, not pre-dispatch.
+FAKE_SILENT_FAILURE="$TEST_DIR/fake-silent-failure.sh"
+cat > "$FAKE_SILENT_FAILURE" <<'PEER'
+#!/usr/bin/env bash
+printf 'upstream connection reset\n' >&2
+exit 1
+PEER
+chmod +x "$FAKE_SILENT_FAILURE"
+"$RUNNER" launch --dir "$TEST_DIR" --slug silent --deadline-seconds 5 -- "$FAKE_SILENT_FAILURE" >/dev/null
+poll_verdict "$TEST_DIR" silent "$TEST_DIR/silent.json"
+[ "$(json_field "$TEST_DIR/silent.json" dispatch_state)" = 'unknown' ]
+
 printf 'peer-run contract passed\n'

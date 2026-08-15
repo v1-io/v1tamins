@@ -36,6 +36,15 @@ def main() -> int:
         and "prompt source" in example,
         "board forbids fallback fanout": "Do not automatically retry, replace, or add a peer"
         in skill,
+        "board scopes no-retry to after dispatch": "After dispatch" in skill
+        and "After dispatch" in contract,
+        "board shares the dispatch boundary": "pre_dispatch_failed" in skill
+        and "pre_dispatch_failed" in contract
+        and "dispatch_state" in contract
+        and "v1-phone-a-friend" in contract,
+        "board allows one bounded pre-dispatch repair": "one bounded repair"
+        in skill
+        and "bounded repair of the same seat" in contract,
         "board metadata remains explicit": "invocation_posture: explicit_only"
         in metadata
         and "allow_implicit_invocation: false" in metadata,

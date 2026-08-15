@@ -152,8 +152,28 @@ Poll each slug across turns (`status`), read `verdict --json` (judged by
 substantive output, not exit code), and tear down stragglers by recorded PID
 only. One peer stalling never blocks the others — slugs are isolated. Record
 which selected peers completed, were partial, timed out, execution-uncertain,
-or were skipped. Auth/model/workflow failures do not trigger retries or
-replacement fan-out.
+or were skipped. After dispatch, auth/model/workflow failures do not trigger
+retries or replacement fan-out.
+
+### Dispatch boundary
+
+The Board uses the same dispatch-boundary contract as `v1-phone-a-friend`; the
+full rule lives in that skill's `references/peer-execution-contract.md`. In
+short:
+
+- `verdict --json` reports `dispatch_state`. `dispatched` means a provider
+  receipt exists — a session or request ID, a provider event, or provider
+  output — and closes any repair allowance for that seat.
+- `pre_dispatch_failed` means the run never reached the provider: a
+  deterministic local wrapper or argument error. It allows **exactly one**
+  bounded repair of the same seat, with CLI and version, model, reasoning,
+  launch model argument, auth mode, prompt digest, permission, snapshot
+  fingerprint, and deadline all unchanged. Announce the repair; never make it
+  silently.
+- `unknown` is treated as dispatched.
+- A second pre-dispatch failure, any changed selection value, or any failure
+  after a receipt needs a fresh roster decision. A bounded repair never becomes
+  a different peer, model, level, or prompt.
 
 ## Convergence Ledger
 

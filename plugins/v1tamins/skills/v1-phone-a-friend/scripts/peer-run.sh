@@ -130,16 +130,23 @@ has_peer_answer() {
   python3 "$VERDICT_HELPER" answer "$path"
 }
 
-# Which envelope shape carried the answer, for the typed verdict. Reporting
-# only: it never changes the resolved state.
-peer_envelope_family() {
-  local path="$1"
-  local family
-  has_content "$path" || { printf 'empty\n'; return 0; }
-  family="$(python3 "$VERDICT_HELPER" family "$path" 2>/dev/null)"
-  case "$family" in
+# Envelope family plus which side of the dispatch boundary this run reached.
+# Reporting only: neither value changes the resolved state.
+peer_report() {
+  local exit_code="$1"
+  local args=(report "$outfile" "$errfile")
+  case "$exit_code" in
+    ''|*[!0-9-]*) ;;
+    *) args+=(--exit-code "$exit_code") ;;
+  esac
+  python3 "$VERDICT_HELPER" "${args[@]}" 2>/dev/null || printf 'unknown unknown none\n'
+}
+
+# Reject anything the classifier did not produce before it reaches JSON.
+peer_token() {
+  case "$1" in
     ''|*[!a-z_]*) printf 'unknown\n' ;;
-    *) printf '%s\n' "$family" ;;
+    *) printf '%s\n' "$1" ;;
   esac
 }
 
@@ -292,16 +299,22 @@ case "$cmd" in
     deadline="$(peer_read_number "$deadlinefile")"
     pid="$(peer_read_number "$pidfile")"
     child_pid="$(peer_read_number "$childpidfile")"
-    envelope_family="$(peer_envelope_family "$outfile")"
+    read -r envelope_family dispatch_state dispatch_evidence <<EOF
+$(peer_report "$exit_code")
+EOF
+    envelope_family="$(peer_token "$envelope_family")"
+    dispatch_state="$(peer_token "$dispatch_state")"
+    dispatch_evidence="$(peer_token "$dispatch_evidence")"
     if [ "$JSON" = true ]; then
-      printf '{"schema":"v1-peer-run/v1","slug":"%s","state":"%s","envelope_family":"%s","output_bytes":%s,"exit_code":%s,"deadline_epoch":%s,"pid":%s,"child_pid":%s}\n' \
-        "$SLUG" "$state" "$envelope_family" "$output_bytes" "$(json_number_or_null "$exit_code")" \
+      printf '{"schema":"v1-peer-run/v1","slug":"%s","state":"%s","envelope_family":"%s","dispatch_state":"%s","dispatch_evidence":"%s","output_bytes":%s,"exit_code":%s,"deadline_epoch":%s,"pid":%s,"child_pid":%s}\n' \
+        "$SLUG" "$state" "$envelope_family" "$dispatch_state" "$dispatch_evidence" \
+        "$output_bytes" "$(json_number_or_null "$exit_code")" \
         "$(json_number_or_null "$deadline")" "$(json_number_or_null "$pid")" "$(json_number_or_null "$child_pid")"
     else
       case "$state" in
         complete) printf 'complete (content=%s bytes, rc=%s)\n' "$output_bytes" "$exit_code" ;;
         running) printf 'running (no terminal sentinel yet; process is alive)\n' ;;
-        empty_output) printf 'empty_output (exited rc=%s with no substantive output; envelope=%s)\n' "$exit_code" "$envelope_family" ;;
+        empty_output) printf 'empty_output (exited rc=%s with no substantive output; envelope=%s, dispatch=%s)\n' "$exit_code" "$envelope_family" "$dispatch_state" ;;
         timed_out) printf 'timed_out (deadline exceeded)\n' ;;
         *) printf 'stalled (vanished without substantive output or terminal sentinel)\n' ;;
       esac
