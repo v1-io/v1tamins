@@ -514,7 +514,7 @@ class PeerContractTests(unittest.TestCase):
                     cli="eligible-a",
                     models=[
                         {
-                            "id": "family-a-1",
+                            "id": "family-a-1-high",
                             "family": "family-a",
                             "rank": 0,
                             "reasoning_levels": ["high"],
@@ -525,7 +525,7 @@ class PeerContractTests(unittest.TestCase):
                     cli="eligible-b",
                     models=[
                         {
-                            "id": "family-a-2",
+                            "id": "family-a-2-high",
                             "family": "family-a",
                             "rank": 0,
                             "reasoning_levels": ["high"],
@@ -537,7 +537,7 @@ class PeerContractTests(unittest.TestCase):
                     policy_state="auth_not_verified",
                     models=[
                         {
-                            "id": "family-b-1",
+                            "id": "family-b-1-high",
                             "family": "family-b",
                             "rank": 0,
                             "reasoning_levels": ["high"],
@@ -715,6 +715,173 @@ class PeerContractTests(unittest.TestCase):
             self.assertIsNone(
                 concrete_id.search(path.read_text(encoding="utf-8")), path
             )
+
+
+class SubscriptionDiscoveryTests(unittest.TestCase):
+    """Discovery must only propose what the installed CLI can actually launch."""
+
+    def test_tab_separated_catalog_resolves_ids_and_levels(self) -> None:
+        parsed = peer_adapters.parse_catalog(
+            "MODEL\tDESCRIPTION\n"
+            "fake-strong\tFake Strong (High)\n"
+            "fake-fast-low\tFake Fast\n"
+        )
+        self.assertEqual(parsed.catalog_format, "tsv")
+        self.assertEqual([model.id for model in parsed.models], ["fake-strong", "fake-fast-low"])
+        self.assertEqual(parsed.models[0].reasoning_levels, ("high",))
+        self.assertEqual(parsed.models[1].reasoning_levels, ("low",))
+
+    def test_catalog_formats_are_reported(self) -> None:
+        self.assertEqual(
+            peer_adapters.parse_catalog(
+                json.dumps({"models": [{"id": "fake-strong"}]})
+            ).catalog_format,
+            "json",
+        )
+        self.assertEqual(
+            peer_adapters.parse_catalog("fake-strong - Fake Strong").catalog_format,
+            "id_dash_label",
+        )
+        self.assertEqual(
+            peer_adapters.parse_catalog("fake-strong\n").catalog_format, "lines"
+        )
+        self.assertEqual(
+            peer_adapters.parse_catalog("not a model catalog").catalog_format,
+            "unresolved",
+        )
+
+    def test_label_effort_reads_only_a_trailing_qualifier(self) -> None:
+        self.assertEqual(peer_adapters.label_effort("Fake Strong (High)"), "high")
+        self.assertEqual(peer_adapters.label_effort("Fake Strong - Max"), "max")
+        # A level word elsewhere in the label is not a reasoning level.
+        self.assertIsNone(peer_adapters.label_effort("Max context 200k window"))
+        self.assertIsNone(peer_adapters.label_effort("Fake Strong"))
+
+    def test_label_never_overrides_a_level_encoded_in_the_id(self) -> None:
+        parsed = peer_adapters.parse_catalog("fake-strong-low\tFake Strong (High)\n")
+        self.assertEqual(parsed.models[0].reasoning_levels, ("low",))
+
+    def test_alias_provider_resolves_a_named_model_and_level(self) -> None:
+        # A subscription CLI with no catalog command still selects by alias.
+        provider = make_provider(
+            cli="claude",
+            models=[],
+            catalog_status="unresolved",
+            catalog_confidence="unresolved",
+            catalog_fingerprint=None,
+            reasoning_levels=[],
+        )
+        with mock.patch.dict(os.environ, {}, clear=True):
+            selection = peer_catalog.choose_model(
+                provider, "custom", "fake-alias", "high"
+            )
+        self.assertEqual(selection.model, "fake-alias")
+        self.assertEqual(selection.representation, "alias")
+        self.assertEqual(selection.launch_model, "fake-alias")
+        self.assertEqual(selection.reasoning, "high")
+        self.assertEqual(selection.model_confidence, "unresolved")
+        self.assertEqual(selection.reasoning_confidence, "unresolved")
+        selected, _alternatives, errors = peer_catalog.build_candidates(
+            [provider], "custom", 1, "claude", "fake-alias", "high"
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(selected[0].launch_state, "eligible")
+        self.assertEqual(selected[0].launch_model_argument, "fake-alias")
+        self.assertEqual(selected[0].representation, "alias")
+
+    def test_alias_level_still_rejected_without_a_provider_effort_option(self) -> None:
+        provider = make_provider(
+            cli="codex",
+            models=[],
+            catalog_status="unresolved",
+            catalog_confidence="unresolved",
+            catalog_fingerprint=None,
+            reasoning_levels=[],
+        )
+        outcome = peer_catalog.choose_model(provider, "custom", "fake-alias", "high")
+        self.assertEqual(outcome.code, "reasoning_level_unsupported")
+        # The same alias with the level encoded in the ID resolves.
+        resolved = peer_catalog.choose_model(
+            provider, "custom", "fake-alias-high", "high"
+        )
+        self.assertEqual(resolved.launch_model, "fake-alias-high")
+
+    def test_selection_without_a_launch_argument_is_typed_and_ineligible(self) -> None:
+        # The catalog advertises a level the model argument cannot carry.
+        provider = make_provider(
+            cli="cursor-agent",
+            models=[{"id": "auto", "family": "auto", "rank": 0, "reasoning_levels": ["high"]}],
+            reasoning_levels=["high"],
+        )
+        selection = peer_catalog.choose_model(provider, "quality")
+        self.assertEqual(selection.model, "auto")
+        self.assertIsNone(selection.launch_model)
+        selected, _alternatives, errors = peer_catalog.build_candidates(
+            [provider], "quality", 1, None, None, None
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(selected[0].launch_state, "launch_unrepresentable")
+        self.assertIsNone(selected[0].launch_model_argument)
+        self.assertEqual(selected[0].catalog_model_id, "auto")
+
+    def test_selection_prefers_a_launchable_model_over_an_unlaunchable_one(self) -> None:
+        provider = make_provider(
+            cli="cursor-agent",
+            models=[
+                {"id": "auto", "family": "auto", "rank": 0, "reasoning_levels": ["high"]},
+                {
+                    "id": "fake-strong-high",
+                    "family": "strong",
+                    "rank": 1,
+                    "reasoning_levels": ["high"],
+                },
+            ],
+            reasoning_levels=["high"],
+        )
+        selection = peer_catalog.choose_model(provider, "quality")
+        self.assertEqual(selection.model, "fake-strong-high")
+        self.assertEqual(selection.launch_model, "fake-strong-high")
+        self.assertEqual(selection.representation, "catalog")
+
+    def test_selection_and_launch_share_one_representability_rule(self) -> None:
+        for model, reasoning, expected in (
+            ("fake-strong-high", "high", True),
+            ("fake-strong", "high", False),
+            ("fake-strong", None, True),
+        ):
+            self.assertEqual(
+                peer_adapters.reasoning_encoded_in_model(model, reasoning), expected
+            )
+            recipe = peer_launch.build_recipe(
+                "cursor-agent",
+                permission="readonly",
+                prompt="SYNTHETIC PROMPT",
+                model=model,
+                reasoning=reasoning,
+            )
+            self.assertEqual(isinstance(recipe, peer_launch.LaunchRecipe), expected)
+
+    def test_alias_discovery_never_exposes_api_keys(self) -> None:
+        values = {name: "redacted" for name in peer_policy.API_KEY_ENV_VARS}
+        with mock.patch.dict(os.environ, values, clear=False):
+            environment = peer_policy.subscription_environment("subscription_native")
+        for name in peer_policy.API_KEY_ENV_VARS:
+            self.assertNotIn(name, environment)
+
+    def test_catalog_format_reaches_the_discovery_receipt(self) -> None:
+        results = [
+            peer_adapters.CommandResult(0, "agy 1.0\n", ""),
+            peer_adapters.CommandResult(0, "fake-strong\tFake Strong (High)\n", ""),
+        ]
+        with (
+            mock.patch.object(peer_adapters.shutil, "which", return_value="/fake/agy"),
+            mock.patch.object(peer_adapters, "run_command", side_effect=results),
+        ):
+            discovered = peer_adapters.discover_provider("agy", "subscription_native", 1)
+        self.assertEqual(discovered.model_catalog.catalog_format, "tsv")
+        self.assertEqual(discovered.model_catalog.status, "resolved")
+        self.assertEqual([model.id for model in discovered.models], ["fake-strong"])
+        self.assertIn("catalog_format", discovered.model_catalog.to_dict())
 
 
 def stream(*events: dict[str, Any]) -> str:

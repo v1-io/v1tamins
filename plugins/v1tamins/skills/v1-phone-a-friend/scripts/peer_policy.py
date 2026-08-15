@@ -43,6 +43,10 @@ class ProviderSpec:
     catalog_args: tuple[str, ...] | None
     auth_args: tuple[str, ...] | None
     roles: tuple[str, ...]
+    # Option that carries the reasoning level separately. When it is None the
+    # level can only be reached through the model ID itself, so selection and
+    # launch both refuse a level the ID does not already encode.
+    effort_flag: str | None = None
 
 
 PROVIDERS: dict[str, ProviderSpec] = {
@@ -52,6 +56,7 @@ PROVIDERS: dict[str, ProviderSpec] = {
         None,
         ("auth", "status"),
         ("correctness/security", "structural review", "maintainability"),
+        effort_flag="--effort",
     ),
     "codex": ProviderSpec(
         "codex",
@@ -73,6 +78,7 @@ PROVIDERS: dict[str, ProviderSpec] = {
         ("models",),
         None,
         ("large-context", "multimodal", "research"),
+        effort_flag="--effort",
     ),
 }
 
