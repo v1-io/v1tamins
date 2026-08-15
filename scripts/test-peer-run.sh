@@ -251,4 +251,97 @@ chmod +x "$FAKE_SILENT_FAILURE"
 poll_verdict "$TEST_DIR" silent "$TEST_DIR/silent.json"
 [ "$(json_field "$TEST_DIR/silent.json" dispatch_state)" = 'unknown' ]
 
+# Read-only boundary: a clean run is verified; a run that writes into the
+# provider's own state directory is a typed degradation, not "files changed:
+# none". HOME is redirected at the fixture level so the real one is untouched.
+BOUNDARY_HOME="$TEST_DIR/fake-home"
+BOUNDARY_REPO="$TEST_DIR/fake-repo"
+mkdir -p "$BOUNDARY_HOME/.claude" "$BOUNDARY_REPO"
+git -C "$BOUNDARY_REPO" init --quiet
+git -C "$BOUNDARY_REPO" config user.email synthetic@example.invalid
+git -C "$BOUNDARY_REPO" config user.name synthetic
+printf 'reviewed\n' > "$BOUNDARY_REPO/file.txt"
+git -C "$BOUNDARY_REPO" add file.txt
+git -C "$BOUNDARY_REPO" commit --quiet -m 'synthetic'
+
+FAKE_CLEAN_PEER="$TEST_DIR/fake-clean-peer.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'printf "clean peer answer\n"' > "$FAKE_CLEAN_PEER"
+chmod +x "$FAKE_CLEAN_PEER"
+HOME="$BOUNDARY_HOME" "$RUNNER" launch --dir "$TEST_DIR" --slug clean-boundary \
+  --deadline-seconds 5 --boundary-repo "$BOUNDARY_REPO" --boundary-provider claude \
+  -- "$FAKE_CLEAN_PEER" >/dev/null
+poll_verdict "$TEST_DIR" clean-boundary "$TEST_DIR/clean-boundary.json"
+[ "$(json_field "$TEST_DIR/clean-boundary.json" state)" = 'complete' ]
+python3 - "$TEST_DIR/clean-boundary.json" <<'PY'
+import json, sys
+from pathlib import Path
+boundary = json.loads(Path(sys.argv[1]).read_text())["boundary"]
+assert boundary["schema"] == "v1-peer-boundary/v1", boundary
+assert boundary["permission_state"] == "readonly_verified", boundary
+assert boundary["repo_changes"]["changed"] is False, boundary
+assert boundary["provider_state_changes"] == [], boundary
+PY
+
+FAKE_STATE_WRITER="$TEST_DIR/fake-state-writer.sh"
+cat > "$FAKE_STATE_WRITER" <<'PEER'
+#!/usr/bin/env bash
+printf 'peer answer with a session report\n'
+mkdir -p "$HOME/.claude/projects"
+printf 'session report\n' > "$HOME/.claude/projects/synthetic-report.json"
+PEER
+chmod +x "$FAKE_STATE_WRITER"
+HOME="$BOUNDARY_HOME" "$RUNNER" launch --dir "$TEST_DIR" --slug state-boundary \
+  --deadline-seconds 5 --boundary-repo "$BOUNDARY_REPO" --boundary-provider claude \
+  -- "$FAKE_STATE_WRITER" >/dev/null
+poll_verdict "$TEST_DIR" state-boundary "$TEST_DIR/state-boundary.json"
+python3 - "$TEST_DIR/state-boundary.json" <<'PY'
+import json, sys
+from pathlib import Path
+boundary = json.loads(Path(sys.argv[1]).read_text())["boundary"]
+assert boundary["permission_state"] == "readonly_degraded_provider_state", boundary
+assert boundary["repo_changes"]["changed"] is False, boundary
+changed = [name for entry in boundary["provider_state_changes"] for name in entry["changed"]]
+assert "projects/synthetic-report.json" in changed, boundary
+PY
+
+FAKE_REPO_WRITER="$TEST_DIR/fake-repo-writer.sh"
+cat > "$FAKE_REPO_WRITER" <<PEER
+#!/usr/bin/env bash
+printf 'peer answer after editing the checkout\n'
+printf 'edited\n' >> "$BOUNDARY_REPO/file.txt"
+PEER
+chmod +x "$FAKE_REPO_WRITER"
+HOME="$BOUNDARY_HOME" "$RUNNER" launch --dir "$TEST_DIR" --slug violated-boundary \
+  --deadline-seconds 5 --boundary-repo "$BOUNDARY_REPO" --boundary-provider claude \
+  -- "$FAKE_REPO_WRITER" >/dev/null
+poll_verdict "$TEST_DIR" violated-boundary "$TEST_DIR/violated-boundary.json"
+python3 - "$TEST_DIR/violated-boundary.json" <<'PY'
+import json, sys
+from pathlib import Path
+boundary = json.loads(Path(sys.argv[1]).read_text())["boundary"]
+assert boundary["permission_state"] == "readonly_violated", boundary
+assert boundary["repo_changes"]["changed"] is True, boundary
+PY
+
+# A provider with no declared state surface cannot claim a verified boundary.
+HOME="$BOUNDARY_HOME" "$RUNNER" launch --dir "$TEST_DIR" --slug undeclared-boundary \
+  --deadline-seconds 5 --boundary-repo "$BOUNDARY_REPO" --boundary-provider agy \
+  -- "$FAKE_CLEAN_PEER" >/dev/null
+poll_verdict "$TEST_DIR" undeclared-boundary "$TEST_DIR/undeclared-boundary.json"
+python3 - "$TEST_DIR/undeclared-boundary.json" <<'PY'
+import json, sys
+from pathlib import Path
+boundary = json.loads(Path(sys.argv[1]).read_text())["boundary"]
+assert boundary["permission_state"] == "containment_unverified", boundary
+assert "no_declared_provider_state_surface" in boundary["containment_gaps"], boundary
+PY
+
+# Without the boundary flags the verdict says nothing about containment.
+python3 - "$TEST_DIR/json-answer.json" <<'PY'
+import json, sys
+from pathlib import Path
+payload = json.loads(Path(sys.argv[1]).read_text())
+assert payload["boundary"] is None, payload
+PY
+
 printf 'peer-run contract passed\n'

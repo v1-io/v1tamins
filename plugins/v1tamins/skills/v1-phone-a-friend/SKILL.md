@@ -150,6 +150,7 @@ Do not wait on a peer run with no observable contract.
 - Before launch, state the run slug, peer, permission mode, output location, completion signal, first-progress deadline, and maximum wait or check-in cadence.
 - For background or concurrent local runs, capture stdout, stderr, and a completion sentinel per peer. Keep artifacts in a run-specific scratch directory.
 - **Judge completion by substantive output, not exit code.** A peer that returned real content under a nonzero or unusual exit code is complete; an empty success exit is a stall. Wrapper exit codes are advisory.
+- **Verify the read-only claim.** Launch a `readonly` seat with `--boundary-repo` and `--boundary-provider` so the verdict reports `permission_state`. Repository changes, scratch artifacts, and provider-state changes are separate facts; only `readonly_verified` supports saying nothing was written.
 - **Tear down by recorded PID only.** Kill a stalled peer by the PID you captured at launch — never a pattern kill like `pkill -f "codex exec"`, which can reap an unrelated peer the user is running elsewhere.
 - If there is no output, artifact update, completion signal, or visible progress by the first-progress deadline, inspect the process state, stderr, run directory, and resume handle before deciding what to do next.
 - If a peer stalls, inspect its recorded status, stderr, sentinel, and PID. Record the runner lifecycle (`stalled` or `timed_out`) or, when dispatch occurred but evidence is ambiguous, parent-level `execution_uncertain`. Do not retry, switch, or add a peer automatically; ask for a fresh explicit selection if the user wants another attempt.
@@ -219,6 +220,7 @@ Before acting on advice:
 - **[scripts/peer-env.sh](scripts/peer-env.sh)** - explicit subscription-native/API credential policy wrapper.
 - **[scripts/peer_launch.py](scripts/peer_launch.py)** - per-provider launch adapters; builds the approved argv, refuses unrepresentable selections, and never dispatches.
 - **[scripts/peer-run.sh](scripts/peer-run.sh)** - detached, stdin-safe, deadline-bounded lifecycle and typed verdict.
+- **[scripts/peer_boundary.py](scripts/peer_boundary.py)** - records the read-only boundary before launch and reports repository, scratch, and provider-state changes afterwards.
 - **[scripts/peer_verdict.py](scripts/peer_verdict.py)** - shape-based terminal-answer classifier behind the runner verdict; reports the envelope family.
 - **[references/peer-execution-contract.md](references/peer-execution-contract.md)** - typed discovery, auth, selection, execution, and stale-context contract.
 - **[references/model-selection.md](references/model-selection.md)** - dynamic profile ranking and current-catalog rules.

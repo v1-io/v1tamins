@@ -49,6 +49,14 @@ def main() -> int:
         in metadata
         and "allow_implicit_invocation: false" in metadata,
         "example shows zero-launch gate": "no peer has launched yet" in example,
+        "board verifies the read-only boundary": "--boundary-repo" in contract
+        and "--boundary-provider" in contract
+        and "permission_state" in skill
+        and "readonly_verified" in contract,
+        "board never claims a clean tree unverified": "Only `permission_state: readonly_verified` supports `Files changed: none`"
+        in skill
+        and "readonly_violated" in contract
+        and "containment_unverified" in contract,
     }
     failed = [name for name, passed in checks.items() if not passed]
     if failed:

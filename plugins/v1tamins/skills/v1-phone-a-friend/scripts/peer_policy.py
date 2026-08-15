@@ -10,6 +10,11 @@ from dataclasses import dataclass
 from typing import Literal
 
 CatalogMode = Literal["command", "explicit_required"]
+# How a provider's own state directory is kept outside a read-only claim.
+# ``env`` redirects it through a documented variable, ``snapshot`` observes the
+# declared directories, and ``none`` means no state surface is declared, so
+# containment cannot be proven.
+StateIsolation = Literal["env", "snapshot", "none"]
 
 # These are names only. Values are never printed, hashed, or passed through in
 # subscription_native mode. Provider-native OAuth variables remain available.
@@ -47,6 +52,14 @@ class ProviderSpec:
     # level can only be reached through the model ID itself, so selection and
     # launch both refuse a level the ID does not already encode.
     effort_flag: str | None = None
+    # Home-relative directories the provider writes its own state and reports
+    # into. Declare only directories a provider actually documents; an empty
+    # tuple is an honest "not declared", never an assumed-clean surface.
+    state_dirs: tuple[str, ...] = ()
+    state_isolation: StateIsolation = "none"
+    # Variable that redirects the state directory, when the provider documents
+    # one. Never invent it: a wrong variable silently leaves state uncontained.
+    state_env_var: str | None = None
 
 
 PROVIDERS: dict[str, ProviderSpec] = {
@@ -57,6 +70,8 @@ PROVIDERS: dict[str, ProviderSpec] = {
         ("auth", "status"),
         ("correctness/security", "structural review", "maintainability"),
         effort_flag="--effort",
+        state_dirs=(".claude",),
+        state_isolation="snapshot",
     ),
     "codex": ProviderSpec(
         "codex",
@@ -64,6 +79,8 @@ PROVIDERS: dict[str, ProviderSpec] = {
         None,
         ("doctor", "--json"),
         ("structural review", "correctness/security", "verification"),
+        state_dirs=(".codex",),
+        state_isolation="snapshot",
     ),
     "cursor-agent": ProviderSpec(
         "cursor-agent",
@@ -71,6 +88,8 @@ PROVIDERS: dict[str, ProviderSpec] = {
         ("--list-models",),
         ("status", "--format", "json"),
         ("structural review", "maintainability", "verification"),
+        state_dirs=(".cursor",),
+        state_isolation="snapshot",
     ),
     "agy": ProviderSpec(
         "agy",

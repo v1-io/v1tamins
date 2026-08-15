@@ -95,7 +95,7 @@ alternative before asking for a roster choice:
 | Reasoning | Highest supported level for the selected profile, or unresolved. |
 | Role | Structural review, correctness/security, maintainability, research, or multimodal. |
 | Prompt | Named profile, resolved source, and source digest. |
-| Permission | `readonly` for the default Board proposal. |
+| Permission | `readonly` for the default Board proposal, verified after the run against the recorded boundary. |
 | Auth policy | `eligible`, `not_authenticated`, `auth_not_verified`, `blocked_api_key_present`, `explicit_api_mode`, or `api_key_required`. |
 | Launch state | `eligible` or a distinct typed failure such as `model_unresolved` or `launch_unrepresentable`. |
 | Catalog confidence | `verified` or `unresolved` from provider catalog commands only. |
@@ -122,6 +122,7 @@ Build one brief and give the identical text to every peer. Pre-dump the diff onc
 ```text
 Act as an independent counterpart reviewer. READ ONLY.
 Do not edit, create, commit, push, publish, or mutate anything. Report "Files changed: none".
+(The Board verifies this against the recorded boundary; the peer's own claim is not the evidence.)
 
 Repo context: <one line — what the project is and what "good" means here>
 What this PR does: <one paragraph>
@@ -143,10 +144,38 @@ After the user selects the exact roster, launch exactly those peers concurrently
 and read-only through `peer-run.sh`, one slug per peer under a single run dir:
 
 ```bash
-"$PEER_RUN" launch --dir "$RUN_DIR" --slug deep-a --deadline-seconds 900 -- <peer-A read-only wrapper>
-"$PEER_RUN" launch --dir "$RUN_DIR" --slug deep-b --deadline-seconds 900 -- <peer-B read-only wrapper>
-"$PEER_RUN" launch --dir "$RUN_DIR" --slug thermo --deadline-seconds 900 -- <cursor read-only wrapper>   # only if selected
+"$PEER_RUN" launch --dir "$RUN_DIR" --slug deep-a --deadline-seconds 900 \
+  --boundary-repo "$REPO" --boundary-provider <peer-A cli> -- <peer-A read-only wrapper>
+"$PEER_RUN" launch --dir "$RUN_DIR" --slug deep-b --deadline-seconds 900 \
+  --boundary-repo "$REPO" --boundary-provider <peer-B cli> -- <peer-B read-only wrapper>
+"$PEER_RUN" launch --dir "$RUN_DIR" --slug thermo --deadline-seconds 900 \
+  --boundary-repo "$REPO" --boundary-provider cursor-agent -- <cursor read-only wrapper>   # only if selected
 ```
+
+The boundary flags are what make the `readonly` seat checkable. Without them the
+verdict reports no containment evidence at all, and the Board has nothing to
+stand on when it summarizes what the peers touched.
+
+### Read-only boundary reporting
+
+A `readonly` seat covers three separate surfaces — the reviewed checkout, the
+disposable run directory, and the provider's own state directories. Report them
+separately, from `verdict --json`'s `boundary` block, never from the checkout's
+Git state alone. The full contract is the read-only boundary section of
+`v1-phone-a-friend`'s `references/peer-execution-contract.md`.
+
+- **Only `permission_state: readonly_verified` supports `Files changed: none`.**
+  Every other value must be reported as it is.
+- `readonly_degraded_provider_state` means the checkout is clean but the peer
+  wrote provider-owned session or report files. List them; that is a typed
+  degradation, not a violation.
+- `readonly_violated` means the reviewed checkout changed. Treat the seat's
+  output as untrusted, report the change, and do not apply, commit, or push
+  from it.
+- `containment_unverified` means the boundary could not be fully observed.
+  Report the gap and make no read-only claim.
+- Provider-created report files belong either in the disposable run directory or
+  in the verdict. They are never silently absorbed into "nothing changed".
 
 Poll each slug across turns (`status`), read `verdict --json` (judged by
 substantive output, not exit code), and tear down stragglers by recorded PID
