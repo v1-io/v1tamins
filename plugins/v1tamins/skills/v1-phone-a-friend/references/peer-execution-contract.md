@@ -18,6 +18,7 @@ record per discovered CLI. The result records:
 | catalog confidence | `verified`, `unresolved` | Provider catalog command output only; help text is never a catalog source. Unresolved means no model may be invented unless custom `--model` is explicit. |
 | launch state | `eligible`, `blocked_api_key_present`, `not_authenticated`, `api_key_required`, `auth_unverified`, `model_unresolved` | Derived candidate readiness. Distinct policy failures stay distinct. |
 | runner lifecycle | `running`, `complete`, `empty_output`, `stalled`, `timed_out` | Exact states from `peer-run.sh` status/verdict. |
+| envelope family | `plain_text`, `result_text`, `result_event_nested`, `assistant_message`, `item_completed`, `json_object`, `unknown`, `empty` | Which output shape carried the answer. Reporting only; it never changes the resolved state. |
 | execution (parent) | runner lifecycle, or `execution_uncertain` | Parent interpretation when dispatch occurred but lifecycle evidence is ambiguous. Not a runner-emitted state. |
 
 Structured auth probes are provider-owned JSON surfaces only:
@@ -82,15 +83,22 @@ Do not regex free-form auth prose.
    available, else Perl `POSIX::setsid`, else `nohup`.
 3. Poll `status` or read `verdict --json`; do not branch on provider exit code
    alone. A terminal sentinel plus a real peer answer is `complete` (plain text
-   non-whitespace, or a terminal JSON / stream-json answer payload — framing or
-   error-only JSON alone is not enough), an empty or answer-less terminal result
-   is `empty_output`, a vanished process is `stalled`, and a deadline breach is
-   `timed_out`. `status` and `verdict` are pure observation; the watchdog and
-   explicit `teardown` own process mutation.
-4. If dispatch occurred and lifecycle evidence is ambiguous, the parent reports
+   non-whitespace, or a terminal JSON / stream-json answer payload — framing,
+   reasoning, tool, or error-only JSON alone is not enough), an empty or
+   answer-less terminal result is `empty_output`, a vanished process is
+   `stalled`, and a deadline breach is `timed_out`. `status` and `verdict` are
+   pure observation; the watchdog and explicit `teardown` own process mutation.
+4. `scripts/peer_verdict.py` owns that judgment and reports the matching
+   `envelope_family` in the verdict. It reads shapes, not provider names: a
+   terminal answer may sit directly in the terminal event or nest below it
+   (`result_event_nested`), so a provider that nests its answer is `complete`,
+   not a false `empty_output`. Reasoning blocks, tool traffic, and any envelope
+   carrying `is_error`, an error subtype, or a nested failure status are never
+   an answer.
+5. If dispatch occurred and lifecycle evidence is ambiguous, the parent reports
    `execution_uncertain`. Do not retry, replace the peer, or fan out another
    run automatically.
-5. Tear down only the recorded PID/PGID (PGID only when `peer.session=1`).
+6. Tear down only the recorded PID/PGID (PGID only when `peer.session=1`).
    Never use a command-line pattern kill.
 
 Mutation, local verification, and external publication are separate permission

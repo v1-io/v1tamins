@@ -12,6 +12,7 @@ set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INNER="$SCRIPT_DIR/peer-run-inner.sh"
 WATCHDOG="$SCRIPT_DIR/peer-run-watchdog.sh"
+VERDICT_HELPER="$SCRIPT_DIR/peer_verdict.py"
 # shellcheck source=peer-run-lib.sh
 . "$SCRIPT_DIR/peer-run-lib.sh"
 
@@ -19,6 +20,10 @@ die() {
   printf 'peer-run: %s\n' "$1" >&2
   exit "${2:-2}"
 }
+
+# A missing classifier must fail loudly. Falling back would silently report
+# every terminal answer as empty_output.
+[ -f "$VERDICT_HELPER" ] || die "missing peer_verdict.py beside peer-run.sh"
 
 usage() {
   cat >&2 <<'EOF'
@@ -117,105 +122,25 @@ has_content() {
 }
 
 # Plain text: any non-whitespace is enough. JSON / stream-json / --json: require a
-# terminal answer payload, not framing, progress, or error-only events.
+# terminal answer payload, not framing, progress, reasoning, tool, or error-only
+# events. peer_verdict.py owns the shapes; this stays a thin call.
 has_peer_answer() {
   local path="$1"
   has_content "$path" || return 1
-  python3 - "$path" <<'PY'
-import json
-import sys
-from pathlib import Path
+  python3 "$VERDICT_HELPER" answer "$path"
+}
 
-path = Path(sys.argv[1])
-text = path.read_text(encoding="utf-8", errors="replace")
-stripped = text.strip()
-if not stripped:
-    raise SystemExit(1)
-
-def text_blocks(value) -> bool:
-    if isinstance(value, str):
-        return bool(value.strip())
-    if isinstance(value, list):
-        for item in value:
-            if isinstance(item, str) and item.strip():
-                return True
-            if isinstance(item, dict):
-                if item.get("type") == "text" and text_blocks(item.get("text")):
-                    return True
-                if text_blocks(item.get("text")) or text_blocks(item.get("content")):
-                    return True
-    if isinstance(value, dict):
-        return text_blocks(value.get("text")) or text_blocks(value.get("content"))
-    return False
-
-
-def is_terminal_answer(obj) -> bool:
-    if not isinstance(obj, dict):
-        return False
-    if obj.get("is_error") is True:
-        return False
-    typ = str(obj.get("type") or obj.get("event") or "").lower()
-    if typ in {
-        "system",
-        "status",
-        "progress",
-        "ping",
-        "heartbeat",
-        "tool_progress",
-        "user",
-        "rate_limit_event",
-    }:
-        return False
-    subtype = str(obj.get("subtype") or "").lower()
-    if subtype in {"error", "failure", "failed"}:
-        return False
-    if typ == "result":
-        return text_blocks(obj.get("result"))
-    for key in ("result", "message", "text", "content", "output", "response"):
-        if key in obj and text_blocks(obj.get(key)):
-            if typ in {
-                "",
-                "result",
-                "message",
-                "assistant",
-                "agent_message",
-                "response",
-                "item.completed",
-                "agent.completed",
-            }:
-                return True
-            if typ.startswith("item.") and "completed" in typ:
-                return True
-    return False
-
-
-objects: list[object] = []
-json_lines = 0
-nonempty = 0
-for line in text.splitlines():
-    line = line.strip()
-    if not line:
-        continue
-    nonempty += 1
-    try:
-        objects.append(json.loads(line))
-        json_lines += 1
-    except json.JSONDecodeError:
-        objects.append(None)
-
-if nonempty and json_lines == nonempty:
-    raise SystemExit(0 if any(is_terminal_answer(obj) for obj in objects) else 1)
-
-try:
-    payload = json.loads(stripped)
-except json.JSONDecodeError:
-    # Plain text with non-whitespace content.
-    raise SystemExit(0)
-
-if isinstance(payload, list):
-    raise SystemExit(0 if any(is_terminal_answer(obj) for obj in payload) else 1)
-raise SystemExit(0 if is_terminal_answer(payload) else 1)
-PY
+# Which envelope shape carried the answer, for the typed verdict. Reporting
+# only: it never changes the resolved state.
+peer_envelope_family() {
+  local path="$1"
+  local family
+  has_content "$path" || { printf 'empty\n'; return 0; }
+  family="$(python3 "$VERDICT_HELPER" family "$path" 2>/dev/null)"
+  case "$family" in
+    ''|*[!a-z_]*) printf 'unknown\n' ;;
+    *) printf '%s\n' "$family" ;;
+  esac
 }
 
 deadline_expired() {
@@ -367,15 +292,16 @@ case "$cmd" in
     deadline="$(peer_read_number "$deadlinefile")"
     pid="$(peer_read_number "$pidfile")"
     child_pid="$(peer_read_number "$childpidfile")"
+    envelope_family="$(peer_envelope_family "$outfile")"
     if [ "$JSON" = true ]; then
-      printf '{"schema":"v1-peer-run/v1","slug":"%s","state":"%s","output_bytes":%s,"exit_code":%s,"deadline_epoch":%s,"pid":%s,"child_pid":%s}\n' \
-        "$SLUG" "$state" "$output_bytes" "$(json_number_or_null "$exit_code")" \
+      printf '{"schema":"v1-peer-run/v1","slug":"%s","state":"%s","envelope_family":"%s","output_bytes":%s,"exit_code":%s,"deadline_epoch":%s,"pid":%s,"child_pid":%s}\n' \
+        "$SLUG" "$state" "$envelope_family" "$output_bytes" "$(json_number_or_null "$exit_code")" \
         "$(json_number_or_null "$deadline")" "$(json_number_or_null "$pid")" "$(json_number_or_null "$child_pid")"
     else
       case "$state" in
         complete) printf 'complete (content=%s bytes, rc=%s)\n' "$output_bytes" "$exit_code" ;;
         running) printf 'running (no terminal sentinel yet; process is alive)\n' ;;
-        empty_output) printf 'empty_output (exited rc=%s with no substantive output)\n' "$exit_code" ;;
+        empty_output) printf 'empty_output (exited rc=%s with no substantive output; envelope=%s)\n' "$exit_code" "$envelope_family" ;;
         timed_out) printf 'timed_out (deadline exceeded)\n' ;;
         *) printf 'stalled (vanished without substantive output or terminal sentinel)\n' ;;
       esac

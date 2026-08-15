@@ -160,5 +160,52 @@ chmod +x "$FAKE_JSON_ANSWER"
 "$RUNNER" launch --dir "$TEST_DIR" --slug json-answer --deadline-seconds 5 -- "$FAKE_JSON_ANSWER" >/dev/null
 poll_verdict "$TEST_DIR" json-answer "$TEST_DIR/json-answer.json"
 [ "$(json_field "$TEST_DIR/json-answer.json" state)" = 'complete' ]
+[ "$(json_field "$TEST_DIR/json-answer.json" envelope_family)" = 'result_text' ]
+
+# A terminal answer nested below the result event is complete, not empty_output.
+FAKE_NESTED_ANSWER="$TEST_DIR/fake-nested-answer.sh"
+cat > "$FAKE_NESTED_ANSWER" <<'PEER'
+#!/usr/bin/env bash
+cat <<'STREAM'
+{"event":"start","session_id":"synthetic"}
+{"event":"result","result":{"status":"SUCCESS","response":"nested peer answer"}}
+STREAM
+exit 0
+PEER
+chmod +x "$FAKE_NESTED_ANSWER"
+"$RUNNER" launch --dir "$TEST_DIR" --slug nested --deadline-seconds 5 -- "$FAKE_NESTED_ANSWER" >/dev/null
+poll_verdict "$TEST_DIR" nested "$TEST_DIR/nested.json"
+[ "$(json_field "$TEST_DIR/nested.json" state)" = 'complete' ]
+[ "$(json_field "$TEST_DIR/nested.json" envelope_family)" = 'result_event_nested' ]
+
+# A nested terminal envelope reporting failure is empty_output, not complete.
+FAKE_NESTED_ERROR="$TEST_DIR/fake-nested-error.sh"
+cat > "$FAKE_NESTED_ERROR" <<'PEER'
+#!/usr/bin/env bash
+cat <<'STREAM'
+{"event":"start","session_id":"synthetic"}
+{"event":"result","result":{"status":"FAILED","response":"upstream refused"}}
+STREAM
+exit 0
+PEER
+chmod +x "$FAKE_NESTED_ERROR"
+"$RUNNER" launch --dir "$TEST_DIR" --slug nested-error --deadline-seconds 5 -- "$FAKE_NESTED_ERROR" >/dev/null
+poll_verdict "$TEST_DIR" nested-error "$TEST_DIR/nested-error.json"
+[ "$(json_field "$TEST_DIR/nested-error.json" state)" = 'empty_output' ]
+
+# Reasoning and tool traffic without an answer block is empty_output.
+FAKE_THINKING="$TEST_DIR/fake-thinking.sh"
+cat > "$FAKE_THINKING" <<'PEER'
+#!/usr/bin/env bash
+cat <<'STREAM'
+{"type":"system","subtype":"init"}
+{"type":"assistant","message":{"content":[{"type":"thinking","thinking":"deliberating"}]}}
+STREAM
+exit 0
+PEER
+chmod +x "$FAKE_THINKING"
+"$RUNNER" launch --dir "$TEST_DIR" --slug thinking --deadline-seconds 5 -- "$FAKE_THINKING" >/dev/null
+poll_verdict "$TEST_DIR" thinking "$TEST_DIR/thinking.json"
+[ "$(json_field "$TEST_DIR/thinking.json" state)" = 'empty_output' ]
 
 printf 'peer-run contract passed\n'
