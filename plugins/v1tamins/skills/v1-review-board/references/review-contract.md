@@ -90,13 +90,14 @@ alternative before asking for a roster choice:
 | Field | Required value |
 | --- | --- |
 | CLI | Installed executable and current version. |
-| Model | Current catalog ID, or `model_unresolved`; never a guessed name. |
+| Model | Current catalog ID, alias the user named, or `model_unresolved`; never a guessed name. |
+| Launch model argument | The exact value the installed CLI receives, or `launch_unrepresentable`. |
 | Reasoning | Highest supported level for the selected profile, or unresolved. |
 | Role | Structural review, correctness/security, maintainability, research, or multimodal. |
 | Prompt | Named profile, resolved source, and source digest. |
 | Permission | `readonly` for the default Board proposal. |
 | Auth policy | `eligible`, `not_authenticated`, `auth_not_verified`, `blocked_api_key_present`, `explicit_api_mode`, or `api_key_required`. |
-| Launch state | `eligible` or a distinct typed failure such as `model_unresolved`. |
+| Launch state | `eligible` or a distinct typed failure such as `model_unresolved` or `launch_unrepresentable`. |
 | Catalog confidence | `verified` or `unresolved` from provider catalog commands only. |
 | Prompt status | `resolved`, `degraded` (missing source), or `unresolved`. |
 | Deadline | Explicit maximum lifecycle. |

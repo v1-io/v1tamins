@@ -28,7 +28,9 @@ from peer_adapters import (  # noqa: E402
     KNOWN_EFFORT_RANK,
     discover_provider,
     effort_name,
+    effort_suffix,
     model_family,
+    reasoning_encoded_in_model,
     sha256_text,
 )
 from peer_models import (  # noqa: E402
@@ -36,6 +38,7 @@ from peer_models import (  # noqa: E402
     CatalogConfidence,
     LaunchState,
     ModelEntry,
+    ModelRepresentation,
     ModelSelection,
     Proposal,
     ProviderDiscovery,
@@ -64,6 +67,13 @@ def effort_rank(level: str | None) -> int:
     return KNOWN_EFFORT_RANK.get(level or "none", 0)
 
 
+def provider_effort_flag(cli: str) -> str | None:
+    """The option this provider uses to carry a reasoning level, if any."""
+
+    spec = PROVIDERS.get(cli)
+    return spec.effort_flag if spec is not None else None
+
+
 def choose_model(
     provider: ProviderDiscovery,
     profile: str,
@@ -74,8 +84,14 @@ def choose_model(
     reasoning_levels = list(provider.reasoning_levels)
     catalog_status = provider.model_catalog.status
     catalog_confidence = provider.model_catalog.confidence
+    effort_flag = provider_effort_flag(provider.cli)
+    alias_provider = (
+        provider.cli in PROVIDERS
+        and PROVIDERS[provider.cli].catalog_mode == "explicit_required"
+    )
 
     explicit = False
+    representation: ModelRepresentation = "catalog"
     if requested_model:
         selected = next(
             (model for model in models if model.id == requested_model), None
@@ -89,6 +105,10 @@ def choose_model(
                     rank=0,
                 )
                 explicit = True
+                # A provider with no catalog command selects by alias. The user
+                # named it, so it resolves with unresolved confidence rather
+                # than staying model_unresolved.
+                representation = "alias" if alias_provider else "explicit"
             else:
                 return SelectionError(
                     code="model_not_current",
@@ -102,26 +122,52 @@ def choose_model(
             reasoning=None,
             model_confidence="unresolved",
             explicit=False,
+            launch_model=None,
+            representation="catalog",
+            reasoning_confidence="unresolved",
         )
     else:
 
-        def score(model: ModelEntry) -> tuple[int, int]:
+        def score(model: ModelEntry) -> tuple[int, int, int]:
             levels = list(model.reasoning_levels or reasoning_levels)
             strongest = max((effort_rank(level) for level in levels), default=0)
             rank = -model.rank
+            # Never rank an unlaunchable pair above a launchable one.
+            representable = int(
+                effort_flag is not None
+                or not levels
+                or effort_suffix(model.id) is not None
+            )
             if profile == "fast":
-                return (-strongest, rank)
+                return (representable, -strongest, rank)
             if profile == "balanced":
-                return (min(strongest, max(1, strongest - 1)), rank)
-            return (strongest, rank)
+                return (representable, min(strongest, max(1, strongest - 1)), rank)
+            return (representable, strongest, rank)
 
         selected = sorted(models, key=score, reverse=True)[0]
 
     levels = list(selected.reasoning_levels or reasoning_levels)
+    reasoning_confidence: CatalogConfidence = "unresolved"
     if requested_reasoning:
         normalized = effort_name(requested_reasoning)
-        # Empty advertised levels means the catalog did not verify any override.
-        if normalized is None or normalized not in levels:
+        if normalized is None:
+            return SelectionError(
+                code="reasoning_level_unsupported",
+                requested_reasoning=requested_reasoning,
+                alternatives=tuple(levels),
+            )
+        if normalized in levels:
+            reasoning_confidence = catalog_confidence if not explicit else "unresolved"
+        elif not (
+            explicit
+            and (
+                effort_flag is not None
+                or reasoning_encoded_in_model(selected.id, normalized)
+            )
+        ):
+            # An unverified level is acceptable only when the user named the
+            # model and the level can still reach the CLI: either the provider
+            # has its own reasoning option, or the model ID already carries it.
             return SelectionError(
                 code="reasoning_level_unsupported",
                 requested_reasoning=requested_reasoning,
@@ -136,18 +182,32 @@ def choose_model(
             selected_reasoning = ordered[max(0, len(ordered) - 2)]
         else:
             selected_reasoning = max(levels, key=effort_rank)
+        reasoning_confidence = catalog_confidence if not explicit else "unresolved"
     else:
         selected_reasoning = None
 
     model_confidence: CatalogConfidence = (
         "unresolved" if explicit else catalog_confidence
     )
+    # The launch argument is used exactly as validated, never synthesized. A
+    # provider without an effort option can only reach a level its model ID
+    # already carries.
+    launch_model: str | None = selected.id
+    if (
+        selected_reasoning is not None
+        and effort_flag is None
+        and not reasoning_encoded_in_model(selected.id, selected_reasoning)
+    ):
+        launch_model = None
     return ModelSelection(
         model=selected.id,
         model_family=selected.family,
         reasoning=selected_reasoning,
         model_confidence=model_confidence,
         explicit=explicit,
+        launch_model=launch_model,
+        representation=representation,
+        reasoning_confidence=reasoning_confidence,
     )
 
 
@@ -185,6 +245,9 @@ def candidate_launch_state(
         return "model_unresolved"
     if selection.model is None:
         return "model_unresolved"
+    # The model resolved but the selected level has no launch argument.
+    if selection.launch_model is None:
+        return "launch_unrepresentable"
     return "eligible"
 
 
@@ -241,6 +304,10 @@ def build_candidates(
                 model_confidence=selection.model_confidence,
                 provider_rank=provider_rank,
                 launch_state=launch_state,
+                catalog_model_id=selection.model,
+                launch_model_argument=selection.launch_model,
+                representation=selection.representation,
+                reasoning_confidence=selection.reasoning_confidence,
             )
         )
 

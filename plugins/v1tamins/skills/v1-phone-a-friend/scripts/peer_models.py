@@ -16,6 +16,7 @@ PolicyState = Literal[
 ]
 CatalogStatus = Literal["resolved", "unresolved"]
 CatalogConfidence = Literal["verified", "unresolved"]
+CatalogFormat = Literal["json", "tsv", "id_dash_label", "lines", "unresolved"]
 LaunchState = Literal[
     "eligible",
     "blocked_api_key_present",
@@ -23,7 +24,10 @@ LaunchState = Literal[
     "api_key_required",
     "auth_unverified",
     "model_unresolved",
+    "launch_unrepresentable",
 ]
+# How the selected model ID was established, not where it will be sent.
+ModelRepresentation = Literal["catalog", "alias", "explicit"]
 SelectionErrorCode = Literal[
     "model_not_current",
     "reasoning_level_unsupported",
@@ -103,6 +107,7 @@ class ModelCatalog:
     confidence: CatalogConfidence
     source: str | None = None
     fingerprint: str | None = None
+    catalog_format: CatalogFormat = "unresolved"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -143,6 +148,11 @@ class ModelSelection:
     reasoning: str | None
     model_confidence: CatalogConfidence
     explicit: bool = False
+    # The argument the installed CLI will actually receive. None means the
+    # selected model and level pair has no validated launch representation.
+    launch_model: str | None = None
+    representation: ModelRepresentation = "catalog"
+    reasoning_confidence: CatalogConfidence = "unresolved"
 
 
 @dataclass(frozen=True)
@@ -180,6 +190,10 @@ class Candidate:
     model_confidence: CatalogConfidence
     provider_rank: int
     launch_state: LaunchState
+    catalog_model_id: str | None = None
+    launch_model_argument: str | None = None
+    representation: ModelRepresentation = "catalog"
+    reasoning_confidence: CatalogConfidence = "unresolved"
     prompt: dict[str, Any] | None = None
 
     def with_prompt(self, prompt: dict[str, Any]) -> Candidate:
@@ -201,6 +215,10 @@ class Candidate:
             "model_confidence": self.model_confidence,
             "provider_rank": self.provider_rank,
             "launch_state": self.launch_state,
+            "catalog_model_id": self.catalog_model_id,
+            "launch_model_argument": self.launch_model_argument,
+            "representation": self.representation,
+            "reasoning_confidence": self.reasoning_confidence,
         }
         if self.prompt is not None:
             payload["prompt"] = self.prompt

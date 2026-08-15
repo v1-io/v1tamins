@@ -77,7 +77,7 @@ Report:
 - **host:** current runtime when known, otherwise `unknown`
 - **installed peers:** `claude`, `codex`, `cursor-agent`, `agy` (Antigravity CLI); Oracle remains a manual/browser path outside the discovery allowlist
 - **credential policy:** `eligible`, `not_authenticated`, `auth_not_verified`, `blocked_api_key_present`, `explicit_api_mode`, `api_key_required`, or `not_installed`
-- **launch state:** derived readiness such as `eligible`, `model_unresolved`, or a distinct policy failure
+- **launch state:** derived readiness such as `eligible`, `model_unresolved`, `launch_unrepresentable`, or a distinct policy failure
 - **model catalog:** `resolved`/`unresolved`, with `verified`/`unresolved` confidence from provider catalog commands only
 - **default peer:** proposed counterpart and reason; not yet launched
 - **limits:** subscription tier, browser access, and cloud-agent access if not directly verified

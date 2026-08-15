@@ -13,7 +13,13 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from peer_models import AuthFact, ModelCatalog, ModelEntry, ProviderDiscovery
+from peer_models import (
+    AuthFact,
+    CatalogFormat,
+    ModelCatalog,
+    ModelEntry,
+    ProviderDiscovery,
+)
 from peer_policy import PROVIDER_KEY_ENV_VARS, PROVIDERS, ProviderSpec, subscription_environment
 
 KNOWN_EFFORT_ORDER = (
@@ -122,6 +128,34 @@ def effort_suffix(model_id: str) -> str | None:
     return None
 
 
+def label_effort(label: str) -> str | None:
+    """Read a reasoning level from a catalog label's trailing qualifier.
+
+    Only the last word counts, so a label ending in ``(High)`` seeds a level
+    while one that merely mentions a limit earlier in the text does not.
+    """
+
+    words = [word for word in re.split(r"[^A-Za-z]+", label) if word]
+    if not words:
+        return None
+    return effort_name(words[-1])
+
+
+def reasoning_encoded_in_model(model: str | None, reasoning: str | None) -> bool:
+    """True when the model argument alone already carries the requested level.
+
+    Providers that expose no separate effort option can only reach a level that
+    is part of the model ID itself. Selection and launch share this one rule so
+    a proposal cannot promise a level the wrapper is unable to send.
+    """
+
+    if reasoning is None:
+        return True
+    if model is None:
+        return False
+    return effort_suffix(model) == reasoning
+
+
 def normalize_model_entry(
     value: Any, rank: int, advertised_levels: Iterable[str] = ()
 ) -> ModelEntry | None:
@@ -159,24 +193,35 @@ def normalize_model_entry(
     )
 
 
-def parse_model_catalog(
-    text: str, advertised_levels: Iterable[str] = ()
-) -> list[ModelEntry]:
+@dataclass(frozen=True)
+class ParsedCatalog:
+    """Models plus the shape the provider's catalog command emitted."""
+
+    models: tuple[ModelEntry, ...]
+    catalog_format: CatalogFormat
+
+
+def parse_catalog(text: str, advertised_levels: Iterable[str] = ()) -> ParsedCatalog:
     """Parse provider catalog command output only.
 
     JSON is preferred. Line-oriented parsing covers dedicated list commands such
-    as ``agy models`` and cursor-agent ``--list-models`` lines shaped like
-    ``id - label``. Help text and prose are not catalog sources.
+    as ``agy models``, tab-separated ``id<TAB>label`` output, and cursor-agent
+    ``--list-models`` lines shaped like ``id - label``. Help text and prose are
+    not catalog sources.
     """
 
     values: list[Any] = []
+    catalog_format: CatalogFormat = "lines"
     try:
         payload = json.loads(text)
     except json.JSONDecodeError:
         payload = None
     if payload is not None:
+        catalog_format = "json"
         values = parse_json_models(payload)
     else:
+        saw_tab = False
+        saw_dash = False
         for line in text.splitlines():
             line = line.strip()
             if not line or line.endswith(":"):
@@ -187,10 +232,15 @@ def parse_model_catalog(
                 line,
             ):
                 continue
-            # cursor-agent: "id - label"; agy: one model name per line (may include
-            # spaces, e.g. "Gemini 3.5 Flash (Medium)").
-            if " - " in line:
-                token = line.split(" - ", 1)[0].strip()
+            # Tab-separated "id<TAB>label"; cursor-agent "id - label"; agy: one
+            # model name per line (may include spaces and a trailing qualifier).
+            label = ""
+            if "\t" in line:
+                token, label = (part.strip() for part in line.split("\t", 1))
+                saw_tab = True
+            elif " - " in line:
+                token, label = (part.strip() for part in line.split(" - ", 1))
+                saw_dash = True
             else:
                 cleaned = re.sub(r"^[-*•]\s+", "", line)
                 cleaned = re.sub(r"^\d+[.)]\s+", "", cleaned).strip()
@@ -208,8 +258,18 @@ def parse_model_catalog(
                 continue
             if re.match(r"(?i)^(warning|error|info|note|debug|failed|fatal|trace)$", token):
                 continue
-            if re.match(r"^[A-Za-z0-9][A-Za-z0-9 _.:/=+@()-]*$", token):
+            if not re.match(r"^[A-Za-z0-9][A-Za-z0-9 _.:/=+@()-]*$", token):
+                continue
+            # A label may name the level when the ID itself does not.
+            seeded = label_effort(label) if label else None
+            if seeded and not effort_suffix(token):
+                values.append({"id": token, "reasoning_levels": [seeded]})
+            else:
                 values.append(token)
+        if saw_tab:
+            catalog_format = "tsv"
+        elif saw_dash:
+            catalog_format = "id_dash_label"
 
     models: list[ModelEntry] = []
     seen: set[str] = set()
@@ -219,7 +279,17 @@ def parse_model_catalog(
             continue
         seen.add(model.id)
         models.append(model)
-    return models
+    if not models:
+        return ParsedCatalog((), "unresolved")
+    return ParsedCatalog(tuple(models), catalog_format)
+
+
+def parse_model_catalog(
+    text: str, advertised_levels: Iterable[str] = ()
+) -> list[ModelEntry]:
+    """Models only, for callers that do not need the catalog shape."""
+
+    return list(parse_catalog(text, advertised_levels).models)
 
 
 def ambient_provider_keys(name: str) -> list[str]:
@@ -432,13 +502,15 @@ def discover_provider(
             [executable, *spec.catalog_args], mode, remaining(), provider=name
         )
         if catalog_result.returncode == 0 and not catalog_result.timed_out:
-            models = parse_model_catalog(catalog_result.stdout)
+            parsed = parse_catalog(catalog_result.stdout)
+            models = list(parsed.models)
             if models:
                 catalog = ModelCatalog(
                     status="resolved",
                     confidence="verified",
                     source="provider_catalog",
                     fingerprint=sha256_text(catalog_result.stdout),
+                    catalog_format=parsed.catalog_format,
                 )
 
     reasoning_levels = tuple(

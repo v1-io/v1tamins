@@ -15,8 +15,10 @@ record per discovered CLI. The result records:
 | installation | `installed`, `unavailable` | Executable presence and version surface. |
 | credential policy | `eligible`, `not_authenticated`, `auth_not_verified`, `blocked_api_key_present`, `explicit_api_mode`, `api_key_required`, `not_installed` | Single tagged auth decision. Launch derives from this tag plus catalog/selection. |
 | model catalog | `resolved`, `unresolved` | Whether the current provider-owned catalog command returned usable IDs. |
+| catalog format | `json`, `tsv`, `id_dash_label`, `lines`, `unresolved` | Shape the provider's catalog command emitted. Tab-separated `id<TAB>label` output is a catalog, not prose. |
+| model representation | `catalog`, `alias`, `explicit` | How the model ID was established. `alias` is a user-named model on a provider with no catalog command. |
 | catalog confidence | `verified`, `unresolved` | Provider catalog command output only; help text is never a catalog source. Unresolved means no model may be invented unless custom `--model` is explicit. |
-| launch state | `eligible`, `blocked_api_key_present`, `not_authenticated`, `api_key_required`, `auth_unverified`, `model_unresolved` | Derived candidate readiness. Distinct policy failures stay distinct. |
+| launch state | `eligible`, `blocked_api_key_present`, `not_authenticated`, `api_key_required`, `auth_unverified`, `model_unresolved`, `launch_unrepresentable` | Derived candidate readiness. Distinct policy failures stay distinct. `launch_unrepresentable` means the model resolved but the selected level has no launch argument. |
 | runner lifecycle | `running`, `complete`, `empty_output`, `stalled`, `timed_out` | Exact states from `peer-run.sh` status/verdict. |
 | envelope family | `plain_text`, `result_text`, `result_event_nested`, `assistant_message`, `item_completed`, `json_object`, `unknown`, `empty` | Which output shape carried the answer. Reporting only; it never changes the resolved state. |
 | execution (parent) | runner lifecycle, or `execution_uncertain` | Parent interpretation when dispatch occurred but lifecycle evidence is ambiguous. Not a runner-emitted state. |
@@ -41,13 +43,15 @@ Before launch, show the user every field below for the selected candidate:
 ```text
 CLI + version: <runtime result>
 Model: <current catalog ID, explicit custom ID, or model_unresolved>
+Launch model argument: <exact value the CLI receives, or launch_unrepresentable>
+Model representation: catalog | alias | explicit
 Reasoning: <current supported level, or unresolved>
 Role: <structural review | correctness/security | maintainability | research | multimodal>
 Prompt: <profile name>, source <path or provider rubric>, digest <sha256>
 Permission: readonly | local-verify | isolated-delegate | external
 Auth policy: eligible | not_authenticated | auth_not_verified | blocked_api_key_present | explicit_api_mode | api_key_required
 Catalog confidence: verified | unresolved
-Launch state: eligible | blocked_api_key_present | not_authenticated | api_key_required | auth_unverified | model_unresolved
+Launch state: eligible | blocked_api_key_present | not_authenticated | api_key_required | auth_unverified | model_unresolved | launch_unrepresentable
 Deadline: <seconds>
 Selection: recommended | alternative | user-named
 ```

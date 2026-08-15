@@ -28,8 +28,8 @@ _SCRIPT_DIR = Path(__file__).resolve().parent
 if str(_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPT_DIR))
 
-from peer_adapters import effort_suffix  # noqa: E402
-from peer_policy import API_KEY_ENV_VARS, PROVIDERS, subscription_environment  # noqa: E402
+from peer_adapters import reasoning_encoded_in_model  # noqa: E402
+from peer_policy import PROVIDERS, subscription_environment  # noqa: E402
 
 SCHEMA = "v1-peer-launch/v1"
 
@@ -157,14 +157,13 @@ def finalize(cli: str, argv: list[str], prompt: str) -> list[str] | LaunchError:
     return [*argv, prompt]
 
 
-def reasoning_encoded_in_model(model: str | None, reasoning: str | None) -> bool:
-    """True when the model argument already carries the requested level."""
+def effort_option(cli: str, reasoning: str | None) -> list[str]:
+    """Emit the provider's own reasoning option when it has one."""
 
-    if reasoning is None:
-        return True
-    if model is None:
-        return False
-    return effort_suffix(model) == reasoning
+    flag = PROVIDERS[cli].effort_flag
+    if reasoning is None or flag is None:
+        return []
+    return [flag, reasoning]
 
 
 def build_claude(
@@ -186,8 +185,7 @@ def build_claude(
     argv += ["--verbose"]
     if model:
         argv += ["--model", model]
-    if reasoning:
-        argv += ["--effort", reasoning]
+    argv += effort_option("claude", reasoning)
     return argv
 
 
@@ -199,11 +197,6 @@ def build_codex(
 ) -> list[str] | LaunchError:
     if context.repo is None:
         return unresolved("codex", "needs an explicit working directory (--repo)")
-    if not reasoning_encoded_in_model(model, reasoning):
-        return unresolved(
-            "codex",
-            f"reasoning level {reasoning!r} has no validated launch argument",
-        )
     sandbox = (
         ["--sandbox", "read-only"]
         if permission == "readonly"
@@ -221,13 +214,6 @@ def build_cursor(
     reasoning: str | None,
     context: LaunchContext,
 ) -> list[str] | LaunchError:
-    # The catalog ID is the only accepted model argument. Never synthesize an
-    # effort-parameterized form the provider did not advertise.
-    if not reasoning_encoded_in_model(model, reasoning):
-        return unresolved(
-            "cursor-agent",
-            f"reasoning level {reasoning!r} is not part of the validated model argument",
-        )
     argv = ["cursor-agent", "-p"]
     if permission == "readonly":
         argv += ["--mode", "plan", "--trust"]
@@ -256,8 +242,7 @@ def build_agy(
     argv += ["--print-timeout", context.print_timeout]
     if model:
         argv += ["--model", model]
-    if reasoning:
-        argv += ["--effort", reasoning]
+    argv += effort_option("agy", reasoning)
     # --print takes the prompt, so it must stay the final option.
     argv += ["--print"]
     return argv
@@ -287,6 +272,15 @@ def build_recipe(
         return unresolved(cli, "unsupported provider")
     if permission not in PERMISSION_MODES:
         return unresolved(cli, f"unsupported permission mode: {permission}")
+    # A provider with no reasoning option can only reach a level its model
+    # argument already carries. Never synthesize a parameterized model ID.
+    if PROVIDERS[cli].effort_flag is None and not reasoning_encoded_in_model(
+        model, reasoning
+    ):
+        return unresolved(
+            cli,
+            f"reasoning level {reasoning!r} has no validated launch argument",
+        )
 
     built = BUILDERS[cli](permission, model, reasoning, context or LaunchContext())
     if isinstance(built, LaunchError):
