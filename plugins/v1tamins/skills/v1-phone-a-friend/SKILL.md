@@ -32,7 +32,7 @@ Examples:
 2. Show the recommended one-peer roster, current CLI/version, model, reasoning level, prompt source/digest, auth policy, launch state, permission, deadline, catalog/model confidence, and alternatives.
 3. Wait for explicit selection. API mode, multiple peers, delegation, research, and write-capable permissions require explicit choices in addition to the skill invocation. If the user has not selected a candidate, return `confirmation_required` and launch zero peers.
 4. Package the smallest useful context and remove secrets, private URLs, customer data, tokens, account IDs, and proprietary incident details.
-5. Run exactly the selected peer with [scripts/peer-env.sh](scripts/peer-env.sh) and [scripts/peer-run.sh](scripts/peer-run.sh), then verify the typed result locally.
+5. Build the command with [scripts/peer_launch.py](scripts/peer_launch.py) rather than by hand, then run exactly that command with [scripts/peer-env.sh](scripts/peer-env.sh) and [scripts/peer-run.sh](scripts/peer-run.sh) and verify the typed result locally.
 
 ## Decision Path
 
@@ -216,6 +216,7 @@ Before acting on advice:
 
 - **[scripts/peer_catalog.py](scripts/peer_catalog.py)** - bounded provider/version/model/reasoning/auth discovery and profile proposal; it never launches a model.
 - **[scripts/peer-env.sh](scripts/peer-env.sh)** - explicit subscription-native/API credential policy wrapper.
+- **[scripts/peer_launch.py](scripts/peer_launch.py)** - per-provider launch adapters; builds the approved argv, refuses unrepresentable selections, and never dispatches.
 - **[scripts/peer-run.sh](scripts/peer-run.sh)** - detached, stdin-safe, deadline-bounded lifecycle and typed verdict.
 - **[scripts/peer_verdict.py](scripts/peer_verdict.py)** - shape-based terminal-answer classifier behind the runner verdict; reports the envelope family.
 - **[references/peer-execution-contract.md](references/peer-execution-contract.md)** - typed discovery, auth, selection, execution, and stale-context contract.
