@@ -217,6 +217,7 @@ Before acting on advice:
 - **[scripts/peer_catalog.py](scripts/peer_catalog.py)** - bounded provider/version/model/reasoning/auth discovery and profile proposal; it never launches a model.
 - **[scripts/peer-env.sh](scripts/peer-env.sh)** - explicit subscription-native/API credential policy wrapper.
 - **[scripts/peer-run.sh](scripts/peer-run.sh)** - detached, stdin-safe, deadline-bounded lifecycle and typed verdict.
+- **[scripts/peer_verdict.py](scripts/peer_verdict.py)** - shape-based terminal-answer classifier behind the runner verdict; reports the envelope family.
 - **[references/peer-execution-contract.md](references/peer-execution-contract.md)** - typed discovery, auth, selection, execution, and stale-context contract.
 - **[references/model-selection.md](references/model-selection.md)** - dynamic profile ranking and current-catalog rules.
 - **[references/command-templates.md](references/command-templates.md)** - Coding-agent prompt bodies and command wrappers for Claude Code, Codex, Cursor Agent, and Antigravity CLI.

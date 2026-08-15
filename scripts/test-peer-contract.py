@@ -8,6 +8,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
@@ -30,6 +31,7 @@ SPEC.loader.exec_module(peer_catalog)
 import peer_adapters  # noqa: E402
 import peer_models  # noqa: E402
 import peer_policy  # noqa: E402
+import peer_verdict  # noqa: E402
 
 
 def provider_from_dict(payload: dict[str, Any]) -> peer_models.ProviderDiscovery:
@@ -711,6 +713,165 @@ class PeerContractTests(unittest.TestCase):
             self.assertIsNone(
                 concrete_id.search(path.read_text(encoding="utf-8")), path
             )
+
+
+def stream(*events: dict[str, Any]) -> str:
+    return "".join(json.dumps(event) + "\n" for event in events)
+
+
+class PeerVerdictTests(unittest.TestCase):
+    """Terminal-answer classification by envelope shape, never provider name."""
+
+    def assertAnswer(self, text: str, family: str) -> None:
+        verdict = peer_verdict.classify_text(text)
+        self.assertTrue(verdict.answer, text)
+        self.assertEqual(verdict.envelope_family, family)
+
+    def assertNoAnswer(self, text: str, family: str = "unknown") -> None:
+        verdict = peer_verdict.classify_text(text)
+        self.assertFalse(verdict.answer, text)
+        self.assertEqual(verdict.envelope_family, family)
+
+    def test_nested_result_envelope_is_a_terminal_answer(self) -> None:
+        self.assertAnswer(
+            stream(
+                {"event": "start", "session_id": "synthetic"},
+                {
+                    "event": "result",
+                    "result": {"status": "SUCCESS", "response": "peer answer body"},
+                },
+            ),
+            "result_event_nested",
+        )
+
+    def test_direct_string_result_envelope(self) -> None:
+        self.assertAnswer(
+            stream(
+                {"type": "system", "subtype": "init"},
+                {
+                    "type": "result",
+                    "subtype": "success",
+                    "result": "peer answer body",
+                    "is_error": False,
+                },
+            ),
+            "result_text",
+        )
+
+    def test_assistant_message_content_blocks(self) -> None:
+        self.assertAnswer(
+            stream(
+                {"type": "system", "subtype": "init"},
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [{"type": "text", "text": "peer answer body"}]
+                    },
+                },
+            ),
+            "assistant_message",
+        )
+
+    def test_item_completed_envelope(self) -> None:
+        self.assertAnswer(
+            stream({"type": "item.completed", "text": "peer answer body"}),
+            "item_completed",
+        )
+
+    def test_framing_only_stream_has_no_answer(self) -> None:
+        self.assertNoAnswer(
+            stream(
+                {"type": "system", "subtype": "init"},
+                {"type": "progress", "text": "still working"},
+                {"type": "result", "subtype": "success", "result": ""},
+            )
+        )
+
+    def test_reasoning_only_stream_has_no_answer(self) -> None:
+        self.assertNoAnswer(
+            stream(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [{"type": "thinking", "thinking": "deliberating"}]
+                    },
+                }
+            )
+        )
+
+    def test_tool_traffic_only_has_no_answer(self) -> None:
+        self.assertNoAnswer(
+            stream(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {
+                                "type": "tool_use",
+                                "name": "Read",
+                                "input": {"file_path": "a.py"},
+                            }
+                        ]
+                    },
+                }
+            )
+        )
+
+    def test_error_envelopes_are_rejected_at_every_level(self) -> None:
+        self.assertNoAnswer(
+            stream({"type": "result", "result": "failed", "is_error": True})
+        )
+        self.assertNoAnswer(
+            stream({"type": "result", "subtype": "error", "result": "boom"})
+        )
+        self.assertNoAnswer(
+            stream(
+                {"event": "result", "result": {"status": "FAILED", "response": "boom"}}
+            )
+        )
+
+    def test_plain_text_and_empty_output(self) -> None:
+        self.assertAnswer("substantive synthetic peer output\n", "plain_text")
+        self.assertNoAnswer("   \n\n", "empty")
+
+    def test_mixed_prose_and_json_lines_stay_plain_text(self) -> None:
+        self.assertAnswer(
+            'warming up\n{"type":"system","subtype":"init"}\n', "plain_text"
+        )
+
+    def test_pretty_printed_document_is_classified(self) -> None:
+        self.assertAnswer(
+            json.dumps(
+                {
+                    "event": "result",
+                    "result": {"status": "SUCCESS", "response": "peer answer body"},
+                },
+                indent=2,
+            ),
+            "result_event_nested",
+        )
+
+    def test_descent_is_depth_bounded(self) -> None:
+        payload: Any = "peer answer body"
+        for _ in range(peer_verdict.MAX_DEPTH + 3):
+            payload = {"response": payload}
+        self.assertFalse(peer_verdict.terminal_text(payload))
+
+    def test_cli_answer_exit_status_and_family(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "peer.stdout"
+            path.write_text(
+                stream(
+                    {
+                        "event": "result",
+                        "result": {"status": "SUCCESS", "response": "peer answer body"},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self.assertEqual(peer_verdict.main(["answer", str(path)]), 0)
+            path.write_text(stream({"type": "system"}), encoding="utf-8")
+            self.assertEqual(peer_verdict.main(["answer", str(path)]), 1)
 
 
 if __name__ == "__main__":
