@@ -9,7 +9,7 @@ one skill for a specific job or combine several into a repeatable workflow.
 
 Built in the open by Version1 and Humm.
 
-[![Axonometric cutaway of one shared skill library feeding two coding-agent work bays through a validation lane](docs/assets/v1tamins-system-cutaway.png)](docs/assets/v1tamins-system-cutaway.imagegen.md)
+[![Axonometric cutaway of a v1tamins field case where marketplace inputs feed one shared skill library, three routing paths, validation, and Claude Code and Codex docks](docs/assets/v1tamins-system-cutaway.png)](docs/assets/v1tamins-system-cutaway.imagegen.md)
 
 The image shows the central idea: one reviewed skill library, shared by two
 runtimes. The [generation record](docs/assets/v1tamins-system-cutaway.imagegen.md)
