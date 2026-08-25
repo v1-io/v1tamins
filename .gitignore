@@ -41,3 +41,5 @@ plugins/v1tamins/skills/v1-_*
 docs/*
 !docs/agents/
 !docs/adr/
+!docs/assets/
+!docs/assets/**
