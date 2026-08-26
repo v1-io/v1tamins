@@ -18,12 +18,12 @@ one skill for a specific job or combine several into a repeatable workflow.
 
 Built in the open by Version1 and Humm.
 
-[![Precision apothecary balance holding one capability capsule with planning, debugging, review, and shipping ingredients, three access settings, and equal Claude Code and Codex doses](docs/assets/v1tamins-system-cutaway.png)](docs/assets/v1tamins-system-cutaway.imagegen.md)
+[![Detailed pharmaceutical cutaway showing v1tamins orders, R&D formulation, pill production, repair, QA/QC, packaging, feedback, and shipping](docs/assets/v1tamins-system-cutaway.png)](docs/assets/v1tamins-system-cutaway.imagegen.md)
 
-The image shows the user benefit: choose a focused dose of expert capability
-for the job, with reviewed routing and the same formula available in both
-runtimes. The [generation record](docs/assets/v1tamins-system-cutaway.imagegen.md)
-documents the metaphor and how the image was made.
+The image treats v1tamins as a working skill pharmacy: useful formulations are
+developed, tested, repaired, inspected, packaged, delivered, and improved from
+feedback. The [generation record](docs/assets/v1tamins-system-cutaway.imagegen.md)
+keeps the exact prompt and visual mapping for future revisions.
 
 ## Why it exists
 
