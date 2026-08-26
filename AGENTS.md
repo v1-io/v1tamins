@@ -139,6 +139,11 @@ Before proposing a new skill, check `.out-of-scope/` for a prior rejection of th
 
 When updating shared docs, keep `AGENTS.md`, `CLAUDE.md`, and `README.md` aligned.
 
+README images must have meaningful alt text. Keep an adjacent
+`<image-name>.imagegen.md` file for each generated image, recording its exact
+prompt, tool, reference inputs, and revision guidance. Update the image, README,
+and generation record together.
+
 Before publishing shared skills or instructions, run a privacy and portability scan over the changed files. Review hits for private URLs, absolute paths, secrets, tokens, customer names, project-specific facts, and OS-specific commands that should be generalized.
 
 ## Architecture Notes

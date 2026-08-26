@@ -6,133 +6,293 @@
 ██║   ██║ ╚██║    ██║   ███████║██╔████╔██║██║██╔██╗ ██║███████╗
 ╚██╗ ██╔╝  ██║    ██║   ██╔══██║██║╚██╔╝██║██║██║╚██╗██║╚════██║
  ╚████╔╝   ██║    ██║   ██║  ██║██║ ╚═╝ ██║██║██║ ╚████║███████║
-  ╚═══╝    ╚═╝    ╚═╝   ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚══════╝
+  ╚═══╝    ╚═╝    ╚═╝   ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚══════╝
 ```
 
-**AI coding agents fail in five predictable ways. v1tamins is one sharp skill for each.**
+**Small, reusable skills for healthier AI-assisted development.**
 
-Daily supplements for healthy code, from the Version1 team. Plugin install for Claude Code and Codex. Skills compose into the workflows you actually use — idea → ship, bug → fix, weekly compounding. Mix and match.
+v1tamins is an open-source plugin for [Claude Code](https://claude.ai/code) and
+[Codex](https://openai.com/codex/). It packages 38 focused skills for planning,
+debugging, reviewing, shipping, research, documentation, and product work. Use
+one skill for a specific job or combine several into a repeatable workflow.
+
+Built in the open by Version1 and Humm.
+
+[![Detailed pharmaceutical cutaway showing v1tamins orders, R&D formulation, pill production, repair, QA/QC, packaging, feedback, and shipping](docs/assets/v1tamins-system-cutaway.png)](docs/assets/v1tamins-system-cutaway.imagegen.md)
+
+The image treats v1tamins as a working skill pharmacy: useful formulations are
+developed, tested, repaired, inspected, packaged, delivered, and improved from
+feedback. The [generation record](docs/assets/v1tamins-system-cutaway.imagegen.md)
+keeps the exact prompt and visual mapping for future revisions.
+
+## Why it exists
+
+AI coding agents often fail in familiar ways:
+
+- A vague request becomes a large solution to the wrong problem.
+- A plausible bug fix treats the symptom, not the cause.
+- Working code gains extra abstractions, fallbacks, and complexity.
+- Finished work stalls during review, proof, and pull-request hand-off.
+- Useful lessons stay trapped in one session and get rediscovered later.
+
+Each v1tamin addresses one bounded job. The skills stay small enough to choose
+deliberately and useful enough to compose.
+
+> [!TIP]
+> If you do not know which skill to use, invoke `/v1-menu` in Claude Code or
+> `$v1-menu` in Codex. It is the explicit index for the complete collection.
 
 ## Install
 
-v1tamins ships as a plugin for Claude Code and Codex. One shared `skills/` directory under `plugins/v1tamins/` serves both runtimes through sibling per-runtime manifests. Plugin-distributed skills carry a `v1-` prefix (`v1-pr`, `v1-debug`, `v1-goldpan`) to avoid colliding with other public or personal skills.
+v1tamins ships as one plugin package for both runtimes. The installed skill
+names use the `v1-` prefix, such as `v1-debug` and `v1-deep-review`, to avoid
+collisions with other skills. Invoke a skill as `/v1-debug` in Claude Code or
+`$v1-debug` in Codex.
 
-**Claude Code**
+### Claude Code
+
+Run these commands inside Claude Code:
 
 ```text
 /plugin marketplace add v1-io/v1tamins
 /plugin install v1tamins@v1tamins
 ```
 
-For local development against a checkout, point the marketplace at the path:
+For local plugin development, replace `v1-io/v1tamins` with the path to your
+checkout.
 
-```text
-/plugin marketplace add ~/v1tamins
-```
+### Codex
 
-**Codex**
+Add the marketplace from a terminal:
 
 ```bash
 codex plugin marketplace add v1-io/v1tamins
 ```
 
-Then install or enable the `v1tamins` plugin from Codex's plugin UI. For local development use `~/v1tamins` in place of `v1-io/v1tamins`.
+Then install or enable `v1tamins` in the Codex plugin UI. For local plugin
+development, replace `v1-io/v1tamins` with the path to your checkout.
 
-Updates flow through the runtime's marketplace refresh — there's nothing to rerun.
+### Try it
 
-## Autonomous use
+Name a skill directly when you want a specific workflow.
 
-v1tamins supports explicit invocation and autonomous routing. Codex and Claude
-Code select from compact metadata before loading the full `SKILL.md`, and both
-runtimes may shorten descriptions when many skills are installed.
+In Claude Code:
 
-Every skill declares one runtime posture in `agents/openai.yaml`:
-
-- `implicit` — model-selectable and directly invocable for ordinary local work.
-- `selective_implicit` — model-selectable, but costly or high-impact work stays
-  separately gated at the action boundary.
-- `explicit_only` — callable only by a human or explicitly named automation;
-  paired with `allow_implicit_invocation: false` and
-  `disable-model-invocation: true`.
-
-There is no supported `agent-only` posture. Explicit orchestration entry points
-such as `/v1-implement-unit`, `/v1-review-board`, `/v1-pr`, and `/v1-land-pr`
-stay explicit even when their child skills are model-selectable.
-
-Frontmatter descriptions are routing metadata, not miniature manuals. Keep
-each non-empty description to the core purpose plus distinct natural trigger
-phrases, targeting 180 characters or fewer. Put methods, outputs, edge cases,
-and routing boundaries in the body or a directly linked reference.
-
-The package keeps that contract reviewable with:
-
-- `plugins/v1tamins/evals/trigger-inventory.md` — the trigger, near-miss,
-  side-effect, and budget-risk inventory for every distributed skill.
-- `plugins/v1tamins/evals/skill-routing.jsonl` — realistic should-trigger,
-  should-not-trigger, overlap, side-effect, and budget-stress prompts.
-- `scripts/check-skill-routing-fixture.py` — fixture coverage validation, wired
-  into `scripts/validate-plugin.sh`.
-- `scripts/run-skill-routing-live-eval.py` and
-  `scripts/score-skill-routing-live-eval.py` — optional live smoke checks that
-  sample real Codex or Claude Code routing and write ignored local artifacts
-  under `.v1tamins/live-routing/`.
-
-When changing a skill name, description, `agents/openai.yaml`, invocation
-policy, or routing-relevant body guidance, update the trigger inventory and
-routing fixture in the same change. Low-risk local review/edit skills should be
-easy for agents to invoke implicitly. Skills that push, publish, upload, create
-external docs, move issues, or launch broad peer workflows should be explicit or
-gated. Deliberate rituals the user always summons by name — session mining,
-long autonomous loops — should also be `explicit_only`
-(`disable-model-invocation: true` plus
-`policy.allow_implicit_invocation: false`): their descriptions spend routing
-budget without earning autonomous reach. Before converting, check the live
-evals for natural-phrase traffic: if users reach the skill by describing the
-task rather than naming it, hiding it misroutes that traffic to neighbors
-instead of saving budget.
-
-`/v1-phone-a-friend` is explicit-only because it can launch another runtime.
-Its preflight proposes one current subscription-backed CLI/model/reasoning
-choice and waits for the user's selection. `/v1-review-board` uses the same
-dynamic discovery, proposes a quality roster plus alternatives, defaults to a
-read-only ledger, and never silently adds peers, uses an API key, or applies
-findings.
-
-`/v1-menu` is the explicit-only index over the full skill set — the one name to
-remember when you can't recall which skill fits. It is discoverable by name, but
-does not autonomously open a parent workflow. When a skill is added, renamed,
-removed, or changes posture, update `v1-menu` in the same change;
-`scripts/validate-plugin.sh` fails on menu drift.
-
-Live evals are opt-in because they may require local runtime authentication and
-model calls. Use them after changing high-overlap descriptions, invocation
-posture, or side-effect policy; treat missing runtime/auth as inconclusive
-rather than a static validation failure. Do not commit raw live transcripts.
-
-To verify a refreshed Codex or Claude installation without mutating caches or
-credentials, compare one supplied installed plugin root with the canonical
-source:
-
-```bash
-scripts/verify-installed-plugin.sh \
-  --canonical <canonical-plugin-root> \
-  --installed <installed-plugin-root> \
-  --runtime codex
+```text
+/v1-debug trace why this test fails only in CI
+/v1-deep-review review this branch for merge risk and maintainability
+/v1-pr-description refresh this pull request title and body
+/v1-menu help me choose a skill
 ```
 
-The read-only result reports `match`, `stale`, `missing`, or `ambiguous`, plus
-source, skill, version, and current model-catalog fingerprints. Repeat with
-`--runtime claude` for the Claude manifest.
+In Codex:
 
-### Recommended companion: compound-engineering
+```text
+$v1-debug trace why this test fails only in CI
+$v1-deep-review review this branch for merge risk and maintainability
+$v1-pr-description refresh this pull request title and body
+$v1-menu help me choose a skill
+```
 
-A few v1tamins skills compose directly with [Every's compound-engineering plugin](https://github.com/EveryInc/compound-engineering-plugin):
+You can also describe the job in plain language. Skills marked for implicit use
+can be selected by the runtime from their compact metadata. High-impact and
+deliberate workflows stay explicit or stop at a separate action gate.
 
-- `/v1-goldpan` queues approved candidates through `/ce-compound` to write durable solution docs
-- `/v1-implement-unit` prefers `/ce-work` in return-to-caller mode for its isolated implementation thread
-- `/v1-pr` chains into `/ce-code-review` for multi-agent review before merge
+## How it works
 
-Install it alongside v1tamins:
+The repository is a configuration distribution project, not an application.
+What it ships is skill guidance, routing metadata, helper assets, and plugin
+manifests.
+
+```mermaid
+flowchart LR
+  Author[Contributors edit one canonical skill] --> Source[plugins/v1tamins/skills]
+  Source --> Validate[Static validation and routing evals]
+  Validate --> Package[One plugin package]
+  Package --> Claude[Claude Code manifest]
+  Package --> Codex[Codex manifest]
+  Claude --> Select[Runtime selects or opens a skill]
+  Codex --> Select
+  Select --> Body[Full SKILL.md workflow loads]
+```
+
+The important parts are:
+
+1. **One canonical skill source.** Every distributed skill lives under
+   `plugins/v1tamins/skills/v1-<name>/`. Claude Code and Codex do not maintain
+   separate copies.
+2. **Compact routing metadata.** A runtime often chooses a skill before it
+   loads the full `SKILL.md`. The skill description therefore states the core
+   purpose and natural trigger phrases, while methods and edge cases stay in
+   the body or references.
+3. **An explicit invocation posture.** Each skill declares `implicit`,
+   `selective_implicit`, or `explicit_only` in `agents/openai.yaml`.
+4. **Reviewable routing evidence.** The trigger inventory and JSONL routing
+   fixture record when each skill should trigger, should not trigger, or needs
+   an action gate.
+5. **Static delivery checks.** The validator checks manifests, metadata,
+   routing coverage, links inside skills, version parity, and distribution
+   boundaries before a change ships.
+
+## Find the right skill
+
+These common entry points cover much of the day-to-day work:
+
+| You need to… | Start with |
+| --- | --- |
+| Turn a fuzzy request into clear requirements | [`/v1-interview-me`](plugins/v1tamins/skills/v1-interview-me/SKILL.md) |
+| Cut an oversized plan to the smallest useful scope | [`/v1-bare-bones`](plugins/v1tamins/skills/v1-bare-bones/SKILL.md) |
+| Debug an observable failure to a tested cause | [`/v1-debug`](plugins/v1tamins/skills/v1-debug/SKILL.md) |
+| Repair a failing test suite | [`/v1-fix-tests`](plugins/v1tamins/skills/v1-fix-tests/SKILL.md) |
+| Improve working but rough code | [`/v1-refine`](plugins/v1tamins/skills/v1-refine/SKILL.md) |
+| Review a branch or PR before merge | [`/v1-deep-review`](plugins/v1tamins/skills/v1-deep-review/SKILL.md) |
+| Prepare a pull request | [`/v1-pr`](plugins/v1tamins/skills/v1-pr/SKILL.md) |
+| Explain a pull request visually | [`/v1-pr-walkthrough`](plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md) |
+| Research a complex question | [`/v1-deep-research`](plugins/v1tamins/skills/v1-deep-research/SKILL.md) |
+| Create or audit an Agent Skill | [`/v1-skilling-it`](plugins/v1tamins/skills/v1-skilling-it/SKILL.md) |
+
+### Workflows that compose
+
+| Journey | Suggested chain |
+| --- | --- |
+| Idea to reviewed plan | `/v1-interview-me` → `/v1-strategy-review` → `/v1-bare-bones` → `/v1-prd` |
+| Bug to verified fix | `/v1-debug` → `/v1-write-tests` → `/v1-refine` → `/v1-deep-review` |
+| Planned unit to mergeable PR | `/v1-implement-unit` (includes review and landing phases) |
+| PR review hand-off | `/v1-deep-review` → `/v1-address-review` → `/v1-land-pr` |
+| Learning loop | `/v1-goldpan` (includes compounding) → `/v1-docs-freshness` → `/v1-changelog` |
+
+These are useful paths, not a required framework. Start with the smallest skill
+that matches the job.
+
+## Complete skill catalog
+
+<details>
+<summary><strong>Plan and align</strong></summary>
+
+| Skill | Use it when |
+| --- | --- |
+| [`/v1-interview-me`](plugins/v1tamins/skills/v1-interview-me/SKILL.md) | An idea, ticket, or feature request needs structured questions before implementation. |
+| [`/v1-strategy-review`](plugins/v1tamins/skills/v1-strategy-review/SKILL.md) | A plan, PRD, or direction needs a strategic challenge. |
+| [`/v1-bare-bones`](plugins/v1tamins/skills/v1-bare-bones/SKILL.md) | A plan needs the smallest useful scope. |
+| [`/v1-shared-language`](plugins/v1tamins/skills/v1-shared-language/SKILL.md) | A team or codebase needs one clear domain vocabulary. |
+| [`/v1-prd`](plugins/v1tamins/skills/v1-prd/SKILL.md) | A feature request needs a product requirements document. |
+| [`/v1-learning-from-customers`](plugins/v1tamins/skills/v1-learning-from-customers/SKILL.md) | Customer discovery needs planning, audit, or synthesis. |
+| [`/v1-testing-prototypes`](plugins/v1tamins/skills/v1-testing-prototypes/SKILL.md) | Prototype sessions need a test plan or evidence synthesis. |
+| [`/v1-reviewing-usability`](plugins/v1tamins/skills/v1-reviewing-usability/SKILL.md) | A UI or flow needs a usability review. |
+
+</details>
+
+<details>
+<summary><strong>Build and debug</strong></summary>
+
+| Skill | Use it when |
+| --- | --- |
+| [`/v1-implement-unit`](plugins/v1tamins/skills/v1-implement-unit/SKILL.md) | One adequately planned unit needs implementation, review, and PR hand-off. |
+| [`/v1-debug`](plugins/v1tamins/skills/v1-debug/SKILL.md) | An observable problem needs a tested causal explanation. |
+| [`/v1-fix-tests`](plugins/v1tamins/skills/v1-fix-tests/SKILL.md) | A failing test suite needs systematic repair. |
+| [`/v1-write-tests`](plugins/v1tamins/skills/v1-write-tests/SKILL.md) | New or changed behavior needs focused unit tests. |
+| [`/v1-e2e-testing`](plugins/v1tamins/skills/v1-e2e-testing/SKILL.md) | Browser end-to-end tests need implementation or debugging. |
+
+</details>
+
+<details>
+<summary><strong>Review and improve</strong></summary>
+
+| Skill | Use it when |
+| --- | --- |
+| [`/v1-refine`](plugins/v1tamins/skills/v1-refine/SKILL.md) | Working code needs a quality pass, deslop, or hindsight rewrite. |
+| [`/v1-deep-review`](plugins/v1tamins/skills/v1-deep-review/SKILL.md) | A PR or branch needs review for merge risk and maintainability. |
+| [`/v1-review-board`](plugins/v1tamins/skills/v1-review-board/SKILL.md) | A PR needs a parallel, read-only multi-agent review and one finding ledger. |
+| [`/v1-reviewing-data-graphics`](plugins/v1tamins/skills/v1-reviewing-data-graphics/SKILL.md) | Charts, dashboards, or metrics need an integrity and clarity review. |
+| [`/v1-diagnosing-constraints`](plugins/v1tamins/skills/v1-diagnosing-constraints/SKILL.md) | A queue, process, or team needs its throughput constraint identified. |
+| [`/v1-designing-habit-systems`](plugins/v1tamins/skills/v1-designing-habit-systems/SKILL.md) | A habit, routine, or cadence needs design or diagnosis. |
+
+</details>
+
+<details>
+<summary><strong>Ship</strong></summary>
+
+| Skill | Use it when |
+| --- | --- |
+| [`/v1-pr`](plugins/v1tamins/skills/v1-pr/SKILL.md) | Local work needs a draft pull request. |
+| [`/v1-pr-description`](plugins/v1tamins/skills/v1-pr-description/SKILL.md) | A PR title and body need generation or refresh. |
+| [`/v1-land-pr`](plugins/v1tamins/skills/v1-land-pr/SKILL.md) | A completed branch needs commit, push, CI follow-through, and review hand-off. |
+| [`/v1-pr-walkthrough`](plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md) | A PR needs a self-contained interactive explanation. |
+| [`/v1-address-review`](plugins/v1tamins/skills/v1-address-review/SKILL.md) | Existing PR review threads need resolution. |
+| [`/v1-prove-work`](plugins/v1tamins/skills/v1-prove-work/SKILL.md) | Browser behavior needs a GIF as review evidence. |
+
+</details>
+
+<details>
+<summary><strong>Research, communicate, and compound</strong></summary>
+
+| Skill | Use it when |
+| --- | --- |
+| [`/v1-deep-research`](plugins/v1tamins/skills/v1-deep-research/SKILL.md) | A complex question needs iterative multi-source research. |
+| [`/v1-autoresearch-skill`](plugins/v1tamins/skills/v1-autoresearch-skill/SKILL.md) | A measurable target needs an autonomous optimization loop. |
+| [`/v1-canon2skill`](plugins/v1tamins/skills/v1-canon2skill/SKILL.md) | Source material needs reusable skill ideas. |
+| [`/v1-stickify`](plugins/v1tamins/skills/v1-stickify/SKILL.md) | Communication needs to be clearer and more memorable. |
+| [`/v1-md2docs`](plugins/v1tamins/skills/v1-md2docs/SKILL.md) | Markdown needs publishing as a formatted Google Doc. |
+| [`/v1-html-it`](plugins/v1tamins/skills/v1-html-it/SKILL.md) | A review, report, prototype, or explainer needs a self-contained HTML artifact. |
+| [`/v1-goldpan`](plugins/v1tamins/skills/v1-goldpan/SKILL.md) | Recent work needs scanning for lessons worth documenting. |
+| [`/v1-docs-freshness`](plugins/v1tamins/skills/v1-docs-freshness/SKILL.md) | Existing documentation needs synchronization with shipped behavior. |
+| [`/v1-changelog`](plugins/v1tamins/skills/v1-changelog/SKILL.md) | Merged PRs need release notes. |
+
+</details>
+
+<details>
+<summary><strong>Skills for skills and agents</strong></summary>
+
+| Skill | Use it when |
+| --- | --- |
+| [`/v1-menu`](plugins/v1tamins/skills/v1-menu/SKILL.md) | You need the explicit index and help choosing a skill. |
+| [`/v1-phone-a-friend`](plugins/v1tamins/skills/v1-phone-a-friend/SKILL.md) | Work needs an independent model or runtime opinion. |
+| [`/v1-skilling-it`](plugins/v1tamins/skills/v1-skilling-it/SKILL.md) | An Agent Skill needs creation, editing, audit, validation, or a Canonical Source decision. |
+| [`/v1-prompt-engineering`](plugins/v1tamins/skills/v1-prompt-engineering/SKILL.md) | A prompt, system prompt, hook, or sub-agent brief needs improvement. |
+
+</details>
+
+## Routing and safety boundaries
+
+Every skill declares one invocation posture:
+
+| Posture | Meaning |
+| --- | --- |
+| `implicit` | The runtime may select and invoke it for ordinary local work. |
+| `selective_implicit` | The runtime may select it, but costly or high-impact actions remain separately gated. |
+| `explicit_only` | A human or named automation must invoke it directly. |
+
+There is no supported `agent-only` posture. Parent workflows such as
+`/v1-implement-unit`, `/v1-review-board`, `/v1-pr`, and `/v1-land-pr` stay
+explicit even when their child skills are available for implicit use.
+
+Some skills can push Git changes, publish documents, launch peer agents, record
+browser proof, or update external systems. Their metadata records those side
+effects, but metadata does not replace user approval or host permissions. Read
+the selected skill before allowing a consequential action.
+
+> [!WARNING]
+> `/v1-land-pr` can mark a pull request ready for review and move a linked
+> Linear ticket to Human Review. Invoke it only when the work is complete and
+> those hand-off actions are intended.
+
+Live routing evals are optional because they can call a locally authenticated
+runtime and create ignored transcripts under `.v1tamins/live-routing/`. Missing
+runtime access is inconclusive, not a static validation failure. Do not commit
+raw transcripts.
+
+## Recommended companion: compound-engineering
+
+Some workflows can compose with [Every's compound-engineering
+plugin](https://github.com/EveryInc/compound-engineering-plugin):
+
+- `/v1-goldpan` depends on its session readers and `/ce-compound` writer.
+- `/v1-implement-unit` uses `/ce-work` when available and has a local fallback
+  when it is not.
+- `/v1-pr` can use a compound-engineering review workflow when the user asks
+  for that extra pass.
+
+Install it alongside v1tamins if you want those integrations:
 
 ```text
 # Claude Code
@@ -141,422 +301,126 @@ Install it alongside v1tamins:
 
 # Codex
 codex plugin marketplace add EveryInc/compound-engineering-plugin
-# then install compound-engineering from Codex's plugin UI
+# then install compound-engineering in the Codex plugin UI
 ```
 
-> [!NOTE]
-> v1tamins works without it — only `/v1-goldpan` will fail noisily if compound-engineering isn't installed. Everything else degrades gracefully.
-
-## The skill universe
-
-```mermaid
-mindmap
-  root((v1tamins))
-    Plan
-      ("v1-interview-me")
-      ("v1-strategy-review")
-      ("v1-bare-bones")
-      ("v1-shared-language")
-      ("v1-prd")
-      ("v1-learning-from-customers")
-      ("v1-testing-prototypes")
-      ("v1-reviewing-usability")
-    Build
-      ("v1-implement-unit")
-      ("v1-debug")
-      ("v1-fix-tests")
-      ("v1-write-tests")
-      ("v1-e2e-testing")
-    Quality
-      ("v1-refine")
-      ("v1-deep-review")
-      ("v1-diagnosing-constraints")
-      ("v1-designing-habit-systems")
-    Ship
-      ("v1-pr")
-      ("v1-pr-description")
-      ("v1-land-pr")
-      ("v1-pr-walkthrough")
-      ("v1-address-review")
-      ("v1-review-board")
-      ("v1-prove-work")
-    Compound
-      ("v1-goldpan")
-      ("v1-docs-freshness")
-      ("v1-changelog")
-    Communicate
-      ("v1-stickify")
-      ("v1-md2docs")
-      ("v1-html-it")
-      ("v1-reviewing-data-graphics")
-    Research
-      ("v1-deep-research")
-      ("v1-autoresearch-skill")
-      ("v1-canon2skill")
-    Meta
-      ("v1-phone-a-friend")
-      ("v1-skilling-it")
-      ("v1-prompt-engineering")
-```
-
-## Why these skills exist
-
-You've felt all five of these:
-
-- The 800 lines that solved a different problem.
-- The bug fix that took three tries to actually fix.
-- The diff full of belt-and-braces error handling for cases that can't happen.
-- The PR that sat in draft for two days because writing the description felt like work.
-- The teammate who rediscovers your fix six months later because nobody wrote it down.
-
-Each v1tamin is the smallest sharp tool we could build for one of those failures. None of them try to be the whole process.
-
-### Choose the right planning or review skill
-
-| Need | Use | Not |
-| --- | --- | --- |
-| Flesh out an idea through questions | `v1-interview-me` | Customer discovery plan, prototype test, or PRD |
-| Plan/audit/synthesize customer conversations | `v1-learning-from-customers` | General feature spec or prototype usability test |
-| Plan or synthesize observed prototype sessions | `v1-testing-prototypes` | Customer interviews before a prototype exists |
-| Review UI task completion and error risk | `v1-reviewing-usability` | Chart truthfulness or metric-dashboard integrity |
-| Review charts, dashboards, or quantitative displays | `v1-reviewing-data-graphics` | General app usability review |
-| Diagnose a throughput bottleneck, queue, WIP, funnel, or delivery constraint | `v1-diagnosing-constraints` | A broader expected-versus-actual failure |
-| Debug any observable problem to a tested causal explanation | `v1-debug` | Open-ended ideation or explicit throughput-constraint analysis |
-| Implement one adequately planned ticket through a mergeable PR | `v1-implement-unit` | Unplanned work or a whole epic |
-| Get an independent second model/runtime opinion | `v1-phone-a-friend` | First-pass in-agent review or research |
-| Run a parallel multi-agent review board on a PR, then address it | `v1-review-board` | A single counterpart opinion or an in-agent review |
-
-<details>
-<summary><b>#1 &mdash; The plan is wrong before a line of code is written</b></summary>
-
-<br>
-
-You describe a feature. The agent writes 800 lines. About 60% solves a different problem. The rest is now your debugging tax.
-
-> [!TIP]
-> The fix isn't better prompts. It's grilling the idea, building a shared vocabulary, and writing the requirements down — before any code gets written.
-
-- [`/v1-interview-me`](./plugins/v1tamins/skills/v1-interview-me/SKILL.md) — office-hours-style questioning that takes a fuzzy idea ("what if we did X") and walks every branch of the decision tree until you can describe what you actually want
-- [`/v1-strategy-review`](./plugins/v1tamins/skills/v1-strategy-review/SKILL.md) — a CEO-style read of a plan, PRD, or proposal that pushes back on scope, ambition, and hidden assumptions ("is this big enough?")
-- [`/v1-bare-bones`](./plugins/v1tamins/skills/v1-bare-bones/SKILL.md) — strip an overscoped plan down to the smallest useful version before it turns into implementation sprawl
-- [`/v1-shared-language`](./plugins/v1tamins/skills/v1-shared-language/SKILL.md) — extract a DDD-style glossary from the current conversation, flag ambiguous terms, and write `LANGUAGE.md`. Pays off session after session: variables, files, and prompts all start using one vocabulary
-- [`/v1-prd`](./plugins/v1tamins/skills/v1-prd/SKILL.md) — turn a Linear ticket or feature request into a real PRD
-- [`/v1-learning-from-customers`](./plugins/v1tamins/skills/v1-learning-from-customers/SKILL.md) — plan, audit, and synthesize customer discovery so demand evidence comes from behavior, context, and commitments rather than compliments or hypotheticals
-- [`/v1-testing-prototypes`](./plugins/v1tamins/skills/v1-testing-prototypes/SKILL.md) — plan or synthesize prototype tests that separate value, usability, and feasibility evidence before engineering commits
-- [`/v1-reviewing-usability`](./plugins/v1tamins/skills/v1-reviewing-usability/SKILL.md) — review a UI, prototype, flow, form, or admin surface for discoverability, feedback, mapping, conceptual-model clarity, and user-error risk
-
-</details>
-
-<details>
-<summary><b>#2 &mdash; Something doesn't work</b></summary>
-
-<br>
-
-Aligned and confident. The result is wrong. The agent's first instinct is to patch the nearest symptom and declare victory.
-
-> [!TIP]
-> Yours should be the smallest feedback loop that pins the real symptom. Tests, traces, matched cases, controlled probes, and explicit assumptions beat plausible stories.
-
-- [`/v1-debug`](./plugins/v1tamins/skills/v1-debug/SKILL.md) — general causal debugging loop: frame the gap → build a feedback loop → audit assumptions → test hypotheses → trace cause → validate the correction. Use it for code, systems, operations, workflows, decisions, services, and everyday problems
-- [`/v1-fix-tests`](./plugins/v1tamins/skills/v1-fix-tests/SKILL.md) — systematic loop that fixes failing tests until the suite is green, with feedback at every step
-- [`/v1-write-tests`](./plugins/v1tamins/skills/v1-write-tests/SKILL.md) — generate unit tests for new functionality with sensible coverage and meaningful assertions
-- [`/v1-e2e-testing`](./plugins/v1tamins/skills/v1-e2e-testing/SKILL.md) — Playwright-based browser tests, including a playbook for de-flaking
-
-</details>
-
-<details>
-<summary><b>#3 &mdash; The diff is sloppy</b></summary>
-
-<br>
-
-Agents over-build. Extra try/except. Unused helpers. Premature abstractions. Defensive fallbacks for cases that can't happen. The code works — and the codebase gets a little harder to change.
-
-> [!IMPORTANT]
-> Ship that diff once and the next change inherits its shape. Run a quality pass *before* marking work as done.
-
-- [`/v1-refine`](./plugins/v1tamins/skills/v1-refine/SKILL.md) — refine working-but-rough code via a quality pass (reuse / KISS / DRY / SOLID / complexity / efficiency), AI-slop removal (`deslop`), or a hindsight rewrite
-- [`/v1-deep-review`](./plugins/v1tamins/skills/v1-deep-review/SKILL.md) — review any PR or branch (code, docs, config) on both bars: merge risk (bugs, regressions, security, tests, scope) and structural maintainability (abstraction quality, file-size boundaries, spaghetti branching); posts to GitHub only when requested
-
-</details>
-
-<details>
-<summary><b>#4 &mdash; Shipping is the slow part</b></summary>
-
-<br>
-
-Code's done. Now: title, body, screenshots, push, watch CI, fix the lint failure, address the bot's three comments, fix the lint *again*, mark ready. Each step is a context switch — and the longer the diff sits, the colder it gets.
-
-These skills compress the ship phase into one chained workflow.
-
-- [`/v1-implement-unit`](./plugins/v1tamins/skills/v1-implement-unit/SKILL.md) — orchestrate one adequately planned ticket through isolated implementation, fresh review-board cycles, remediation, CI, and a mergeable PR
-- [`/v1-pr`](./plugins/v1tamins/skills/v1-pr/SKILL.md) — turn local work into a draft PR with a sensible title and body
-- [`/v1-pr-description`](./plugins/v1tamins/skills/v1-pr-description/SKILL.md) — generate or refresh a PR title/body from metadata, diff, and validation evidence (use standalone or chained inside `/v1-pr`)
-- [`/v1-land-pr`](./plugins/v1tamins/skills/v1-land-pr/SKILL.md) — the full hand-off: commit → push → open as draft → monitor `gh pr checks` → fix failed checks (up to 3 retries) → mark ready → move linked Linear ticket to Human Review
-- [`/v1-pr-walkthrough`](./plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md) — create a dated self-contained HTML explanation of a PR with Background, Intuition, Code, and interactive Quiz sections
-- [`/v1-address-review`](./plugins/v1tamins/skills/v1-address-review/SKILL.md) — work through unresolved review threads from Copilot, Code Factory, bots, or humans and reply with the right diff or context
-- [`/v1-review-board`](./plugins/v1tamins/skills/v1-review-board/SKILL.md) — convene a parallel read-only review board across several peer agents (deep-review + thermo-nuclear lenses), compile one cross-validated finding ledger, then address it — composes `/v1-phone-a-friend`, `/v1-deep-review`, and `/v1-address-review`
-- [`/v1-prove-work`](./plugins/v1tamins/skills/v1-prove-work/SKILL.md) — record a browser GIF of the new behaviour to drop into the PR description
-
-> [!WARNING]
-> `/v1-land-pr` will mark a PR ready for review and move a linked Linear ticket to Human Review. Don't run it on work that isn't actually done.
-
-</details>
-
-<details>
-<summary><b>#5 &mdash; We forget what we learned</b></summary>
-
-<br>
-
-The pain you can't feel in the moment: solving the same problem twice. Six months from now, a teammate hits the bug you fixed last sprint and rediscovers your solution in three days, because nobody wrote down what worked.
-
-> [!NOTE]
-> Compounding requires fresh material. `/v1-goldpan` pans for it across PRs and session logs. `/ce-compound` writes it up. Run weekly — your future self is on the team too.
-
-- [`/v1-goldpan`](./plugins/v1tamins/skills/v1-goldpan/SKILL.md) — pan recent merged PRs and agent session logs (Claude Code + Codex + Cursor) for compound-worthy moments, present the candidates, then queue them through `/ce-compound` for documentation
-- [`/v1-docs-freshness`](./plugins/v1tamins/skills/v1-docs-freshness/SKILL.md) — sync READMEs and docs with what actually shipped (post-merge, post-release, or after a new skill lands)
-- [`/v1-changelog`](./plugins/v1tamins/skills/v1-changelog/SKILL.md) — generate release notes from recent merged PRs
-- [`/v1-canon2skill`](./plugins/v1tamins/skills/v1-canon2skill/SKILL.md) — turn books, PDFs, articles, courses, and notes into evidence-backed recommendations for new or improved reusable skills
-
-</details>
-
-## Workflows that compose
-
-Each skill does one thing. The leverage is the chain. These cycles are how Version1 actually ships — not idealised, just the paths we keep walking.
-
-### Idea → shipped feature
-
-```mermaid
-flowchart LR
-  A([/v1-interview-me]) --> B([/v1-strategy-review])
-  B --> C([/v1-bare-bones])
-  C --> D([/v1-learning-from-customers])
-  D --> E([/v1-prd])
-  E --> F{{... build ...}}
-  F --> G([/v1-refine])
-  G --> H([/v1-deep-review])
-  H -.explain.-> W([/v1-pr-walkthrough])
-  H --> I([/v1-pr])
-  I --> J([/v1-prove-work])
-  J --> K([/v1-land-pr])
-  K -.weekly.-> L([/v1-goldpan])
-  L -.feeds back.-> A
-  click A href "./plugins/v1tamins/skills/v1-interview-me/SKILL.md"
-  click B href "./plugins/v1tamins/skills/v1-strategy-review/SKILL.md"
-  click C href "./plugins/v1tamins/skills/v1-bare-bones/SKILL.md"
-  click D href "./plugins/v1tamins/skills/v1-learning-from-customers/SKILL.md"
-  click E href "./plugins/v1tamins/skills/v1-prd/SKILL.md"
-  click G href "./plugins/v1tamins/skills/v1-refine/SKILL.md"
-  click H href "./plugins/v1tamins/skills/v1-deep-review/SKILL.md"
-  click W href "./plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md"
-  click I href "./plugins/v1tamins/skills/v1-pr/SKILL.md"
-  click J href "./plugins/v1tamins/skills/v1-prove-work/SKILL.md"
-  click K href "./plugins/v1tamins/skills/v1-land-pr/SKILL.md"
-  click L href "./plugins/v1tamins/skills/v1-goldpan/SKILL.md"
-```
-
-### Planned unit → mergeable PR
-
-```mermaid
-flowchart LR
-  A{{adequate plan?}} -->|yes| B([/v1-implement-unit])
-  A -->|no| X([stop and plan])
-  B --> C([implementation thread])
-  C --> D([fresh /v1-review-board])
-  D -->|findings| C
-  D -->|clean| E([/v1-land-pr])
-  E -->|code changed| D
-  E -->|mergeable| F([stop and notify])
-  click B href "./plugins/v1tamins/skills/v1-implement-unit/SKILL.md"
-  click D href "./plugins/v1tamins/skills/v1-review-board/SKILL.md"
-  click E href "./plugins/v1tamins/skills/v1-land-pr/SKILL.md"
-```
-
-### Bug investigation
-
-```mermaid
-flowchart LR
-  A([/v1-debug]) --> B([/v1-write-tests])
-  B --> C([/v1-refine])
-  C --> D([/v1-land-pr])
-  click A href "./plugins/v1tamins/skills/v1-debug/SKILL.md"
-  click B href "./plugins/v1tamins/skills/v1-write-tests/SKILL.md"
-  click C href "./plugins/v1tamins/skills/v1-refine/SKILL.md"
-  click D href "./plugins/v1tamins/skills/v1-land-pr/SKILL.md"
-```
-
-### PR review hand-off
-
-```mermaid
-flowchart LR
-  A([/v1-deep-review]) --> B([/v1-address-review])
-  A -.walkthrough.-> D([/v1-pr-walkthrough])
-  B --> C([/v1-land-pr])
-  click A href "./plugins/v1tamins/skills/v1-deep-review/SKILL.md"
-  click B href "./plugins/v1tamins/skills/v1-address-review/SKILL.md"
-  click C href "./plugins/v1tamins/skills/v1-land-pr/SKILL.md"
-  click D href "./plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md"
-```
-
-### Weekly compounding
-
-```mermaid
-flowchart LR
-  A([/v1-goldpan 7d]) --> B([/ce-compound])
-  B --> C([/v1-docs-freshness])
-  C --> D([/v1-changelog])
-  click A href "./plugins/v1tamins/skills/v1-goldpan/SKILL.md"
-  click C href "./plugins/v1tamins/skills/v1-docs-freshness/SKILL.md"
-  click D href "./plugins/v1tamins/skills/v1-changelog/SKILL.md"
-```
-
-### Communication
-
-```mermaid
-flowchart LR
-  A([/v1-stickify]) -.-> B([/v1-md2docs])
-  A -.-> C([/v1-prove-work])
-  click A href "./plugins/v1tamins/skills/v1-stickify/SKILL.md"
-  click B href "./plugins/v1tamins/skills/v1-md2docs/SKILL.md"
-  click C href "./plugins/v1tamins/skills/v1-prove-work/SKILL.md"
-```
-
-## Skill reference
-
-### Plan & align
-
-| Skill | When to use |
-|-------|-------------|
-| [`/v1-interview-me`](./plugins/v1tamins/skills/v1-interview-me/SKILL.md) | Fuzzy idea, ticket, or feature request needs to be fleshed out before any code is written |
-| [`/v1-strategy-review`](./plugins/v1tamins/skills/v1-strategy-review/SKILL.md) | Stress-test a plan, PRD, or product direction for scope, ambition, and hidden assumptions |
-| [`/v1-bare-bones`](./plugins/v1tamins/skills/v1-bare-bones/SKILL.md) | Strip an overscoped plan down to the smallest useful version |
-| [`/v1-shared-language`](./plugins/v1tamins/skills/v1-shared-language/SKILL.md) | Build a DDD glossary so devs and agents stop talking past each other |
-| [`/v1-prd`](./plugins/v1tamins/skills/v1-prd/SKILL.md) | Generate a PRD from a Linear ticket or feature request |
-| [`/v1-learning-from-customers`](./plugins/v1tamins/skills/v1-learning-from-customers/SKILL.md) | Plan, audit, and synthesize customer discovery without false-positive demand evidence |
-| [`/v1-testing-prototypes`](./plugins/v1tamins/skills/v1-testing-prototypes/SKILL.md) | Plan and synthesize prototype tests before build decisions |
-| [`/v1-reviewing-usability`](./plugins/v1tamins/skills/v1-reviewing-usability/SKILL.md) | Review product interactions for discoverability, feedback, conceptual-model clarity, and user-error risk |
-
-### Build & debug
-
-| Skill | When to use |
-|-------|-------------|
-| [`/v1-debug`](./plugins/v1tamins/skills/v1-debug/SKILL.md) | Debug any observable problem to a tested causal explanation — code bugs, broken processes, recurring real-world failures |
-| [`/v1-fix-tests`](./plugins/v1tamins/skills/v1-fix-tests/SKILL.md) | Systematic loop until the test suite is green |
-| [`/v1-write-tests`](./plugins/v1tamins/skills/v1-write-tests/SKILL.md) | Generate meaningful unit tests for new code |
-| [`/v1-e2e-testing`](./plugins/v1tamins/skills/v1-e2e-testing/SKILL.md) | Playwright tests, including a de-flaking playbook |
-
-### Quality pass before merge
-
-| Skill | When to use |
-|-------|-------------|
-| [`/v1-refine`](./plugins/v1tamins/skills/v1-refine/SKILL.md) | Refine working code via quality passes, AI-slop removal (`deslop`), or hindsight rewrite |
-| [`/v1-deep-review`](./plugins/v1tamins/skills/v1-deep-review/SKILL.md) | Review any PR or branch (code, docs, config) for merge risk and structural maintainability; `--post` or ask to post to GitHub |
-| [`/v1-diagnosing-constraints`](./plugins/v1tamins/skills/v1-diagnosing-constraints/SKILL.md) | Find the bottleneck or constraint governing throughput in a stuck process, team, queue, or roadmap |
-| [`/v1-designing-habit-systems`](./plugins/v1tamins/skills/v1-designing-habit-systems/SKILL.md) | Design or diagnose a habit, routine, or cadence that should stick |
-
-### Ship
-
-| Skill | When to use |
-|-------|-------------|
-| [`/v1-implement-unit`](./plugins/v1tamins/skills/v1-implement-unit/SKILL.md) | Orchestrate one adequately planned ticket through implementation, clean review, and a mergeable PR |
-| [`/v1-pr`](./plugins/v1tamins/skills/v1-pr/SKILL.md) | Turn local work into a draft PR |
-| [`/v1-pr-description`](./plugins/v1tamins/skills/v1-pr-description/SKILL.md) | Generate or refresh a PR title and body from metadata, diff, and validation |
-| [`/v1-land-pr`](./plugins/v1tamins/skills/v1-land-pr/SKILL.md) | Full hand-off: commit → push → CI → fix → mark ready → update Linear |
-| [`/v1-pr-walkthrough`](./plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md) | Create a dated interactive HTML explanation (Background, Intuition, Code, Quiz) for a PR or branch |
-| [`/v1-address-review`](./plugins/v1tamins/skills/v1-address-review/SKILL.md) | Resolve unresolved threads from humans, Copilot, or aggregate bot reviews |
-| [`/v1-prove-work`](./plugins/v1tamins/skills/v1-prove-work/SKILL.md) | Record a browser GIF for the PR description or Slack |
-
-### Compound the learning
-
-| Skill | When to use |
-|-------|-------------|
-| [`/v1-goldpan`](./plugins/v1tamins/skills/v1-goldpan/SKILL.md) | Pan recent merged PRs + agent session logs for compound-worthy moments and queue them through `/ce-compound` |
-| [`/v1-docs-freshness`](./plugins/v1tamins/skills/v1-docs-freshness/SKILL.md) | Sync READMEs and docs with what actually shipped |
-| [`/v1-changelog`](./plugins/v1tamins/skills/v1-changelog/SKILL.md) | Generate release notes from recent merged PRs |
-
-### Communication
-
-| Skill | When to use |
-|-------|-------------|
-| [`/v1-stickify`](./plugins/v1tamins/skills/v1-stickify/SKILL.md) | Make pitches, announcements, PR descriptions, or marketing copy memorable (Made-to-Stick framework) |
-| [`/v1-md2docs`](./plugins/v1tamins/skills/v1-md2docs/SKILL.md) | Publish a Markdown doc as a fully-formatted Google Doc |
-| [`/v1-html-it`](./plugins/v1tamins/skills/v1-html-it/SKILL.md) | Create polished self-contained HTML artifacts for reviews, explainers, reports, prototypes, or custom editors |
-| [`/v1-reviewing-data-graphics`](./plugins/v1tamins/skills/v1-reviewing-data-graphics/SKILL.md) | Review charts, dashboards, metric tables, and quantitative visual reports for integrity and clarity |
-
-### Research
-
-| Skill | When to use |
-|-------|-------------|
-| [`/v1-deep-research`](./plugins/v1tamins/skills/v1-deep-research/SKILL.md) | Multi-source research with iterative refinement and structured synthesis. Not for simple lookups |
-| [`/v1-autoresearch-skill`](./plugins/v1tamins/skills/v1-autoresearch-skill/SKILL.md) | Autonomous optimization loop — point it at any measurable target and it iterates |
-| [`/v1-canon2skill`](./plugins/v1tamins/skills/v1-canon2skill/SKILL.md) | Extract reusable skill ideas from source material, including PDFs that need OCR |
-
-### Meta — write the tools
-
-| Skill | When to use |
-|-------|-------------|
-| [`/v1-phone-a-friend`](./plugins/v1tamins/skills/v1-phone-a-friend/SKILL.md) | Route work to another agent or model for counterpart review, steelmanning, delegation, or deep research |
-| [`/v1-skilling-it`](./plugins/v1tamins/skills/v1-skilling-it/SKILL.md) | Create, edit, audit, or validate an Agent Skill; resolve its Canonical Source for personal, project, managed, or shared-plugin use |
-| [`/v1-prompt-engineering`](./plugins/v1tamins/skills/v1-prompt-engineering/SKILL.md) | Write, improve, or migrate prompts, system prompts, hooks, or sub-agent briefs for any model or host, including GPT-5.5 / OpenAI Responses API / OpenRouter |
-
----
-
-## Repo layout
+## Repository map
 
 ```text
 v1tamins/
-├── .agents/plugins/         # Codex marketplace manifest
-├── .claude-plugin/          # Claude Code marketplace manifest
-├── plugins/v1tamins/        # Plugin package and canonical skill source
-│   ├── .claude-plugin/      #   Claude Code plugin manifest
-│   ├── .codex-plugin/       #   Codex plugin manifest
-│   └── skills/              #   Canonical v1-* skills consumed by both runtimes
-└── scripts/                 # Validation scripts
+├── .agents/plugins/                 # Codex marketplace manifest
+├── .claude-plugin/                  # Claude Code marketplace manifest
+├── plugins/v1tamins/                # Shared plugin package
+│   ├── .claude-plugin/              # Claude Code plugin manifest
+│   ├── .codex-plugin/               # Codex plugin manifest
+│   ├── evals/                       # Routing contracts and behavior fixtures
+│   └── skills/v1-*/                 # Canonical distributed skill sources
+├── scripts/                         # Static validators and optional eval tools
+├── CONTEXT.md                       # Repository vocabulary
+└── AGENTS.md                        # Contribution and agent rules
 ```
 
-## Migration Note
-
-This package uses a plugin-native source layout. The committed skill source is `plugins/v1tamins/skills/v1-<skill-name>/`; the old `.agents/skills/<skill-name>/` mirror is no longer tracked. Direct checkout consumers should update symlinks, scripts, and docs to point at the `plugins/v1tamins/skills/v1-*` paths and use the installed `v1-*` skill names.
-
-Marketplace/plugin consumers already invoking `/v1-*` skills should not need to change anything.
+The old tracked `.agents/skills/<name>/` mirror is no longer part of the
+distribution. Direct-checkout consumers should use
+`plugins/v1tamins/skills/v1-<name>/`. Existing plugin consumers already using
+`/v1-*` names do not need a migration.
 
 ## Contributing
 
-`/v1-skilling-it` is the general workflow entry point for Agent Skills wherever
-their Canonical Source belongs. The steps below are narrower: they are the
-repository-specific rules for contributing a skill to the v1tamins plugin.
+This is a public repository. Keep every contribution reusable and public-safe:
+do not commit secrets, private customer or project names, internal links,
+account identifiers, proprietary timelines, or absolute local paths.
 
-1. Fork and clone, add upstream:
-   ```bash
-   git remote add upstream git@github.com:v1-io/v1tamins.git
-   ```
-2. Create a branch.
-3. Before proposing a new skill, check `.out-of-scope/` for a prior rejection of the concept. Edit the canonical skill at `plugins/v1tamins/skills/v1-<skill-name>/SKILL.md`. Each `SKILL.md` needs YAML frontmatter with a `v1-*` `name` matching the directory and a `description`. `allowed-tools` is recommended for skills that need tool restrictions; see [v1-skilling-it](./plugins/v1tamins/skills/v1-skilling-it/SKILL.md) for the full schema. Add required `agents/openai.yaml` Codex metadata. Include `policy.invocation_posture` and `policy.side_effects` when a skill can publish externally, push to git remotes, launch peer agents, or record browser proof. Use `invocation_posture: explicit_only` with `disable-model-invocation: true` in `SKILL.md` for deliberate rituals and for invocations that can automatically perform outward side effects. Use `selective_implicit` with `allow_implicit_invocation: true` for high-recall workflows whose outward mutations remain separately explicit and user-gated; `policy.side_effects` is still required.
-4. Update `plugins/v1tamins/evals/trigger-inventory.md` and `plugins/v1tamins/evals/skill-routing.jsonl` when the change affects skill routing, invocation policy, or trigger wording. Update `v1-menu` when a skill is added, renamed, removed, or changes invocation posture.
-5. Add a changeset (`npx changeset`) describing the change. CI generates the version bump and `CHANGELOG.md` and keeps `package.json` and both plugin manifests in lockstep — don't hand-edit versions.
-6. Validate plugin manifests, routing evals, and skill metadata:
-   ```bash
-   scripts/validate-plugin.sh --verbose
-   ```
-7. For routing-sensitive edits, optionally run a bounded live smoke check:
-   ```bash
-   scripts/run-skill-routing-live-eval.py --runtime codex --max-cases 3
-   ```
-8. Test the skill in a real project before committing.
-9. Run a privacy and portability scan over your changes — no secrets, internal URLs, customer names, or absolute local paths.
-10. Open a PR.
+For a new or changed skill:
+
+1. Check [`.out-of-scope/`](.out-of-scope/) for a prior decision.
+2. Edit the Canonical Source under `plugins/v1tamins/skills/v1-<name>/`.
+3. Keep the `SKILL.md` `name` aligned with its directory and add the required
+   `agents/openai.yaml` metadata. Keep the frontmatter description focused on
+   the core purpose and distinct natural triggers; target 180 characters or
+   fewer.
+4. Update the [trigger inventory](plugins/v1tamins/evals/trigger-inventory.md),
+   [routing fixture](plugins/v1tamins/evals/skill-routing.jsonl), and
+   [`v1-menu`](plugins/v1tamins/skills/v1-menu/SKILL.md) when routing or the
+   catalog changes.
+5. Add a changeset with `npx changeset` for distributed skill changes. Do not
+   hand-edit package or manifest versions.
+6. Run the validator and test the skill in a real project.
+7. Run a privacy and portability scan over the changed files.
+8. Open a pull request.
+
+The full authoring workflow is in
+[`/v1-skilling-it`](plugins/v1tamins/skills/v1-skilling-it/SKILL.md). GitHub
+Issues are the public [issue tracker](docs/agents/issue-tracker.md).
 
 ## Validation
 
+Install development dependencies once:
+
 ```bash
-scripts/validate-plugin.sh           # check
-scripts/validate-plugin.sh --verbose # per-file trace
+npm ci --no-audit --no-fund
 ```
 
-The check validates `SKILL.md` frontmatter, required `agents/openai.yaml` metadata, routing eval coverage, trigger inventory coverage, live routing result schema JSON, metadata hygiene, local skill asset links, references to known v1tamins skills, portable helper paths, both runtime plugin manifests (`plugins/v1tamins/.claude-plugin/plugin.json` and `plugins/v1tamins/.codex-plugin/plugin.json`), both marketplace manifests (`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`), three-way version parity across `package.json` and both plugin manifests, and the absence of a tracked `.agents/skills` mirror. `scripts/sync-skill-hosts.sh` remains as a legacy wrapper for old local instructions; new docs should use `scripts/validate-plugin.sh`.
+Run the repository-native static check:
+
+```bash
+scripts/validate-plugin.sh --verbose
+```
+
+It validates both marketplace manifests, both plugin manifests, skill
+frontmatter, required Codex metadata, routing coverage, local skill links,
+portable helper paths, three-way version parity, and the absence of the old
+tracked skill mirror.
+
+For routing-sensitive changes, an optional bounded live smoke check is
+available:
+
+```bash
+scripts/run-skill-routing-live-eval.py --runtime codex --max-cases 3
+```
+
+See the [routing eval guide](plugins/v1tamins/evals/README.md) for evidence
+classes, Claude Code examples, and behavior-eval commands.
+
+To compare an installed plugin with this Canonical Source without changing
+caches or credentials, run:
+
+```bash
+scripts/verify-installed-plugin.sh \
+  --canonical <canonical-plugin-root> \
+  --installed <installed-plugin-root> \
+  --runtime codex
+```
+
+The result reports `match`, `stale`, `missing`, or `ambiguous`. Repeat with
+`--runtime claude` for a Claude Code installation.
+
+`scripts/sync-skill-hosts.sh` is a legacy compatibility wrapper. New
+documentation and automation should call `scripts/validate-plugin.sh`.
+
+## Releases and generated artifacts
+
+Changesets own version updates. When a release change reaches `main`, the
+release workflow opens or updates a **Version Packages** PR. That generated PR
+updates `package.json` and `CHANGELOG.md`, then keeps the Claude Code and Codex
+plugin manifest versions in lockstep. The package is private to npm tooling;
+the workflow does not publish it to a package registry.
+
+Generated evidence from live routing and behavior evals stays under ignored
+`.v1tamins/` directories. Share a summary or selected normalized result in a
+PR, not raw transcripts.
+
+Generated README images have an adjacent `.imagegen.md` record. Update the
+image, its README use, and the generation record together.
 
 ## Requirements
 
 - [Claude Code](https://claude.ai/code) and/or [Codex](https://openai.com/codex/)
-- Ruby (for skill frontmatter validation; no gems required)
-- Python 3 (for routing fixture validation; stdlib only)
-- `jq` (for JSON manifest validation in `scripts/validate-plugin.sh`)
+- Node.js and npm for changesets and CI parity
+- Ruby for YAML and skill-frontmatter validation; no gems are required
+- Python 3 for routing fixtures and helper checks
+- `jq` for JSON manifest validation
+
+## License
+
+[MIT](LICENSE) © 2026 v1tamins contributors.
