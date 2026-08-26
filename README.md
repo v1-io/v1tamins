@@ -1,5 +1,14 @@
 # v1tamins
 
+```
+██╗   ██╗  ██╗ ████████╗ █████╗ ███╗   ███╗██╗███╗   ██╗███████╗
+██║   ██║ ███║ ╚══██╔══╝██╔══██╗████╗ ████║██║████╗  ██║██╔════╝
+██║   ██║ ╚██║    ██║   ███████║██╔████╔██║██║██╔██╗ ██║███████╗
+╚██╗ ██╔╝  ██║    ██║   ██╔══██║██║╚██╔╝██║██║██║╚██╗██║╚════██║
+ ╚████╔╝   ██║    ██║   ██║  ██║██║ ╚═╝ ██║██║██║ ╚████║███████║
+  ╚═══╝    ╚═╝    ╚═╝   ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚══════╝
+```
+
 **Small, reusable skills for healthier AI-assisted development.**
 
 v1tamins is an open-source plugin for [Claude Code](https://claude.ai/code) and
@@ -9,11 +18,12 @@ one skill for a specific job or combine several into a repeatable workflow.
 
 Built in the open by Version1 and Humm.
 
-[![Axonometric cutaway of a v1tamins field case where marketplace inputs feed one shared skill library, three routing paths, validation, and Claude Code and Codex docks](docs/assets/v1tamins-system-cutaway.png)](docs/assets/v1tamins-system-cutaway.imagegen.md)
+[![Precision apothecary balance holding one capability capsule with planning, debugging, review, and shipping ingredients, three access settings, and equal Claude Code and Codex doses](docs/assets/v1tamins-system-cutaway.png)](docs/assets/v1tamins-system-cutaway.imagegen.md)
 
-The image shows the central idea: one reviewed skill library, shared by two
+The image shows the user benefit: choose a focused dose of expert capability
+for the job, with reviewed routing and the same formula available in both
 runtimes. The [generation record](docs/assets/v1tamins-system-cutaway.imagegen.md)
-documents how the image was made.
+documents the metaphor and how the image was made.
 
 ## Why it exists
 
@@ -29,14 +39,15 @@ Each v1tamin addresses one bounded job. The skills stay small enough to choose
 deliberately and useful enough to compose.
 
 > [!TIP]
-> If you do not know which skill to use, invoke `/v1-menu`. It is the explicit
-> index for the complete collection.
+> If you do not know which skill to use, invoke `/v1-menu` in Claude Code or
+> `$v1-menu` in Codex. It is the explicit index for the complete collection.
 
 ## Install
 
 v1tamins ships as one plugin package for both runtimes. The installed skill
-names use the `v1-` prefix, such as `/v1-debug` and `/v1-deep-review`, to avoid
-collisions with other skills.
+names use the `v1-` prefix, such as `v1-debug` and `v1-deep-review`, to avoid
+collisions with other skills. Invoke a skill as `/v1-debug` in Claude Code or
+`$v1-debug` in Codex.
 
 ### Claude Code
 
@@ -63,13 +74,24 @@ development, replace `v1-io/v1tamins` with the path to your checkout.
 
 ### Try it
 
-Name a skill directly when you want a specific workflow:
+Name a skill directly when you want a specific workflow.
+
+In Claude Code:
 
 ```text
 /v1-debug trace why this test fails only in CI
 /v1-deep-review review this branch for merge risk and maintainability
 /v1-pr-description refresh this pull request title and body
 /v1-menu help me choose a skill
+```
+
+In Codex:
+
+```text
+$v1-debug trace why this test fails only in CI
+$v1-deep-review review this branch for merge risk and maintainability
+$v1-pr-description refresh this pull request title and body
+$v1-menu help me choose a skill
 ```
 
 You can also describe the job in plain language. Skills marked for implicit use
@@ -135,7 +157,7 @@ These common entry points cover much of the day-to-day work:
 | --- | --- |
 | Idea to reviewed plan | `/v1-interview-me` → `/v1-strategy-review` → `/v1-bare-bones` → `/v1-prd` |
 | Bug to verified fix | `/v1-debug` → `/v1-write-tests` → `/v1-refine` → `/v1-deep-review` |
-| Planned unit to mergeable PR | `/v1-implement-unit` → `/v1-review-board` → `/v1-land-pr` |
+| Planned unit to mergeable PR | `/v1-implement-unit` (includes review and landing phases) |
 | PR review hand-off | `/v1-deep-review` → `/v1-address-review` → `/v1-land-pr` |
 | Learning loop | `/v1-goldpan` → `/ce-compound` → `/v1-docs-freshness` → `/v1-changelog` |
 

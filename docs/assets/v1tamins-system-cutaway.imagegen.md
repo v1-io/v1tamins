@@ -1,77 +1,109 @@
-# v1tamins system cutaway generation record
+# v1tamins capability apothecary generation record
 
 ## Purpose and repository
 
-Wide README hero for the public `v1-io/v1tamins` repository. The image explains
-how two marketplace inputs enter one shared plugin package, how a user request
-selects a skill through one of three invocation postures, how validation checks
-the selected skill, and how Claude Code and Codex consume the same Canonical
-Source.
+Wide README hero for the public `v1-io/v1tamins` repository. The image presents
+v1tamins through its user benefit: a curated plugin gives AI coding agents the
+right focused expert capability for planning, debugging, review, and shipping.
+It also shows that routing controls access, validation checks the formula, and
+Claude Code and Codex receive the same shared collection.
+
+## Visual thesis and metaphor
+
+> To its intended user, this repository is a precision apothecary that helps
+> them give an AI coding agent the right expert capability at the right moment.
+
+Three metaphor candidates were considered:
+
+1. **Precision capability apothecary — selected.** The v1tamins name already
+   frames skills as focused supplements. One dominant capsule makes the benefit
+   clear at thumbnail size, while its ingredients, selector, assay halo, and
+   equal runtime doses map to real repository responsibilities.
+2. **Expertise observatory — rejected.** A telescope selecting capability
+   constellations could explain discovery and routing, but the connection to
+   reusable development skills was too abstract at README scale.
+3. **Modular expedition kit — rejected.** A field kit could show portable
+   capabilities, but it repeated the prior case-and-components composition and
+   risked returning to cards, compartments, and repository artifacts.
+
+The selected metaphor is intentionally not a literal repository diagram.
+README prose and Mermaid remain the exact source of technical truth.
 
 ## Creation
 
 - Date: 2026-08-25
 - Tool: OpenAI built-in ImageGen
-- Mode: New generation, then one targeted image edit
+- Mode: New generation from scratch, then one focused background and edge edit
 - Asset: `docs/assets/v1tamins-system-cutaway.png`
-- Output: 1942 × 809 PNG
+- Output: 1912 × 823 RGB PNG
+- SHA-256: `ed0d89d725cc189f681c6af88c4597f330112a607103c3c4bdc765274eec6201`
 
 ## Exact initial generation prompt
 
 ```text
 Use case: stylized-concept
-Asset type: ultrawide GitHub README hero for the public open-source v1tamins repository
-Primary request: Create a genuinely new oblique axonometric systems cutaway that explains v1tamins as one shared plugin package of reusable AI development skills. Use a large open precision field case as the project-specific physical metaphor, not a building and not a factory. Inside the case, arrange four connected functional areas from left to right. Area 1 is a compact intake dock where two thin marketplace manifest cards enter one shared package threshold. Area 2 is the strong central focal point: one raised archival rack holding many slim, distinct skill cards made from thick ivory paper and anodized metal, representing the single canonical skill source. A single user-request token arrives at a routing console beside the rack; the console has three physically different, understandable pathways: an open lane for implicit selection, a guarded lane for selectively implicit work, and a key-operated lane for explicit-only workflows. One chosen skill card is visibly lifted from the shared rack. Area 3 is a clear glass validation bed with a small set of meaningful overlays and alignment fixtures representing metadata checks, routing fixtures, link checks, and review; show a skill card passing through it without using a generic conveyor factory. Area 4 contains two equal output docks, both connected back to the same central rack and validation bed, representing Claude Code and Codex consuming the same package without duplicate skill copies.
-Scene/backdrop: the entire open instrument case rests on a pale warm-gray museum plinth against a clean neutral studio background; selected case panels and a thin floor layer are separated with precise exploded gaps to expose connections
-Style/medium: premium museum-grade architectural model plus realistic hard-surface industrial design; crisp, physically plausible, meticulously machined, editorial, welcoming, trustworthy
-Composition/framing: very wide approximately 2.4:1 landscape; low oblique axonometric view from above; all four areas legible at GitHub README width; central skill rack is the clear focal point; small number of large readable shapes; generous outer margins; no cropped case edges
-Lighting/mood: bright neutral museum lighting with soft realistic shadows, subtle depth, calm and optimistic
-Color palette: ivory paper, warm off-white enamel, graphite anodized aluminum, clear glass, pale oak details, with restrained deep teal and coral-orange accents drawn from the current v1tamins visual identity
-Materials/textures: brushed and anodized aluminum, powder-coated steel, archival paper, clear glass, ceramic enamel, pale oak, machined fasteners, woven case lining
-Text (verbatim): Use only five small, clean uppercase enamel labels if they render perfectly: "SKILLS" at the canonical rack, "ROUTE" at the routing console, "VALIDATE" at the glass bed, "CLAUDE CODE" at one output dock, and "CODEX" at the other output dock. No other text.
-Constraints: every prominent object must map to a real v1tamins input, component, routing decision, validation stage, integration, or output; one canonical skill rack only; two runtime docks must visibly share that source; show selection and validation without meaningless machinery; labels must be secondary, sparse, proportionate, correctly spelled, and horizontal; the image is explanatory editorial art while README prose and Mermaid remain the exact source of truth
-Avoid: gibberish, accidental pseudo-writing, misspelled labels, extra labels, malformed or invented logos, trademarks, decorative screens, generic servers, arbitrary cables or pipes, meaningless arrows, gears, factory conveyors, clutter, duplicate libraries, literal office rooms, copying the previous circular-building composition, clay, soft 3D, toy proportions, dollhouse cuteness, glossy plastic, steampunk, cyberpunk, fantasy machinery, dark lighting, watermark
+Asset type: genuinely new ultrawide GitHub README hero for the public open-source v1tamins repository
+Visual thesis: To its intended user, this repository is a precision apothecary that helps them give an AI coding agent the right expert capability at the right moment.
+Primary request: Create a project-specific system portrait set entirely in the coherent world of a premium precision apothecary. Do not depict repository files, folders, cards, paper, shelves, archives, ledgers, dashboards, servers, pipelines, factories, offices, or software infrastructure. The dominant focal point is one oversized transparent two-piece capability capsule, mounted horizontally in a finely engineered apothecary gimbal and held slightly open so its active ingredients are clearly visible. Inside the capsule are exactly four distinct, recognizable miniature hard-surface ingredient emblems: a compass rose for planning and scoping, a diagnostic loupe examining one clean broken trace for debugging, a calibrated inspection gauge with a simple check mark for review and proof, and a compact launch key for shipping and hand-off. These four ingredients belong to the same capsule and must read as complementary expert capabilities, not separate zones or products.
+Supporting relationships: Directly below the capsule, build one compact circular prescription selector with exactly three materially distinct access arcs representing the repository's true invocation postures: an unobstructed deep-teal arc for implicit selection, a restrained brass arc with one guarded latch for selective implicit use, and a coral-orange arc with one key-operated interlock for explicit-only workflows. Place one small matte ceramic request bead entering the open teal arc. Surround the capsule's lower half with a slim clear-glass assay halo containing sparse calibration notches and alignment points, representing static validation and routing evals before use. Support the central capsule on a balanced apothecary beam that reaches two equal, simple dose cups at opposite ends, showing that Claude Code and Codex receive the same curated formula from one source; do not duplicate the central capsule or its ingredients.
+Scene/backdrop: one elegant sculptural apothecary instrument on a pale warm limestone museum plinth against a clean bright neutral studio background; no room, building, cabinet, workbench, or facility
+Style/medium: realistic premium hard-surface industrial design crossed with a museum-grade scientific instrument and luxury apothecary object; crisp edged, physically plausible, editorial, welcoming, trustworthy, memorable
+Composition/framing: very wide approximately 2.4:1 landscape; low oblique axonometric three-quarter view; central capsule occupies most of the visual hierarchy; only the selector, assay halo, and two balanced dose cups support it; generous negative space; the complete silhouette and both dose cups remain inside frame; readable at GitHub README thumbnail width
+Lighting/mood: bright neutral museum lighting, clear glass refraction, soft realistic shadows, calm optimism, high legibility
+Color palette: restrained warm ivory, limestone, graphite anodized aluminum, clear glass, satin brass, with deep teal and coral-orange accents
+Materials/textures: borosilicate glass, anodized aluminum, machined brass, ceramic enamel, knurled fittings, limestone, subtle rubber seals
+Text (verbatim): Use only two small engraved uppercase labels, one on each equal dose cup: "CLAUDE CODE" and "CODEX". Spell both exactly. Add no other text, letters, numbers, pseudo-writing, logos, or trademarks.
+Constraints: every prominent element must map to a true v1tamins user benefit or responsibility; one capability capsule only; exactly four ingredient emblems; exactly three selector arcs; one assay halo; two equal runtime dose cups visibly balanced from the same central source; make the capability capsule unmistakably the focal point; familiar apothecary and precision-instrument language must dominate over software imagery; labels must be sparse, accurate, secondary, horizontal, and legible
+Avoid: generic files-and-folders compositions, cards, paper stacks, shelves, cabinets, archives, ledgers, dashboards, server rooms, repository trees, pipelines, factories, conveyor belts, facilities, office desks, field cases, toolboxes, generic technology imagery, excessive zones, clutter, gibberish, accidental pseudo-writing, malformed logos, decorative screens, meaningless arrows, arbitrary cables or pipes, soft clay, cute toy, dollhouse, steampunk, fantasy, cyberpunk, dark lighting, watermark
 ```
 
-## Exact final edit prompt
+## Exact focused revision prompt
 
 ```text
-Edit target: the supplied ultrawide v1tamins precision-field-case README hero.
-Primary request: Preserve the exact overall composition, ultrawide framing, open field-case metaphor, central SKILLS rack, glass VALIDATE bed, CLAUDE CODE and CODEX output docks, intake cards, materials, lighting, colors, correct labels, and all functional connections. Change only the ROUTE console so it clearly contains three distinct parallel routing pathways for the three real invocation postures. The upper pathway must be visually open and direct, using a simple teal channel with no barrier. The middle pathway must pass through one restrained guarded checkpoint or hinged gate, using a muted amber/brass cue. The lower pathway must pass through one clearly key-operated mechanical interlock, using the existing coral-orange cue. Show one chosen skill card entering the upper path while the other two paths remain available. Keep the three pathways compact, precise, physically plausible, and readable at README width.
-Text: Preserve the five existing labels exactly and add no text: "SKILLS", "ROUTE", "VALIDATE", "CLAUDE CODE", "CODEX".
-Constraints: change only the internal layout of the ROUTE console; keep every other object, label, geometry, exploded case panel, viewpoint, background, color, lighting, and material unchanged; no new labels; no arrows; no extra buttons; no duplicate skill rack; no logos or trademarks.
-Avoid: gibberish, pseudo-writing, misspellings, clutter, generic conveyor machinery, decorative screens, extra symbols, malformed parts, toy or clay finish.
+Edit target: the supplied ultrawide v1tamins precision-apothecary README hero.
+Primary request: Fix only the background and edge-compositing defect. Replace all transparent, black, missing, checker-like, mottled, red-fringed, yellow-fringed, or artifacted canvas areas with one completely opaque, clean, seamless pale warm-gray studio background behind the existing limestone plinth. Reconstruct clean natural object edges with no halo or color fringe. Add only soft realistic contact shadows where the existing object meets the plinth and subtle neutral studio shadow behind it.
+Preserve exactly: the full ultrawide framing and object scale; the central transparent two-piece capability capsule and gimbal; the four existing ingredient emblems (compass, diagnostic loupe, inspection gauge with check, launch key); the three selector arcs and their open, guarded, and key-operated mechanisms; the request bead; the clear assay halo; the balanced arms and two equal dose cups; the exact correctly spelled labels "CLAUDE CODE" and "CODEX"; every material, color, lighting direction, geometry, and functional relationship.
+Constraints: change only background opacity, edge cleanup, and physically necessary neutral shadows; final image must be fully opaque RGB or RGBA with alpha uniformly 255; no added objects, text, letters, labels, logos, screens, symbols, or decoration; do not crop, rescale, redesign, recolor, or move the apothecary instrument.
+Avoid: transparency, black voids, white cutout patches, checkerboard, colored edge bleed, matte halos, rough cutout edges, background texture, pseudo-writing, misspellings, clutter, dark lighting, watermark.
 ```
 
 ## Reference inputs
 
-- Initial v2 ImageGen output: transient and not retained in the repository; edit
-  target used to preserve the accepted field-case composition while clarifying
-  the three routing pathways.
-- Previous committed hero: `docs/assets/v1tamins-system-cutaway.png` as it
-  existed before this revision; inspected for comparison only and not supplied
-  to ImageGen as a reference input.
+- Initial generation: None.
+- Focused revision: the transient first-pass ImageGen output, not retained in
+  the repository, used only as the edit target for background and edge cleanup.
+- Previous committed field-case hero: inspected for comparison only and not
+  supplied to ImageGen.
+- Trackboi and Big McBot positive controls: described in the creative brief but
+  not supplied as image references.
 
 ## Revision guidance
 
-Preserve the approximately 2.4:1 open precision field case and its four clear
-functional areas: marketplace intake, one central shared skill-card rack, the
-three-path ROUTE console, the glass VALIDATE bed, and the two equal runtime
-docks. Preserve the exact five labels `SKILLS`, `ROUTE`, `VALIDATE`, `CLAUDE
-CODE`, and `CODEX`; keep them sparse, secondary, correctly spelled, and
-horizontal. Keep the open teal lane, guarded brass lane, and key-operated coral
-lane visibly distinct. Maintain the ivory, graphite, glass, oak, teal, and coral
-material system, bright museum lighting, hard-surface finish, and generous wide
-framing. Do not add decorative technology, duplicate the skill library, or
-allow labels to drift into pseudo-writing. The README prose and Mermaid diagram
-remain the source of exact technical truth.
+Preserve the one dominant transparent capability capsule and the coherent
+precision-apothecary world. Keep exactly four recognizable ingredient emblems:
+compass for planning, diagnostic loupe for debugging, inspection gauge for
+review and proof, and launch key for shipping and hand-off. Keep the selector's
+three materially different access arcs, the clear assay halo, and the two equal
+runtime dose cups balanced from the same source. Preserve the exact `CLAUDE
+CODE` and `CODEX` labels, the fully opaque pale studio background, the
+limestone/graphite/brass/glass material system, and the teal/coral accents.
+
+Do not turn the composition back into files, folders, cards, shelves, cabinets,
+archives, field cases, factories, software infrastructure, or multiple
+functional rooms. Keep the capsule dominant and all supporting elements
+legible at README width. Update the image, README alt text, selected asset hash,
+and this record together.
 
 ## History
 
 - 2026-08-25: Created the first hero as a circular shared archive with two work
-  bays, then revised it to remove pseudo-writing and reduce validation-lane
-  clutter.
-- 2026-08-25: Regenerated the hero under the v2 visual standard as an ultrawide
-  precision field case. Applied one focused edit so the ROUTE console clearly
-  shows implicit, selectively implicit, and explicit-only paths. Replaced the
-  PNG and updated the README alt text and generation record together.
+  bays, then revised it to remove pseudo-writing and validation-lane clutter.
+- 2026-08-25: Regenerated the hero as an ultrawide precision field case with a
+  central skill rack, three routing paths, validation bed, and runtime docks.
+- 2026-08-25: Rejected the literal repository-artifact approach after the
+  cross-project visual review. Generated a new precision-apothecary portrait
+  from scratch, then applied one focused edit to replace unintended
+  transparency and colored edge artifacts with a clean opaque studio
+  background. Restored the README's required ASCII identity banner and updated
+  the image, alt text, generation record, Codex invocation examples, and
+  implementation-workflow wording together.
