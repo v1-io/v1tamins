@@ -159,7 +159,7 @@ These common entry points cover much of the day-to-day work:
 | Bug to verified fix | `/v1-debug` → `/v1-write-tests` → `/v1-refine` → `/v1-deep-review` |
 | Planned unit to mergeable PR | `/v1-implement-unit` (includes review and landing phases) |
 | PR review hand-off | `/v1-deep-review` → `/v1-address-review` → `/v1-land-pr` |
-| Learning loop | `/v1-goldpan` → `/ce-compound` → `/v1-docs-freshness` → `/v1-changelog` |
+| Learning loop | `/v1-goldpan` (includes compounding) → `/v1-docs-freshness` → `/v1-changelog` |
 
 These are useful paths, not a required framework. Start with the smallest skill
 that matches the job.
