@@ -47,6 +47,8 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 
 ## Communicating and documenting
 
+- `/v1-skin-suit` — draft or lightly edit natural prose for its reader and channel while preserving meaning and requested voice.
+
 - `/v1-stickify` — make copy memorable. `/v1-html-it` — self-contained HTML page or report. `/v1-md2docs` **(explicit)** — markdown to Google Doc.
 - `/v1-changelog` — what shipped, from merged PRs. `/v1-docs-freshness` — sync docs after changes.
 

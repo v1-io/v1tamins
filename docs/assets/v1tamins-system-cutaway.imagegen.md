@@ -8,7 +8,7 @@ Wide README hero for the public `v1-io/v1tamins` repository. It presents reusabl
 
 > v1tamins is a working skill pharmacy: focused capabilities are formulated carefully, checked rigorously, and shipped in a form people can use.
 
-## Creation
+## Original creation
 
 - Date: 2026-08-25
 - Tool: OpenAI built-in ImageGen
@@ -29,6 +29,7 @@ Wide README hero for the public `v1-io/v1tamins` repository. It presents reusabl
 - QA/QC represents review, testing, and evidence before release.
 - Packaging and shipping represent installation and practical delivery.
 - The feedback line back to R&D represents continuous improvement from use.
+- Every worker is an uncanny android in a human skin suit, integrated into the original workstation and role, representing Skin Suit.
 
 ## Exact final generation prompt
 
@@ -70,3 +71,37 @@ Preserve the pharmaceutical world, obvious capsules and tablets, end-to-end oper
 ## History
 
 - 2026-08-25: Replaced the abstract blister-pack/host metaphor with a detailed pharmaceutical R&D and production operation after direct visual review.
+
+## Skin Suit revision — 2026-09-16
+
+- Tool: OpenAI built-in ImageGen; model version not exposed.
+- Mode: Edit of the existing hero.
+- Reference input: `docs/assets/v1tamins-system-cutaway.png` at commit `c7f1709`, original SHA-256 recorded above.
+- Superseded asset: `docs/assets/v1tamins-system-cutaway.png`
+- Superseded dimensions: 1942 × 809 pixels.
+- Superseded SHA-256: `5057beb52b846853c1666288252f7ac1f23a61846940fd86b48021d762b22302`
+- Inspection: Reviewed the full image and scaled view; the robot disguise is visible, the seven zones and labels remain legible.
+- Revision direction: Preserve this character and the connected pharmacy world. The original prompt’s no-robot constraint is superseded by this explicit addition.
+
+### Exact edit prompt
+
+```text
+Edit the supplied v1tamins pharmaceutical factory cutaway README hero. Preserve the wide landscape composition, all seven factory zones, industrial miniature-diorama style, dark navy framing, colorful capsules, stainless steel machinery, existing signs and feedback line. Add one prominent, playful robot figure near the front of the ORDERS/customer communication area, clearly wearing an obviously artificial human skin suit: a friendly smooth peach-colored silicone costume loosely zipped around its body, with an open zipper/seam exposing its shiny metal chest and mechanical joints, one metallic hand and part of a friendly robot face visible beneath the loose human face hood. Make this unmistakably a robot dressing up as human, funny rather than horror, no gore, no wounds, no nudity; costume has plain casual shirt and trousers built into the disguise. The character should be large enough to read at README size but not obscure the ORDERS sign or the production story. Integrate its scale, perspective, shadows and materials with the existing diorama. Preserve all existing labels as accurately as possible. No new text, watermark, border, or standalone inset. Output one high-resolution ultra-wide image.
+```
+
+## Integrated android workforce revision — 2026-09-16
+
+- Tool: OpenAI built-in ImageGen; model version not exposed.
+- Mode: Edit of the original hero from commit `c7f1709`, before the foreground mascot.
+- Reference input: `docs/assets/v1tamins-system-cutaway.png` from that commit; original digest recorded above.
+- Current asset: `docs/assets/v1tamins-system-cutaway.png`
+- Current dimensions: 1942 × 809 pixels.
+- Current SHA-256: `4ad518d7dc6a6e69c94e616605860acfe86b1111b695ac6d30f5180341de0ecd`
+- Inspection: All visible figures across orders, R&D, production, repair, QA, packing, and shipping have artificial faces and exposed mechanisms. No oversized foreground figure. Factory composition and major signs remain intact.
+- Revision direction: Preserve the integrated workforce and unsettling synthetic faces; avoid a cute mascot or a separate foreground character. Supersedes the prior single-character revision.
+
+### Exact edit prompt
+
+```text
+Edit this original wide pharmaceutical factory cutaway. Replace EVERY human in the entire scene with a robot wearing an uncanny realistic human skin suit. Keep each figure at the SAME original scale, position, pose and workstation, doing the same job. There are people at the left service window and desks, four scientists in R&D, two repair workers, the small foreground production technician, QA scientists, and packing/shipping workers at the right: transform ALL of them, including tiny background figures. No added foreground mascot and no oversized character. Each worker should clearly be a mechanical robot disguised in an ill-fitting synthetic human skin suit beneath the existing lab coat or work clothes: pale waxy lifelike skin, slightly misaligned human facial features, blank glassy eyes, fixed uncomfortable expressions, visible subtle seams along the jaw and neck, loose face edges at temples revealing dark metal skull and circuitry, occasional exposed mechanical fingers emerging from skin sleeves. Make them eerie and uncanny, like unsettling practical-effects android disguises, NOT cute, cartoonish, smiling toy robots, or cheerful rubber face masks. The skin suits are manufactured silicone costumes, no blood, wounds or gore. Make the disguise/robot combination readable on EVERY person, with enough exposed mechanisms and dangling skin seams that they cannot be mistaken for ordinary people. Preserve the existing architecture, machinery, conveyors, pills, packaging, all seven zones, readable existing labels, lighting, perspective, high-detail realistic miniature diorama style, and wide 2.4:1 framing. Change the people only. Do not add new text, characters, panels, borders, or watermarks.
+```

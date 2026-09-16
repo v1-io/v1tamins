@@ -12,17 +12,18 @@
 **Small, reusable skills for healthier AI-assisted development.**
 
 v1tamins is an open-source plugin for [Claude Code](https://claude.ai/code) and
-[Codex](https://openai.com/codex/). It packages 38 focused skills for planning,
+[Codex](https://openai.com/codex/). It packages 39 focused skills for planning,
 debugging, reviewing, shipping, research, documentation, and product work. Use
 one skill for a specific job or combine several into a repeatable workflow.
 
 Built in the open by Version1 and Humm.
 
-[![Detailed pharmaceutical cutaway showing v1tamins orders, R&D formulation, pill production, repair, QA/QC, packaging, feedback, and shipping](docs/assets/v1tamins-system-cutaway.png)](docs/assets/v1tamins-system-cutaway.imagegen.md)
+[![Pharmaceutical skill factory staffed throughout by uncanny robots in human skin suits, from orders and R&D through production, repair, QA, packing, and shipping](docs/assets/v1tamins-system-cutaway.png)](docs/assets/v1tamins-system-cutaway.imagegen.md)
 
 The image treats v1tamins as a working skill pharmacy: useful formulations are
 developed, tested, repaired, inspected, packaged, delivered, and improved from
-feedback. The [generation record](docs/assets/v1tamins-system-cutaway.imagegen.md)
+feedback. Robots wearing uncanny human skin suits throughout the factory represent
+Skin Suit’s natural-writing skill. The [generation record](docs/assets/v1tamins-system-cutaway.imagegen.md)
 keeps the exact prompt and visual mapping for future revisions.
 
 ## Why it exists
@@ -82,6 +83,7 @@ In Claude Code:
 /v1-debug trace why this test fails only in CI
 /v1-deep-review review this branch for merge risk and maintainability
 /v1-pr-description refresh this pull request title and body
+/v1-skin-suit use a natural, plainspoken style for this conversation
 /v1-menu help me choose a skill
 ```
 
@@ -91,6 +93,7 @@ In Codex:
 $v1-debug trace why this test fails only in CI
 $v1-deep-review review this branch for merge risk and maintainability
 $v1-pr-description refresh this pull request title and body
+$v1-skin-suit write a casual update from these notes
 $v1-menu help me choose a skill
 ```
 
@@ -148,6 +151,7 @@ These common entry points cover much of the day-to-day work:
 | Review a branch or PR before merge | [`/v1-deep-review`](plugins/v1tamins/skills/v1-deep-review/SKILL.md) |
 | Prepare a pull request | [`/v1-pr`](plugins/v1tamins/skills/v1-pr/SKILL.md) |
 | Explain a pull request visually | [`/v1-pr-walkthrough`](plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md) |
+| Write naturally from notes or improve an existing draft | [`/v1-skin-suit`](plugins/v1tamins/skills/v1-skin-suit/SKILL.md) |
 | Research a complex question | [`/v1-deep-research`](plugins/v1tamins/skills/v1-deep-research/SKILL.md) |
 | Create or audit an Agent Skill | [`/v1-skilling-it`](plugins/v1tamins/skills/v1-skilling-it/SKILL.md) |
 
@@ -231,6 +235,7 @@ that matches the job.
 | [`/v1-deep-research`](plugins/v1tamins/skills/v1-deep-research/SKILL.md) | A complex question needs iterative multi-source research. |
 | [`/v1-autoresearch-skill`](plugins/v1tamins/skills/v1-autoresearch-skill/SKILL.md) | A measurable target needs an autonomous optimization loop. |
 | [`/v1-canon2skill`](plugins/v1tamins/skills/v1-canon2skill/SKILL.md) | Source material needs reusable skill ideas. |
+| [`/v1-skin-suit`](plugins/v1tamins/skills/v1-skin-suit/SKILL.md) | Draft from scratch, rewrite stiff prose, or set a natural writing style for a task. |
 | [`/v1-stickify`](plugins/v1tamins/skills/v1-stickify/SKILL.md) | Communication needs to be clearer and more memorable. |
 | [`/v1-md2docs`](plugins/v1tamins/skills/v1-md2docs/SKILL.md) | Markdown needs publishing as a formatted Google Doc. |
 | [`/v1-html-it`](plugins/v1tamins/skills/v1-html-it/SKILL.md) | A review, report, prototype, or explainer needs a self-contained HTML artifact. |
@@ -342,7 +347,9 @@ For a new or changed skill:
 4. Update the [trigger inventory](plugins/v1tamins/evals/trigger-inventory.md),
    [routing fixture](plugins/v1tamins/evals/skill-routing.jsonl), and
    [`v1-menu`](plugins/v1tamins/skills/v1-menu/SKILL.md) when routing or the
-   catalog changes.
+   catalog changes. Update this README’s skill count, catalog, and useful entry
+   points whenever a skill is added. Review the hero image for a useful visual
+   addition; regenerate it when the new capability merits one.
 5. Add a changeset with `npx changeset` for distributed skill changes. Do not
    hand-edit package or manifest versions.
 6. Run the validator and test the skill in a real project.

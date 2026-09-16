@@ -1,0 +1,7 @@
+interface:
+  display_name: "Skin Suit"
+  short_description: "Write naturally from scratch or improve an existing draft"
+  default_prompt: "Use $v1-skin-suit when writing for this task: sound natural for the reader and channel, and preserve the facts and my voice."
+policy:
+  allow_implicit_invocation: true
+  invocation_posture: implicit
