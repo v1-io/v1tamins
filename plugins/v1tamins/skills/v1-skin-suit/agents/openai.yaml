@@ -1,0 +1,7 @@
+interface:
+  display_name: "Skin Suit"
+  short_description: "Make prose natural while keeping its meaning and voice"
+  default_prompt: "Use $v1-skin-suit to make this prose sound natural for its reader and channel while preserving its meaning."
+policy:
+  allow_implicit_invocation: true
+  invocation_posture: implicit
