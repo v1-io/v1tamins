@@ -18,12 +18,12 @@ one skill for a specific job or combine several into a repeatable workflow.
 
 Built in the open by Version1 and Humm.
 
-[![Pharmaceutical skill factory with a robot wearing a zippered human disguise, alongside R&D, production, repair, QA, packaging, and shipping](docs/assets/v1tamins-system-cutaway.png)](docs/assets/v1tamins-system-cutaway.imagegen.md)
+[![Pharmaceutical skill factory staffed throughout by uncanny robots in human skin suits, from orders and R&D through production, repair, QA, packing, and shipping](docs/assets/v1tamins-system-cutaway.png)](docs/assets/v1tamins-system-cutaway.imagegen.md)
 
 The image treats v1tamins as a working skill pharmacy: useful formulations are
 developed, tested, repaired, inspected, packaged, delivered, and improved from
-feedback. A robot wearing a human disguise represents Skin Suit’s natural-writing
-skill. The [generation record](docs/assets/v1tamins-system-cutaway.imagegen.md)
+feedback. Robots wearing uncanny human skin suits throughout the factory represent
+Skin Suit’s natural-writing skill. The [generation record](docs/assets/v1tamins-system-cutaway.imagegen.md)
 keeps the exact prompt and visual mapping for future revisions.
 
 ## Why it exists
