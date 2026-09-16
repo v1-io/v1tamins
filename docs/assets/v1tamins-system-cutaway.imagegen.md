@@ -8,7 +8,7 @@ Wide README hero for the public `v1-io/v1tamins` repository. It presents reusabl
 
 > v1tamins is a working skill pharmacy: focused capabilities are formulated carefully, checked rigorously, and shipped in a form people can use.
 
-## Creation
+## Original creation
 
 - Date: 2026-08-25
 - Tool: OpenAI built-in ImageGen
@@ -29,6 +29,7 @@ Wide README hero for the public `v1-io/v1tamins` repository. It presents reusabl
 - QA/QC represents review, testing, and evidence before release.
 - Packaging and shipping represent installation and practical delivery.
 - The feedback line back to R&D represents continuous improvement from use.
+- The robot lifting its human face hood, with mechanical hands and an open costume, represents Skin Suit: natural expression without losing the underlying facts.
 
 ## Exact final generation prompt
 
@@ -70,3 +71,20 @@ Preserve the pharmaceutical world, obvious capsules and tablets, end-to-end oper
 ## History
 
 - 2026-08-25: Replaced the abstract blister-pack/host metaphor with a detailed pharmaceutical R&D and production operation after direct visual review.
+
+## Skin Suit revision — 2026-09-16
+
+- Tool: OpenAI built-in ImageGen; model version not exposed.
+- Mode: Edit of the existing hero.
+- Reference input: `docs/assets/v1tamins-system-cutaway.png` at commit `c7f1709`, original SHA-256 recorded above.
+- Current asset: `docs/assets/v1tamins-system-cutaway.png`
+- Current dimensions: 1942 × 809 pixels.
+- Current SHA-256: `5057beb52b846853c1666288252f7ac1f23a61846940fd86b48021d762b22302`
+- Inspection: Reviewed the full image and scaled view; the robot disguise is visible, the seven zones and labels remain legible.
+- Revision direction: Preserve this character and the connected pharmacy world. The original prompt’s no-robot constraint is superseded by this explicit addition.
+
+### Exact edit prompt
+
+```text
+Edit the supplied v1tamins pharmaceutical factory cutaway README hero. Preserve the wide landscape composition, all seven factory zones, industrial miniature-diorama style, dark navy framing, colorful capsules, stainless steel machinery, existing signs and feedback line. Add one prominent, playful robot figure near the front of the ORDERS/customer communication area, clearly wearing an obviously artificial human skin suit: a friendly smooth peach-colored silicone costume loosely zipped around its body, with an open zipper/seam exposing its shiny metal chest and mechanical joints, one metallic hand and part of a friendly robot face visible beneath the loose human face hood. Make this unmistakably a robot dressing up as human, funny rather than horror, no gore, no wounds, no nudity; costume has plain casual shirt and trousers built into the disguise. The character should be large enough to read at README size but not obscure the ORDERS sign or the production story. Integrate its scale, perspective, shadows and materials with the existing diorama. Preserve all existing labels as accurately as possible. No new text, watermark, border, or standalone inset. Output one high-resolution ultra-wide image.
+```

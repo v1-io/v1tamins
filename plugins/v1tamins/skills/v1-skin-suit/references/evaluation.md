@@ -10,6 +10,9 @@ Cover these cases:
 
 | Situation | Required behavior |
 | --- | --- |
+| Draft from notes | Compose directly; do not ask for an existing draft. |
+| Task-scoped style guidance | Apply the style to the subsequent writing task without requesting text or changing persistent settings. |
+| Implicit selection | Select for a natural conversational drafting request without a skill name; do not select for unrelated code work. |
 | Familiar acknowledgment | Stop after acknowledgment; no new promise. |
 | Direct question | Preserve the question and exact identifier, such as API_KEY. |
 | Thanks with uncertainty | Keep both; no confidence inflation. |
