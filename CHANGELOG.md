@@ -1,5 +1,11 @@
 # v1tamins
 
+## 0.12.0
+
+### Minor Changes
+
+- 37ec3af: Add v1-skin-suit for natural, audience-aware prose that preserves meaning and requested author voice, with research limits and evaluation guidance.
+
 ## 0.11.1
 
 ### Patch Changes
