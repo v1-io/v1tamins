@@ -1,0 +1,8 @@
+interface:
+  display_name: "What Next"
+  short_description: "Read the current thread and propose the single best next thing to work on."
+  default_prompt: "Use $v1-what-next to tell me what we should work on next."
+
+policy:
+  allow_implicit_invocation: true
+  invocation_posture: implicit
