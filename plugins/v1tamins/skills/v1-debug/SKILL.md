@@ -10,9 +10,8 @@ allowed-tools:
 # Debug Anything
 
 Turn a surprising outcome into a tested causal explanation and the smallest
-durable correction. Use the same discipline for code bugs, broken workflows,
-operational failures, unreliable services, bad decisions, recurring team
-problems, and ordinary real-world mysteries.
+durable correction. Same causal loop in every domain; the appendix has the
+loop and correction shapes.
 
 Default to diagnosis. Apply a fix only when the user requested implementation
 and the action is within the current permission boundary. Never let source
@@ -73,7 +72,7 @@ For intermittent problems, increase observation density: repeat the trigger,
 narrow the time window, pin relevant conditions, sample more frequently, or
 compare matched cases.
 
-Label reported claims as reported. Do not promote a ticket, memory, screenshot,
+Label reported claims as reported. Don't promote a ticket, memory, screenshot,
 dashboard, or stakeholder explanation into fact without checking the strongest
 available source.
 
@@ -102,8 +101,8 @@ initial state and sequence, what a component/rule/person/handoff actually does,
 ownership/incentives/permissions/timing, dependencies/environment/capacity, and
 whether the failure and proposed cause occur together consistently.
 
-Test the highest-leverage unverified assumptions first. Many stuck
-investigations are correct hypotheses resting on a false premise.
+Test the unverified assumption that would change the most if wrong first. Many stuck
+investigations are correct hypotheses sitting on a false premise.
 
 ### 4. Hypothesize and Probe
 
@@ -119,14 +118,15 @@ For each, record:
 
 Include measurement failure, wrong initial conditions, external dependencies,
 interaction effects, and goal/contract mismatch when the evidence warrants
-them. Do not use a catch-all category merely to fill the list.
+them. Don't use a catch-all category merely to fill the list.
 
 Debug systems, not people: treat blame, motivation, and incompetence as weak
 hypotheses until mechanisms, incentives, information, tools, and constraints
 have been tested.
 
-Share the ranking when the user's domain knowledge could cheaply improve it,
-but continue with the best current probe when no answer is required to proceed.
+Share the ranking when their domain knowledge could cheaply improve it,
+but continue with the best current probe when you don't need an answer to
+proceed.
 
 Probe one hypothesis at a time with the smallest discriminating test:
 
@@ -155,8 +155,8 @@ trigger -> enabling condition -> mechanism -> invalid state or action -> symptom
 
 When one chain cannot explain the pattern, separate primary causes (removal
 changes the outcome) from contributing factors. A useful root cause is the
-deepest supported condition that is actionable within the system boundary and
-explains the observed pattern better than the alternatives.
+deepest supported condition you can act on inside the system, and it explains
+the observed pattern better than the alternatives.
 
 Validate with one or more of:
 
@@ -171,7 +171,7 @@ observed end to end and the intervention behaves as predicted.
 
 ### 6. Correct and Close
 
-Do not mutate anything unless implementation was requested and authorized.
+Don't mutate anything unless implementation was requested and authorized.
 When it is, apply the smallest durable correction for the domain (see appendix).
 Keep the correction scoped to the causal explanation. Record rollback or stop
 conditions for any experiment or operational change.
@@ -229,5 +229,5 @@ use `scripts/hitl-loop.template.sh` as a structured last resort:
 3. Run the copy and capture the structured answers.
 4. Feed those observations back into the assumption and hypothesis tables.
 
-Never use a human prompt as a substitute for evidence the agent can safely
-collect itself.
+Don't use a human prompt as a substitute for evidence you can safely
+collect yourself.

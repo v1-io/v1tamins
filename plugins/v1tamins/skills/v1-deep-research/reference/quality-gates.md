@@ -8,11 +8,12 @@ After completing the report draft:
 2. If errors found: fix each one, then re-run validation
 3. Max 3 retry cycles. If issues persist after 3 cycles, note them in a comment at the end of the report and move on.
 
-Do not skip validation. Do not proceed to final output without at least one validation pass.
+Don't skip validation. Don't call the report done until it's had at least one
+validation pass.
 
 ## Anti-Hallucination Protocol
 
-These rules are non-negotiable:
+Don't break these:
 
 1. **Never fabricate sources.** If you cannot find evidence for a claim, say "No sources found for X" rather than inventing a reference.
 2. **Never fabricate URLs.** Every URL in the bibliography must come from an actual WebSearch or WebFetch result.
@@ -30,7 +31,7 @@ Before showing the final report to the user:
 
 ## Anti-Fatigue Protocol
 
-LLMs degrade in quality over long outputs. Guard against this:
+Long reports get sloppy. Check each section before you write the next.
 
 ### Per-Section Checklist (check after writing EACH section)
 
@@ -54,7 +55,6 @@ Sections written later in the report are at highest risk of quality degradation.
 
 ### Voice and Tone
 
-- Authoritative but not dogmatic
 - Direct statements preferred over hedged qualifications
 - Active voice default; passive only when the actor is unknown or irrelevant
 - No filler phrases: "It is worth noting that", "It should be mentioned that", "Interestingly,"
@@ -106,9 +106,9 @@ Example:
 [2] TechCrunch. "Company X Raises $50M for AI-Powered Development Tools." 2025-11-03. https://techcrunch.com/2025/11/03/...
 ```
 
-### ZERO TOLERANCE
+### Never write these
 
-These patterns indicate bibliography truncation. They must NEVER appear:
+These patterns mean the bibliography was truncated. They must never appear:
 
 - `[8-75] Additional references...`
 - `[N] ...continue...`

@@ -1,6 +1,6 @@
 # Example Run
 
-A worked, public-safe walkthrough of one `v1-review-board` run end to end. Placeholders (`<repo>`, `<model-*>`, `<base>`) stand in for runtime-resolved values; nothing here is a committed model name or host path. The live golden transcript from a real run is captured operationally after merge — this example shows the shape an implementer and reviewer can follow.
+A public-safe walkthrough of one `v1-review-board` run end to end. Placeholders (`<repo>`, `<model-*>`, `<base>`) stand in for values resolved at runtime; nothing here is a committed model name or host path. A live transcript from a real run is captured after merge. This example shows the shape to follow.
 
 ## Trigger
 
@@ -45,7 +45,7 @@ launched slug=deep-a  ...
 launched slug=deep-b  ...
 ```
 
-- Polled across turns. `deep-a` completed; `deep-b` timed out and was torn down by its recorded PID/PGID. The Board records the selected peer's typed failure and does not replace it automatically.
+- Polled across turns. `deep-a` completed; `deep-b` timed out and was torn down by its recorded PID/PGID. The Board records the selected peer's typed failure and doesn't replace it automatically.
 
 ## Phase 3 — Compile the ledger
 
@@ -71,5 +71,5 @@ A Cursor finding that looked like a bug was checked against the source and prove
 
 - **No Cursor:** thermo lens dropped; board runs deep-A/deep-B; ledger records the skip.
 - **All peers stall:** below the one-peer floor → no apply/commit/push; the board reports the degradation and stops.
-- **No gate detected:** drops to `apply` (stop before push), reports.
+- **No gate detected:** drop to `apply` (stop before push) and report.
 - **Detached HEAD:** branch guard aborts before any commit.

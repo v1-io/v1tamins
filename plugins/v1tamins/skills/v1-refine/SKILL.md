@@ -25,7 +25,7 @@ Typical invocations:
 - Claude Code: `/v1-refine [mode] [target]`
 - Codex: invoke `v1-refine` from the skills menu or use `$v1-refine [mode] [target]`
 
-Legacy trigger phrases (`simplify`, `deslop`, `hindsight refactor`) route here — map them to the matching mode.
+Old trigger phrases (`simplify`, `deslop`, `hindsight refactor`) still land here — map them to the matching mode.
 
 **Mode (optional):** `quality` (default) | `deslop` | `hindsight`
 
@@ -42,7 +42,7 @@ Review changed code (or named files) for reuse, quality, structure, cognitive co
 
 ### Review Passes
 
-Run the passes on the target. When the host supports subagents or parallel review workers, launch them with the same context before applying fixes; otherwise run sequentially. Honor any user-supplied focus while still checking the full changed surface.
+Run the passes on the target. When the host supports subagents or parallel review workers, launch them with the same context before applying fixes; otherwise run sequentially. If they named a focus, still check the rest of the changed surface.
 
 #### 1. Reuse
 
@@ -57,7 +57,7 @@ Prefer established local helpers over new abstractions. Only add an abstraction 
 
 #### 2. Quality and Simplicity
 
-Reduce complexity, weak boundaries, and future-change cost. This pass folds in KISS, DRY, and cognitive-complexity work.
+Reduce complexity, weak boundaries, and future-change cost. This pass covers KISS, DRY, and cognitive complexity.
 
 **KISS:**
 - Flatten deeply nested control flow with guard clauses and early returns
@@ -129,7 +129,7 @@ Always preserve side effects (logging, error semantics), keep public APIs stable
 
 ### Fixing
 
-Aggregate findings from all passes before editing. Fix each valid issue directly and keep the scope tied to the target. Fix only when the change has a concrete reason. Skip false positives and low-value changes. No new tests unless asked.
+Collect findings from all passes before you edit. Fix each valid issue directly and keep the scope tied to the target. Fix only when you have a concrete reason. Skip false positives and low-value changes. No new tests unless asked.
 
 After edits, run the smallest relevant verification command available in the project.
 
@@ -143,7 +143,7 @@ Finish with a concise summary:
 
 ## Mode: deslop
 
-Remove branch-introduced code that adds no behavior, proof, or maintainability value — recognizable agent-generated residue: defensive wrappers, narration comments, casts, logging, or abstraction created without a concrete need.
+Remove branch-introduced code that adds no behavior, proof, or maintainability — typical agent leftover: defensive wrappers, narration comments, casts, logging, or abstraction created without a concrete need.
 
 ### Removal Gate
 

@@ -12,11 +12,13 @@ allowed-tools:
 ---
 # Canon2skill
 
-Turn large source material into evidence-backed recommendations for new or improved agent skills.
+Turn a book, PDF, article, course, or notes into recommendations for new or
+improved agent skills. Back each recommendation with evidence from the source.
 
 ## Output Contract
 
-Produce recommendations, not final skill files, unless the user explicitly asks to build them.
+Recommend skills. Don't write the skill files unless they explicitly ask you to
+build them.
 
 Default output:
 
@@ -41,17 +43,17 @@ Default output:
 [Extraction failures, missing figures/tables, OCR uncertainty, inaccessible pages, or source limits.]
 ```
 
-Include concise citations to source sections, page numbers, URLs, headings, timestamps, or chunk ids wherever possible.
+Cite source sections, page numbers, URLs, headings, timestamps, or chunk ids wherever you can.
 
 ## Workflow
 
 ### 1. Ingest the Source
 
-Identify the source type and preserve provenance before summarizing.
+Identify the source type and say where it came from before summarizing.
 
 | Input | Ingestion |
 | --- | --- |
-| URL or blog post | Fetch the page, preserve URL, title, headings, and publication date if visible. |
+| URL or blog post | Fetch the page. Keep the URL, title, headings, and publication date if visible. |
 | Plain text or Markdown | Save or reference the text with heading boundaries intact. |
 | Born-digital PDF | Extract text with page numbers. Prefer structured Markdown extraction when available. |
 | Scanned PDF | Run OCR first if local tools are available; otherwise flag OCR as a data gap. |
@@ -90,9 +92,9 @@ OCR fallback order:
    swift "$SKILL_DIR/scripts/ocr-pdf-macos.swift" input.pdf ocr.txt
    ```
    If the host does not expose `SKILL_DIR`, resolve `scripts/ocr-pdf-macos.swift` relative to this skill directory.
-4. If OCR is not possible locally, report the blocker as a data gap and do not pretend the source was read.
+4. If OCR is not possible locally, report the blocker as a data gap and don't pretend the source was read.
 
-For OCR output, preserve page markers such as `=== Page 12 ===`. Treat OCR as lower-confidence than embedded text and spot-check early, middle, and late pages before using it for recommendations.
+For OCR output, keep page markers such as `=== Page 12 ===`. Treat OCR as lower-confidence than embedded text and spot-check early, middle, and late pages before using it for recommendations.
 
 ### 2. Build a Source Map
 
@@ -101,11 +103,11 @@ Create a compact inventory before interpreting the material:
 - Document metadata: title, author/source, date if available, input path or URL.
 - Structure: chapters, sections, headings, page ranges, or timestamps.
 - Extraction quality: clean, partial, OCR-heavy, table-heavy, image-heavy, or blocked.
-- Provenance scheme: page numbers, section ids, chunk ids, or URL anchors.
+- How you'll cite it: page numbers, section ids, chunk ids, or URL anchors.
 
 For long sources, chunk by semantic boundaries before token size:
 
-1. Preserve chapter and heading hierarchy.
+1. Keep chapter and heading hierarchy.
 2. Keep tables, examples, exercises, and checklists attached to the nearest heading.
 3. Use overlapping chunks only when a concept crosses boundaries.
 4. Assign stable ids such as `ch03-sec02-p45-52`.
@@ -126,7 +128,7 @@ For each chunk, extract a short learning card:
 - Evidence:
 ```
 
-Do not compress directly into skill ideas yet. First gather the reusable behaviors the source teaches.
+Don't compress into skill ideas yet. First gather the reusable behaviors the source teaches.
 
 ### 4. Roll Up Concepts Recursively
 
@@ -145,11 +147,11 @@ At each layer, keep:
 - Examples that reveal tacit judgment.
 - Contradictions, caveats, or scope boundaries.
 
-Keep the rollup lossy enough to fit in context, but never drop provenance ids.
+Keep the rollup small enough to fit in context, but never drop the ids that say where a piece came from.
 
 ### 5. Generate Candidate Skills
 
-Convert concepts into candidate skills only when they imply reusable agent behavior.
+Turn concepts into candidate skills only when they imply reusable agent behavior.
 
 Score each candidate from 1-5:
 
@@ -176,7 +178,7 @@ For every promising candidate:
 4. Build a coverage matrix with source areas, candidate skill components, evidence, and gaps.
 5. Demote candidates that are mostly facts, summaries, motivation, or generic advice.
 
-This re-read step is mandatory for large sources. Do not trust the first rollup alone.
+This re-read is required for large sources. Don't trust the first rollup alone.
 
 ### 7. Apply the Skill-Worthiness Gate
 
@@ -243,10 +245,10 @@ What source areas were weakly extracted or not inspected?
 
 ## Source Handling Rules
 
-- Preserve page, section, URL, or chunk provenance from ingestion through final output.
+- Keep page, section, URL, or chunk ids from first read through the final recommendations, so you can say where each claim came from.
 - Prefer structured extraction over ad hoc prose scanning.
 - Verify PDF extraction quality; image-only PDFs require OCR before learning-card generation.
 - Treat tables, diagrams, exercises, and examples as high-value skill evidence.
 - Mark uncertainty when extraction quality is low.
-- Do not include copyrighted long excerpts in the final output; cite and paraphrase instead.
-- Do not leak private source details when recommending public shared skills.
+- Don't include copyrighted long excerpts in the final output; cite and paraphrase instead.
+- Don't leak private source details when recommending public shared skills.

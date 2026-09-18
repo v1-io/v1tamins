@@ -1,6 +1,6 @@
 interface:
   display_name: "PRD"
-  short_description: "Turn a ticket into an implementation-ready PRD"
+  short_description: "Turn a ticket into a PRD a builder can implement"
   default_prompt: "Use $v1-prd to turn this ticket or feature request into a concise PRD."
 
 policy:

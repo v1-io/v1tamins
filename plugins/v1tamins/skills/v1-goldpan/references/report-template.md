@@ -46,7 +46,7 @@ Brief list of PRs/sessions considered but rejected, with one-word reason: `refac
 
 ## Inline chat output (after writing the file)
 
-Show the user only the High section, condensed, then immediately move into Phase 4a (approval prompt). Do not stop — the queue step is part of the same turn.
+Show only the High section, condensed, then move into Phase 4a (approval prompt). Do not stop — the queue step is part of the same turn.
 
 ```
 Wrote <N> candidates to .agents/goldpan/session-notes/compound-candidates-<date>.md

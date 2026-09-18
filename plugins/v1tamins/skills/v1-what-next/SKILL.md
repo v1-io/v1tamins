@@ -9,51 +9,49 @@ allowed-tools:
 ---
 # What Next
 
-Read the current thread and propose the single best next thing to work on. This
-is a lightweight checkpoint: it proposes, and the user decides. If the user says
-"continue" or "do the next step", do the work instead of running this skill.
+Name the one next thing to do.
 
-Start from the thread. Look outside it only when the thread alone gives no
-clear next move. Never guess: if neither the thread nor the project shows a
-next step, say so. If the question is which v1 skill fits rather than which
-work comes next, use `v1-menu`. If the honest answer needs a plan, recommend a
-planning skill rather than writing the plan here.
+Start from this thread. Look outside it only when the thread has no clear next
+move. If neither the thread nor the project shows one, say so. Don't guess.
+
+If they want a v1 skill, not a next step, use `v1-menu`. If what's needed is a
+plan, point at a planning skill instead of writing the plan here.
 
 ## Workflow
 
 ### 1. Reorient
 
-From the thread, establish the original goal in one sentence, what is verified
-done, and the open loops: unanswered questions, proposed steps never taken,
-errors seen but not resolved. Do not reopen decisions the user already made.
+From the thread, name the original goal in one sentence, what's been verified
+as done, and the open loops: unanswered questions, steps that were proposed
+but never taken, errors seen and not resolved. Leave decisions the user already
+made alone.
 
-Run `git status` only when the recommendation depends on whether work is
-committed and the thread does not already say. Do not chase references the
-thread makes to tasks, plans, or issues at this stage; if the answer hinges on
-one, say so under "Needs you".
+Run `git status` only when the next step depends on whether work is committed
+and the thread doesn't already say. Don't follow task, plan, or issue links
+yet. If the answer hinges on one, put that under "Needs you".
 
 ### 2. Look outward when the thread runs dry
 
-If the goal is complete, or nothing in the thread ranks above "everything
-else" in the next step, find where this project's follow-up work lives before
-answering. Do not assume a particular tool. Look, in order, for:
+If the goal is done, or nothing left in the thread ranks above "everything
+else", find where this project keeps follow-up work before you answer. Don't
+assume a particular tool. Look in this order:
 
-- The place the thread itself named as the owner of the work: a ticket, plan,
-  or task it was started from.
+- Whatever the thread named as the owner of the work: a ticket, plan, or task
+  it started from.
 - The project's instructions or contributor docs, which usually say where work
   is tracked.
-- Whatever the repository or workspace exposes: an issue list, a plans or
-  tasks directory, a roadmap, a TODO file, open review requests.
+- What the repo or workspace actually has: an issue list, a plans or tasks
+  directory, a roadmap, a TODO file, open review requests.
 
-Read only enough to find the item most connected to what was just done: same
-area, same goal, or a follow-up the finished work created. Stop after the first
-source that yields candidates. Mark anything found this way as outside the
-thread so the user knows its provenance. If no source exists or none yields a
-related item, say that plainly and offer the smallest durable wrap-up instead.
+Read only enough to find the item closest to what just happened: same area,
+same goal, or a follow-up the finished work created. Stop at the first source
+that gives you candidates. Mark anything found this way as outside the thread
+so the user knows where it came from. If nothing turns up, say that and offer
+the smallest wrap-up that won't get lost.
 
 ### 3. Rank
 
-Pick the next move by this priority:
+Pick the next move in this order:
 
 1. Finishes or unblocks the original goal.
 2. Verifies something currently claimed but unproven.
@@ -62,10 +60,10 @@ Pick the next move by this priority:
 4. Everything else, including follow-ups and related work found outside the
    thread.
 
-Prefer the smallest move that advances the top-ranked item. If the top-ranked
-item is blocked on a user decision, the next move is that decision, stated in
-its simplest form with a default. When the previous response left several
-questions, name the one that actually blocks and default the rest.
+Do the smallest thing that moves the top item. If that item is waiting on a
+user decision, the next move is that decision, asked simply, with a default.
+If the last response left several questions, name the one that actually
+blocks and default the rest.
 
 ### 4. Answer
 
@@ -81,8 +79,8 @@ unverified]
 a default]
 ```
 
-Never offer a menu of equals. Say plainly when the workstream is complete and
-the right move is to stop, commit, or hand off.
+Don't offer a menu of equals. When the work is done, say so, and say whether
+to stop, commit, or hand it off.
 
 ## Example
 

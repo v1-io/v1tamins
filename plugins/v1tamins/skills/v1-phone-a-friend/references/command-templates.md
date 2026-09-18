@@ -107,7 +107,7 @@ If automation will consume the answer, replace the `Return` list in `PHONE_A_FRI
 
 ## Inlining a Named Skill's Rubric
 
-A peer runtime usually does not have your named skills installed (the peer-capability rule in `SKILL.md`). When you want a peer to apply a specific rubric — a review standard, a quality bar — do not name the skill and hope; resolve the skill's `SKILL.md` at runtime and inline its body into the task, then have the peer report `Capability path actually used: prompt-only fallback`.
+Peers usually do not have your named skills (see the peer-capability rule in `SKILL.md`). Do not name a skill and hope. Resolve its `SKILL.md` at runtime, inline the body into the task, and have the peer report `Capability path actually used: prompt-only fallback`.
 
 Resolve the rubric by searching the installed skills roots at runtime rather than committing a host-specific path:
 
@@ -165,11 +165,11 @@ If the helper is unavailable, the manual equivalent is `( "$PEER_ENV" --provider
 
 ## Command Wrapper Matrix
 
-`scripts/peer_launch.py` is the authority for every wrapper below. It converts an
-approved selection into an argv list and refuses, before any process starts,
-when the selection has no launch representation. The blocks in this file are
-rendered from that adapter (`peer_launch.py --emit-doc-examples`) and a contract
-test compares them flag for flag, so a hand edit here that the adapter would not
+`scripts/peer_launch.py` builds every wrapper below. It converts an approved
+selection into an argv list and refuses, before any process starts, when the
+selection has no launch representation. The blocks in this file are rendered
+from that adapter (`peer_launch.py --emit-doc-examples`) and a contract test
+compares them flag for flag, so a hand edit here that the adapter would not
 produce fails validation. Build the real command with the adapter; read these
 blocks to see the shape.
 

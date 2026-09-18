@@ -57,7 +57,7 @@ will receive. Selection never synthesizes one:
 Selection and `scripts/peer_launch.py` apply this same rule, so a proposal
 cannot promise a level the wrapper is unable to send.
 
-Current provider surfaces are discovered rather than copied into this file:
+Discover current provider surfaces. Do not copy them into this file:
 
 | Runtime | Preferred model surface | Auth surface | Boundary |
 | --- | --- | --- | --- |

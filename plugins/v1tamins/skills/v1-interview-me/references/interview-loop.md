@@ -1,8 +1,8 @@
 # Interview Loop
 
-The mechanics of a structured interview. `SKILL.md` owns posture classification,
-completion, and output format; this file owns the loop those postures drive.
-Walk it in order, one focused round at a time.
+`SKILL.md` owns posture classification, completion, and output format. This
+file owns the loop those postures drive. Walk it in order, one focused round
+at a time.
 
 ## 1. Understand the starting point
 
@@ -68,7 +68,7 @@ Then adjust the rest of the interview:
 
 ## 5. Conduct the interview
 
-Use AskUserQuestion repeatedly. Interview until sufficient understanding is reached.
+Use AskUserQuestion each round. Stop when the completion checks in `SKILL.md` are met.
 
 **Attach a recommended answer to every question.** Use AskUserQuestion with your
 proposed answer as the first option, labeled `(Recommended)`, so the user reacts
@@ -92,8 +92,7 @@ current understanding:
 > "Here's what I'm hearing so far: [2-4 sentence synthesis]. Before I go deeper on X, does this track?"
 
 Frame it as a checkpoint, not a conclusion. If the user corrects it, acknowledge
-and adjust before continuing. Keep it conversational. This catches drift early
-instead of at the end.
+and adjust before continuing. This catches drift early instead of at the end.
 
 **Handling uncertainty:**
 
@@ -183,8 +182,6 @@ Before writing any final output:
 2. Highlight the most important insights and open questions.
 3. Confirm this matches their understanding.
 4. Ask if anything was missed before committing to an artifact.
-
-This catches misunderstandings before they're written into permanent artifacts.
 
 ## Specification template
 

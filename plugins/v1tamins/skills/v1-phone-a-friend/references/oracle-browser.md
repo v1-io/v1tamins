@@ -1,6 +1,6 @@
 # Oracle Browser And External Consults
 
-Use this reference for Oracle/browser-mode review, manual browser packets, and ChatGPT Pro Deep Research. Treat these as `external` permission mode unless a local workflow documents otherwise.
+Oracle, browser packets, and ChatGPT Pro Deep Research are `external` permission mode unless a local workflow says otherwise.
 
 ## Contents
 

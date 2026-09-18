@@ -11,9 +11,12 @@ allowed-tools:
 ---
 # Strategy Review
 
-Review a plan like a founder who cares whether the work creates real user value, not just whether it is internally consistent.
+Say whether this is the right problem, the right size, and worth doing now.
+Don't stop at whether the plan holds together.
 
-Use after `v1-interview-me` when the idea is still fluid. Use before implementation when the plan already exists but scope, ambition, or user value are questionable.
+Use after `v1-interview-me` when the idea is still fluid. Use before
+implementation when the plan already exists but scope, ambition, or user value
+are questionable.
 
 ## Workflow
 
@@ -32,7 +35,7 @@ Choose one posture and state it clearly:
 
 | Posture | Use When |
 |---------|----------|
-| **Expand** | The idea is directionally right but undershoots the user value |
+| **Expand** | The idea is right, but it undershoots the user value |
 | **Selective expansion** | The baseline is good, but a few adjacent improvements may be worth adding |
 | **Hold scope** | The scope is right, and the goal is rigor |
 | **Reduce** | The plan is overbuilt, vague, or solving a proxy problem |
@@ -77,7 +80,7 @@ Evaluate the plan across these dimensions:
 - **Validation:** how success will be observed quickly
 - **Future fit:** whether this gets more valuable as the world changes
 
-For each material issue, include what would change your mind.
+For each real issue, include what would change your mind.
 
 ### 6. Expansion Scan
 

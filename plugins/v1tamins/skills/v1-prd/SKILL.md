@@ -8,7 +8,7 @@ allowed-tools:
 ---
 # PRD from Linear Ticket
 
-Write a **concise, implementation-ready PRD** from a Linear ticket or project.
+Turn a Linear ticket or project into a PRD a builder can implement from.
 
 ## Usage
 
@@ -24,32 +24,32 @@ Examples:
 
 In Codex, the slash examples below map directly to `$v1-prd ...`.
 
-## What It Does
+## Workflow
 
-### 1. Gather Inputs
-- Fetches ticket/project from Linear (title, description, acceptance criteria)
-- Retrieves linked designs, mocks, or prior context
-- If image URLs exist without captions, adds descriptive captions
-- Asks for missing inputs if needed
+### 1. Gather inputs
+- Fetch the ticket or project from Linear (title, description, acceptance criteria)
+- Pull linked designs, mocks, or prior context
+- If image URLs have no captions, add descriptive captions
+- Ask for missing inputs if needed
 
-### 2. Analyze Ticket
-- Reads the ticket title and description (may be high-level)
-- Examines codebase for existing relevant code and features
-- Understands technical context and constraints
-- Extracts customer evidence when available: current workaround, triggering circumstance, desired progress, competing solutions, adoption obstacles, and buying/approval path
-- Identifies the user-facing conceptual model: core objects, states, relationships, actions, permissions, and feedback the product must make visible
-- Flags hidden state, mode switches, ambiguous object ownership, destructive actions, or memory burdens that need explicit requirements
-- Adds a compact customer-job section when the request is driven by customer discovery, market validation, or a new product wedge. Use the full Job Spec template in [v1-learning-from-customers](../v1-learning-from-customers/SKILL.md) when detail is needed.
+### 2. Analyze the ticket
+- Read the ticket title and description (they may be high-level)
+- Look in the codebase for related code and features
+- Note the technical context and constraints
+- Pull customer evidence when it exists: current workaround, triggering circumstance, desired progress, competing solutions, adoption obstacles, and buying/approval path
+- Name the user-facing conceptual model: core objects, states, relationships, actions, permissions, and feedback the product must make visible
+- Flag hidden state, mode switches, unclear object ownership, destructive actions, or memory burdens that need explicit requirements
+- Add a compact customer-job section when the request comes from customer discovery, market validation, or a new product wedge. Use the full Job Spec template in [v1-learning-from-customers](../v1-learning-from-customers/SKILL.md) when you need the detail.
 
-### 3. Write PRD
+### 3. Write the PRD
 
-Creates a Product Requirements Document with these sections:
+Use these sections:
 
 ```markdown
 # [Title]
 
 ## Description
-[Clear summary of what we're building and why]
+[What this is and why]
 
 ## Customer Job
 [When customer evidence exists: summarize the customer slice, triggering circumstance, desired progress, current workaround, adoption obstacle, and success signal. Use the full Job Spec template in `v1-learning-from-customers` when the PRD needs deeper JTBD detail.]
@@ -96,21 +96,21 @@ Creates a Product Requirements Document with these sections:
 - If upload is requested, add comment: "PRD uploaded"
 - If upload is not requested, return the PRD as a draft and state that Linear was not changed
 
-## PRD Quality Standards
+## Quality Bar
 
-- **Readable**: Scannable, no fluff
-- **Testable**: Acceptance criteria are verifiable
-- **Complete**: Covers edge cases and error conditions
-- **Actionable**: Technical requirements are specific
-- **Handoff-ready**: Developer can start work immediately
-- **Customer-grounded**: The PRD connects scope to a specific customer job, current workaround, switching obstacle, and success signal when customer evidence exists
-- **Conceptually clear**: The PRD names the objects, states, actions, feedback, and constraints the UI must expose
-- **Error-aware**: Requirements cover likely slips, mistakes, invalid inputs, destructive actions, and recovery paths
+- Scannable. No fluff.
+- Acceptance criteria can be checked.
+- Covers edge cases and error conditions.
+- Technical requirements are specific enough to implement.
+- A developer can start without guessing.
+- When customer evidence exists, connect scope to a specific customer job, current workaround, switching obstacle, and success signal.
+- Name the objects, states, actions, feedback, and constraints the UI must expose.
+- Cover likely slips, mistakes, invalid inputs, destructive actions, and recovery paths.
 
 ## Notes
 
 - Requires Linear access (via whatever Linear tooling the project has wired up)
-- Converts ambiguous language into testable statements
-- Prefers bullets over prose
-- Includes existing images with descriptive captions
+- Turn vague language into testable statements
+- Prefer bullets over prose
+- Include existing images with descriptive captions
 - Use `v1-learning-from-customers` first when the ticket lacks concrete customer evidence or needs a customer-discovery plan before becoming a PRD

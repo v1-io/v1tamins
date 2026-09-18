@@ -35,7 +35,7 @@ proposal.
 
 ## Runtime Resolution
 
-Resolve all of the following at every invocation. Commit none of the runtime
+Resolve all of these every time you run. Don't commit any of the runtime
 values.
 
 - **Peer availability** — run the sibling `v1-phone-a-friend/scripts/peer_catalog.py` with bounded provider probes. Installation, credential policy, model catalog, launch state, and runner lifecycle are separate states.
@@ -108,7 +108,7 @@ a lower supported level when available; `fast` chooses the efficient current
 option; `custom` requires explicit current values. The quality Board asks for
 two distinct coding candidates plus an optional third lens. A candidate with
 non-eligible launch state or unresolved prompt evidence stays visible as an
-alternative but is not silently replaced.
+alternative; don't silently replace it.
 
 Discovery, canonical source, installed runtime, model catalog, prompt source,
 and working-tree snapshot each receive an independent fingerprint. A changed
@@ -235,7 +235,7 @@ Three levels; **default `ledger`**. Every level is fail-safe. `apply` and
 Fail-safe rules, enforced whenever the board reaches the mutation step:
 
 - **Announce before acting.** State the autonomy level; under `full-auto`, announce that it will commit and push before doing so.
-- **Minimum-viable-board floor.** Zero surviving review peers → do not apply/commit/push; report the degradation and stop.
+- **Minimum-viable-board floor.** Zero surviving review peers → don't apply/commit/push; report the degradation and stop.
 - **Branch guard (positive detection).** Require a named feature branch: `git rev-parse --abbrev-ref HEAD` ≠ `HEAD` (not detached) and ≠ the resolved default branch. Resolve the default branch explicitly via `git symbolic-ref refs/remotes/origin/HEAD` (or `gh repo view --json defaultBranchRef`) — **do not assume `main`**, or a `master`/`develop`-default repo would treat its default branch as a feature branch. If the default branch cannot be resolved, abort the push rather than guessing. Never infer "feature branch" from "not main."
 - **Gate, fail-closed.** Discover the project gate (declared check command, else common test/lint runners). Run it after applying. Commit only when green; never force-push. **No gate confidently identified → drop to `apply` and report**; never push unverified.
 - **Commit message** names the peers, the models used, and the deliberate deferrals.

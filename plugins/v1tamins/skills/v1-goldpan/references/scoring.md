@@ -1,6 +1,6 @@
 # Compound-Worthiness Rubric
 
-This rubric defers to `/ce-compound`'s own schema rather than reinventing one. Pass this file inline to every scout. For PR scoring, also pass the project's `.agents/goldpan-signals.md` if present (calibrated, repo-specific evidence — see [calibration.md](calibration.md)).
+Score against `/ce-compound`'s schema. Pass this file inline to every scout. For PR scoring, also pass the project's `.agents/goldpan-signals.md` if present (calibrated, repo-specific evidence — see [calibration.md](calibration.md)).
 
 ## Table of contents
 - The authoritative definition

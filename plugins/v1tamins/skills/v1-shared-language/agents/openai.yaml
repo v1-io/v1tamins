@@ -1,6 +1,6 @@
 interface:
   display_name: "Shared Language"
-  short_description: "Extract a domain glossary and flag ambiguous terminology."
+  short_description: "Build a domain glossary and flag ambiguous terms."
   default_prompt: "Use $v1-shared-language to create a shared domain glossary from this conversation."
 
 policy:

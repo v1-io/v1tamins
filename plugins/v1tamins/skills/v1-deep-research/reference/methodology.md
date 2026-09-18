@@ -1,6 +1,7 @@
 # Research Methodology
 
-Three-phase pipeline: PLAN -> RESEARCH -> SYNTHESIZE. Each phase builds on the previous. Do not skip phases.
+Work in three phases: PLAN, RESEARCH, then SYNTHESIZE. Don't skip any. Each
+phase builds on the last.
 
 ---
 
@@ -8,7 +9,7 @@ Three-phase pipeline: PLAN -> RESEARCH -> SYNTHESIZE. Each phase builds on the p
 
 ### 1.1 Classify the Query
 
-Determine the query type. This shapes search strategy and output format.
+Name the query type. It shapes how you search and how you write the report.
 
 | Type | Signal | Search bias | Output bias |
 |------|--------|-------------|-------------|
@@ -22,18 +23,21 @@ Store the classification: `QUERY_TYPE = [type]`
 
 ### 1.2 Orientation Searches
 
-Run 2-3 broad WebSearch queries to understand the landscape before committing to sub-queries. Use the current date from Step 0.
+Run 2-3 broad WebSearch queries before you lock the sub-queries. Use the
+current date from Step 0.
 
 ```
 WebSearch("[topic] overview 2026")
 WebSearch("[topic] recent developments")
 ```
 
-Scan results for: key terminology, major players, controversies, recent events. These inform sub-query generation.
+Scan results for: key terminology, major players, controversies, recent events.
+Use those to generate sub-queries.
 
 ### 1.3 Generate Sub-Queries
 
-Decompose the research question into independent search angles. Each sub-query should target a DIFFERENT facet:
+Split the research question into independent search angles. Each sub-query
+should hit a different facet:
 
 | Angle | Example for "AI code review tools" |
 |-------|-------------------------------------|
@@ -45,11 +49,13 @@ Decompose the research question into independent search angles. Each sub-query s
 | Quantitative | "AI code review tool adoption statistics developer survey" |
 | Industry perspective | "enterprise AI code review ROI case study" |
 
-Generate the number of sub-queries specified by the mode (3/5/7). Every sub-query must be distinct -- no overlapping angles.
+Generate the number of sub-queries the mode specifies (3/5/7). Every sub-query
+must be distinct -- no overlapping angles.
 
 ### 1.4 Draft Initial Outline
 
-Based on orientation search results and sub-queries, draft a section outline for the report. This outline is provisional -- Phase 3 may restructure it based on evidence.
+From the orientation results and sub-queries, draft a section outline. It's
+provisional. Phase 3 may restructure it from the evidence.
 
 ---
 
@@ -57,7 +63,7 @@ Based on orientation search results and sub-queries, draft a section outline for
 
 ### 2.1 Parallel Sub-Query Execution
 
-Execute ALL sub-queries in a single message using parallel WebSearch tool calls. This is critical for speed.
+Fire all sub-queries in one message as parallel WebSearch calls.
 
 ```
 # In a SINGLE message, fire all sub-queries:
@@ -74,7 +80,8 @@ WebFetch(url, "Extract key facts, data, and claims about [topic]. Include specif
 
 ### 2.2 Sub-Agent Deep Dives (Standard + Deep modes)
 
-Spawn sub-agents for angles that need deeper investigation. Each agent gets a focused brief and MUST return structured evidence:
+Spawn sub-agents for angles that need a deeper look. Give each a focused brief.
+They return structured evidence:
 
 ```
 Agent(
@@ -95,7 +102,7 @@ Sub-agents run in parallel. Standard mode: 2 agents. Deep mode: 3 agents.
 
 ### 2.3 Learning Extraction
 
-After all searches and sub-agents complete, extract structured learnings:
+After searches and sub-agents finish, pull the learnings into a structured list:
 
 1. List every distinct claim with its source(s)
 2. Flag claims with only 1 source as "unverified"
@@ -103,21 +110,22 @@ After all searches and sub-agents complete, extract structured learnings:
 4. Assign confidence: HIGH (3+ independent sources), MEDIUM (2 sources), LOW (1 source)
 5. Note which claims have quantitative backing vs. qualitative only
 
-Persist learnings to `sources.json` in the output directory (see report-assembly.md).
+Write learnings to `sources.json` in the output directory (see report-assembly.md).
 
 ### 2.4 Gap Identification and Follow-Up
 
-Review the learnings against the outline. Identify:
+Review the learnings against the outline. Find:
 - Sections with thin evidence (< 2 sources)
 - Unanswered sub-questions from the original query
 - Contradictions that need resolution
 - Missing quantitative data where qualitative claims exist
 
-Run targeted follow-up searches on gaps. Use HALF the breadth of the original search round:
+Run targeted follow-up searches on the gaps. Use HALF the breadth of the
+original search round:
 - Standard mode: 2-3 follow-up searches
 - Deep mode: 3-5 follow-up searches, can run 2 rounds
 
-Each follow-up search should be laser-focused on the specific gap.
+Point each follow-up search at one specific gap.
 
 ### 2.5 Source Curation (Deep mode only)
 
@@ -127,7 +135,8 @@ Review all collected sources. For each, assess:
 - Specificity (concrete data > general commentary)
 - Potential bias (vendor whitepapers, sponsored content)
 
-Drop sources scoring poorly on 3+ criteria. Flag remaining biased sources for disclosure in the report.
+Drop sources scoring poorly on 3+ criteria. Flag remaining biased sources for
+disclosure in the report.
 
 ---
 
@@ -135,7 +144,8 @@ Drop sources scoring poorly on 3+ criteria. Flag remaining biased sources for di
 
 ### 3.1 Outline Refinement
 
-Compare the initial outline (from 1.4) against actual evidence collected. Restructure if:
+Compare the initial outline (from 1.4) against the evidence you actually
+collected. Restructure if:
 - Evidence reveals a more important angle than originally planned
 - A planned section has insufficient evidence (merge or drop)
 - An unexpected theme emerged across multiple sources
@@ -147,7 +157,7 @@ Constraints:
 
 ### 3.2 Report Generation
 
-Follow `reference/report-assembly.md` for the progressive section-by-section generation strategy.
+Follow `reference/report-assembly.md` for section-by-section writing.
 
 Key rules:
 - Write each section individually using Write/Edit tools
@@ -157,20 +167,25 @@ Key rules:
 
 ### 3.3 Critique (Standard + Deep modes)
 
-After the first draft is complete, conduct a critique pass.
+After the first draft is complete, run a critique pass.
 
 **Standard mode -- Single-pass critique:**
-Review the report for: unsupported claims, logical gaps, missing counterarguments, hedging language, vague conclusions. Fix inline.
+Review the report for: unsupported claims, logical gaps, missing
+counterarguments, hedging language, vague conclusions. Fix inline.
 
-**Deep mode -- Multi-persona critique:**
-Simulate three reviewers:
-1. **Domain Practitioner** -- "Would someone working in this field trust these findings? What's missing from a practitioner's perspective?"
-2. **Skeptical Reviewer** -- "What claims are weakest? Where is the evidence thin? What alternative explanations exist?"
-3. **Decision Maker** -- "Can I act on these conclusions? Are the recommendations specific enough?"
+**Deep mode -- Three-angle critique:**
+Check the draft from three angles:
+1. Would someone working in this field trust these findings? What's missing
+   for a practitioner?
+2. What claims are weakest? Where is the evidence thin? What other
+   explanations exist?
+3. Can someone act on these conclusions? Are the recommendations specific
+   enough?
 
-For each persona, generate 3-5 critique points. Address each one:
+For each angle, write 3-5 critique points. Address each one:
 - If it's a writing issue: fix inline
-- If it's a knowledge gap: run delta-queries (max 2-3 targeted searches, time-boxed to 3 minutes)
+- If it's a knowledge gap: run delta-queries (max 2-3 targeted searches,
+  time-boxed to 3 minutes)
 
 ### 3.4 Validation
 
@@ -179,7 +194,8 @@ Run the validation script:
 python3 [skill-root]/scripts/validate_report.py --report [path]
 ```
 
-Fix any errors. Re-run validation. Max 3 retry cycles, then stop and note remaining issues.
+Fix any errors. Re-run validation. Max 3 retry cycles, then stop and note
+remaining issues.
 
 ### 3.5 Final Output
 
@@ -199,17 +215,18 @@ Triggered by "X vs Y", "compare", "difference between" queries.
    - Agent 2: Research subject B independently
    - Agent 3: Research "A vs B" direct comparisons
 
-2. Synthesize into structured comparison:
+2. Synthesize into a structured comparison:
    - Overview of each subject
    - Head-to-head comparison table (criteria as rows, subjects as columns)
    - Strengths / weaknesses for each
-   - Verdict with reasoning (MUST take a position -- no "it depends on your needs" cop-outs)
+   - Verdict with reasoning (take a position -- "it depends on your needs"
+     is not a verdict)
 
 ---
 
 ## Context Mode (`--context`)
 
-When invoked with `--context`, skip full report generation. Instead:
+When invoked with `--context`, skip the full report. Instead:
 
 1. Run PLAN and RESEARCH phases as normal
 2. Output a compact summary (500-1000 words):
