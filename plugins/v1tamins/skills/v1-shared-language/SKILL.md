@@ -4,7 +4,8 @@ description: Use when extracting a domain glossary or canonical terminology from
 ---
 # Ubiquitous Language
 
-Extract and formalize domain terminology from the current conversation into a consistent glossary, saved to a local file.
+Turn the domain terms in this conversation into a glossary, and write it to a
+local file.
 
 ## Process
 
@@ -92,12 +93,11 @@ When invoked again in the same conversation:
 
 ## Inline term update
 
-The two modes above extract a glossary in a batch — a full scan of the
-conversation, written or rewritten in one pass. This mode does the opposite:
-upsert **one** term the moment it is resolved, without rescanning the
-conversation or rewriting the file. It exists so a stateful interview (see
-`v1-interview-me`'s with-docs mode) can record terms as they crystallize
-instead of losing them.
+The steps above write a full glossary in one pass. This mode does the
+opposite: upsert **one** term the moment it is resolved, without rescanning
+the conversation or rewriting the file. Use this so a stateful interview (see
+`v1-interview-me`'s with-docs mode) can record terms as they settle instead of
+losing them.
 
 Given a single term — its canonical name, one-sentence definition, and optional
 group and aliases-to-avoid — do exactly this and nothing more:

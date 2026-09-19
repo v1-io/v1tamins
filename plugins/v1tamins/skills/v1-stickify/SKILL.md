@@ -4,7 +4,7 @@ description: Use when making communication copy more memorable or persuasive. Tr
 ---
 # Stickify
 
-Apply the SUCCESs framework from *Made to Stick* (Chip Heath & Dan Heath) to make communications memorable, understandable, and actionable.
+Use SUCCESs from *Made to Stick* (Chip Heath & Dan Heath) to make copy stick. Write for the listener, not the tapper.
 
 ## Quick Start
 
@@ -16,15 +16,13 @@ Or describe what you need: "Write a landing page headline for our AI code review
 
 ## When to Use
 
-Invoke this skill in three situations:
-
-1. **Improve existing copy** -- user provides text and wants it stickified
-2. **Write from a brief** -- user describes what they need, produce sticky copy from scratch
-3. **Proactively** -- when producing any copy that would benefit from stickiness (landing pages, pitches, announcements, taglines, product descriptions, emails to customers, investor updates, team comms)
+1. **Improve existing copy** -- they paste text and want it stickier
+2. **Write from a brief** -- they describe what they need; write sticky copy from scratch
+3. **Proactively** -- when you're already writing a landing page, pitch, announcement, tagline, product description, customer email, investor update, or team note
 
 ## The SUCCESs Framework
 
-Six traits of sticky ideas:
+Six traits. Use them; don't recite them.
 
 ### 1. SIMPLE -- Find the Core
 Strip to the single most important thing. Forced prioritization, not dumbing down.
@@ -42,7 +40,7 @@ Break the guessing machine, then open knowledge gaps.
 - Shift from "What do I convey?" to "What questions do I want them to ask?"
 
 ### 3. CONCRETE -- Make It Real
-Explain in terms of human actions and sensory information.
+Talk in actions and senses, not abstractions.
 - Replace abstractions with specific, tangible images
 - Concrete props beat abstract descriptions (the leather portfolio, the bag of salt and sugar)
 - Velcro theory: more sensory hooks = stickier memory
@@ -62,7 +60,7 @@ Make people feel something for a person, not an abstraction.
 - One person > millions (Mother Teresa principle)
 - Appeal to identity ("Don't mess with Texas")
 - Avoid semantic stretch -- find fresh emotional territory
-- Move up Maslow's hierarchy beyond base self-interest
+- Self-interest works; identity lasts longer
 
 ### 6. STORIES -- Drive Action
 Stories are mental flight simulators -- simulation (how to act) + inspiration (motivation to act).
@@ -73,9 +71,9 @@ Stories are mental flight simulators -- simulation (how to act) + inspiration (m
 
 ## The Villain: Curse of Knowledge
 
-The #1 enemy. Once you know something, you cannot imagine not knowing it. Tappers hear the song; listeners hear bizarre Morse code. The SUCCESs framework is the antidote.
+Once you know something, you can't imagine not knowing it. Tappers hear the song; listeners hear Morse code. SUCCESs is how you write for the listener.
 
-Signs: jargon without realizing it, skipping "why this matters," burying the lead under context.
+Watch for: jargon you don't notice, skipping why it matters, burying the lead under context.
 
 ## Workflow
 
@@ -128,7 +126,7 @@ Apply the framework as an internal lens. Do not necessarily output the full scor
 - Not every message needs all six. But the best ones hit most.
 - Start with Simple. If the core isn't clear, nothing else matters.
 - Concrete is the easiest to improve and often the most impactful.
-- Don't confuse sticky with dumbed down. Proverbs are simple AND profound.
+- Sticky isn't dumbed down. Proverbs are simple and deep.
 - Avoid gimmicky surprise -- unexpectedness must serve the core message.
 - When in doubt, make it more concrete and less abstract.
 
@@ -158,4 +156,4 @@ WHY:    Concrete (specific time, specific action), Unexpected (AI as faster revi
 
 ## Reference Files
 
-- **references/success-framework.md** -- Deep-dive on each principle with extended examples from the book
+- **references/success-framework.md** -- worked examples for each trait, from the book

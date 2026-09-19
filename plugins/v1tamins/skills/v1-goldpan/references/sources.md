@@ -1,6 +1,6 @@
 # Source Catalogue
 
-Exact paths and commands for the sources scouted by this skill. All paths use `~/`. Session inspection is delegated to the compound-engineering plugin's session scripts (`discover-sessions.sh`, `extract-metadata.py`, `extract-skeleton.py`, `extract-errors.py`) — this skill composes them rather than re-implementing JSONL parsing. Those scripts have moved between compound-engineering releases (`ce-session-inventory`/`ce-session-extract` → `ce-sessions` → `ce-compound/scripts/session-history`); the wrapper and snippets resolve each by basename across all layouts.
+Exact paths and commands for the sources this skill scouts. All paths use `~/`. Inspect sessions through the compound-engineering plugin's session scripts (`discover-sessions.sh`, `extract-metadata.py`, `extract-skeleton.py`, `extract-errors.py`). Do not re-implement JSONL parsing. Those scripts have moved between compound-engineering releases (`ce-session-inventory`/`ce-session-extract` → `ce-sessions` → `ce-compound/scripts/session-history`); the wrapper and snippets resolve each by basename across all layouts.
 
 ## Table of contents
 - Source A: Merged PRs (GitHub)

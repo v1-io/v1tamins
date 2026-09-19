@@ -1,8 +1,8 @@
 # PR Signals Template
 
-This file is the structure that the calibration workflow ([calibration.md](calibration.md)) writes to `.agents/goldpan-signals.md` in the user's project. It is also the format to use when manually authoring or editing a project's signals file.
+Structure that the calibration workflow ([calibration.md](calibration.md)) writes to `.agents/goldpan-signals.md`. Use the same format when authoring or editing a project's signals file by hand.
 
-The signals file's role: capture verbatim, project-specific evidence — section headings, phrases, file-path patterns, author cohorts, calibration PRs — that scouts use to score candidates against *this team's* writing style. The universal compound-worthiness rubric lives in [scoring.md](scoring.md); this file is the per-project complement.
+Capture verbatim, project-specific evidence — section headings, phrases, file-path patterns, author cohorts, calibration PRs — so scouts score against *this team's* writing style. The universal compound-worthiness rubric lives in [scoring.md](scoring.md); this file is the per-project complement.
 
 ## Template
 

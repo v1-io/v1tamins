@@ -11,7 +11,7 @@ allowed-tools:
 ---
 # Interview Me
 
-Collaboratively refine ideas through structured questioning, helping the agent understand the idea and the user crystallize their thinking. The interview process itself is valuable, not just the final deliverable.
+Interview until the idea is clear enough to plan. Ask for judgment, intent, and domain knowledge. Look up the rest.
 
 ## Usage
 
@@ -66,7 +66,7 @@ The loop also holds uncertainty handling, the question-category tables, construc
 
 ## With-docs mode: make the interview compound
 
-With-docs is **opt-in** — the default interview is a pure conversation that writes nothing. Enable it only when the user asks (e.g. "keep a glossary as we go") or accepts it when offered. When interviewing inside a repo, offer it once in the opening round as a recommended-answer question — "Keep a running glossary and record hard-to-reverse decisions as we go? **(Recommended)**" — and enable writes only if they accept. Never write to the repo on mere repo-detection. Once enabled, write results as they crystallize so the next session doesn't re-explain the same facts:
+With-docs is **opt-in** — the default interview is a pure conversation that writes nothing. Enable it only when the user asks (e.g. "keep a glossary as we go") or accepts it when offered. When interviewing inside a repo, offer it once in the opening round as a recommended-answer question — "Keep a running glossary and record hard-to-reverse decisions as we go? **(Recommended)**" — and enable writes only if they accept. Never write to the repo on mere repo-detection. Once enabled, write results as they land so the next session doesn't re-explain the same facts:
 
 **Resolved terms → the glossary, inline.** The moment a domain term is settled (not merely raised), invoke `v1-shared-language`'s inline term update to upsert that one term into `LANGUAGE.md`. Write it as it lands, mid-interview — not batched at the end. Re-runs update the row in place, so evolving a definition is safe.
 
@@ -89,11 +89,11 @@ Stop interviewing when:
 - Scope boundaries are explicit
 - All decisions in the decision tree are resolved (decided, deferred, or blocked)
 
-**Alternative completion signals:** the user says "I think that's enough" or "this is helpful"; their answers become consistently confident; the conversation circles without new insight; or enough is captured for the user's stated purpose (even if the spec isn't "complete").
+**Also stop when:** the user says "I think that's enough" or "this is helpful"; their answers become consistently confident; the conversation circles without new insight; or enough is captured for the user's stated purpose (even if the spec isn't "complete").
 
 ## Determine output format
 
-Select based on context:
+Pick from the situation:
 
 | Condition | Format | Action |
 |-----------|--------|--------|

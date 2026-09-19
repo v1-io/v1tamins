@@ -14,7 +14,7 @@ allowed-tools:
 ---
 # Deep Research
 
-Autonomous research skill that plans, executes multi-pass search, and synthesizes findings into structured reports with full source attribution.
+Plan the search, run it in passes, and write a cited report.
 
 ## Decision Tree
 
@@ -36,19 +36,19 @@ User request
 |-------|-------|----------|------|
 | 1. PLAN | 2 orientation searches, 3 sub-queries | 2 orientation searches, 5 sub-queries | 3 orientation searches, 7 sub-queries |
 | 2. RESEARCH | Parallel sub-queries only | + 2 sub-agents + 1 gap-fill round | + 3 sub-agents + 2 gap-fill rounds + source curation |
-| 3. SYNTHESIZE | Direct synthesis, no critique | Outline refinement + critique | Outline refinement + multi-persona critique + delta-queries |
+| 3. SYNTHESIZE | Direct synthesis, no critique | Outline refinement + critique | Outline refinement + three-angle critique + delta-queries |
 | Target length | 2,000-4,000 words | 4,000-8,000 words | 8,000-15,000 words |
 | Target sources | 8+ | 15+ | 25+ |
 
 ## Execution
 
-**Step 0:** Run `date +%Y-%m-%d` to get the real current date. Use this date in all searches.
+**Step 0:** Run `date +%Y-%m-%d` for the real current date. Use that date in every search.
 
-**Phase 1 -- PLAN:** Read `reference/methodology.md` and follow the PLAN phase instructions.
+**Phase 1 -- PLAN:** Read `reference/methodology.md` and follow the PLAN phase.
 
-**Phase 2 -- RESEARCH:** Continue following `reference/methodology.md` RESEARCH phase.
+**Phase 2 -- RESEARCH:** Keep following `reference/methodology.md` for the RESEARCH phase.
 
-**Phase 3 -- SYNTHESIZE:** Read `reference/report-assembly.md` for generation strategy. Read `reference/quality-gates.md` for validation standards. Follow the SYNTHESIZE phase in `reference/methodology.md`.
+**Phase 3 -- SYNTHESIZE:** Read `reference/report-assembly.md` for how to write the report. Read `reference/quality-gates.md` for what has to pass. Follow the SYNTHESIZE phase in `reference/methodology.md`.
 
 **Validation:** Resolve the bundled validator, then run it up to three times until the report passes:
 
@@ -75,7 +75,7 @@ python3 "$SKILL_ROOT/scripts/validate_report.py" --report [path]
 
 ## Output Contract
 
-Reports MUST include:
+Every report includes:
 - Executive Summary (200-400 words, standalone, no citations)
 - Structured body sections with inline citations `[N]`
 - Methodology note (what was searched, how many sources, date range)

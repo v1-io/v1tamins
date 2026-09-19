@@ -11,7 +11,9 @@ allowed-tools:
 ---
 # Phone a Friend
 
-Coordinate another agent or model for counterpart review, steelmanning, delegation, deep research, or verification, then validate the result locally. This is an explicit-only launch surface: discovery may propose a peer, but no peer process starts until the user approves the exact candidate.
+Run one other agent after the user approves the exact candidate. Discovery may propose a peer. No peer process starts until that approval.
+
+This is explicit-only. Check the result locally before you act on it.
 
 ## Usage
 
@@ -28,7 +30,7 @@ Examples:
 
 ## Quick Start
 
-1. Run the dynamic discovery command in [references/model-selection.md](references/model-selection.md); do not launch during discovery.
+1. Run the discovery command in [references/model-selection.md](references/model-selection.md). Do not launch during discovery.
 2. Show the recommended one-peer roster, current CLI/version, model, reasoning level, prompt source/digest, auth policy, launch state, permission, deadline, catalog/model confidence, and alternatives.
 3. Wait for explicit selection. API mode, multiple peers, delegation, research, and write-capable permissions require explicit choices in addition to the skill invocation. If the user has not selected a candidate, return `confirmation_required` and launch zero peers.
 4. Package the smallest useful context and remove secrets, private URLs, customer data, tokens, account IDs, and proprietary incident details.
@@ -36,20 +38,20 @@ Examples:
 
 ## Decision Path
 
-1. Use a direct in-agent skill instead when independence is not needed: `v1-deep-review` for in-agent PR review (merge-risk and structural), and `v1-deep-research` for in-agent sourced research.
-2. Ask the discovery script for the `quality`, `balanced`, `fast`, or `custom` profile. The recommended default is one read-only counterpart, not a fan-out.
-3. Prefer a verified subscription-native counterpart with a current provider catalog and a role fit; use model-family diversity only when more than one peer was explicitly requested.
+1. If you don't need independence, use a local skill instead: `v1-deep-review` for in-agent PR review (merge-risk and structural), and `v1-deep-research` for in-agent sourced research.
+2. Ask the discovery script for the `quality`, `balanced`, `fast`, or `custom` profile. Default is one read-only counterpart, not a fan-out.
+3. Prefer a verified subscription-native peer with a current catalog and a role fit. Use a different model family only when the user asked for more than one peer.
 4. Override the recommendation only after showing the user the current alternatives: a named peer, ChatGPT Pro Deep Research, Antigravity/Gemini large-context or multimodal review, Cursor Agent/Cloud Agent, or Oracle/browser-mode review.
 5. Use the decision matrix to pick one work type and one permission mode, then resolve the prompt/rubric source and digest.
 6. Load the relevant reference file and run one bounded template. A failed or uncertain dispatch stops that branch; it does not auto-retry or replace the peer. A deterministic wrapper failure *before* dispatch is different: it allows exactly one bounded repair of the same approved seat. See the dispatch boundary in [references/peer-execution-contract.md](references/peer-execution-contract.md).
 
 ## When To Use
 
-- Use after producing a plan, diagnosis, implementation, PR description, or review that needs independent scrutiny.
-- Use to steelman the best opposing argument before committing to an approach.
-- Use to delegate a bounded implementation or research task to another subscribed agent when the result can be checked locally.
-- Use when a specialist model/tool is materially better suited: ChatGPT Pro for true deep research, Antigravity CLI (`agy`) for Gemini-backed large-context or multimodal packet review, Cursor for Cursor Agent or IDE-context workflows, Oracle/browser mode for strong external review.
-- Use before a risky change when an outside critique could expose missing tests, contract breaks, simpler options, or hidden assumptions.
+- After a plan, diagnosis, implementation, PR description, or review that needs an independent look.
+- To steelman the best opposing argument before committing to an approach.
+- To hand a bounded implementation or research task to another subscribed agent, when you can check the result locally.
+- When a specialist model or tool is clearly better: ChatGPT Pro for true deep research, Antigravity CLI (`agy`) for Gemini-backed large-context or multimodal packet review, Cursor for Cursor Agent or IDE-context workflows, Oracle/browser mode for strong external review.
+- Before a risky change, when an outside critique could catch missing tests, contract breaks, simpler options, or hidden assumptions.
 
 ## When Not To Use
 
@@ -88,7 +90,7 @@ The script bounds every provider probe. A timeout becomes `auth_not_verified`/`u
 
 ## Peer Capability Boundaries
 
-Skills, plugins, slash commands, agents, and subagents are host-local capabilities. Do not assume a skill available in the parent runtime is installed, callable, or semantically identical inside the peer runtime.
+Skills, plugins, slash commands, agents, and subagents live on the host. Do not assume a skill in the parent runtime is installed, callable, or the same inside the peer.
 
 - Before asking a peer to invoke a named skill, plugin, slash command, or subagent workflow, verify that peer's surface with a safe local listing, help command, installed-skill path, or tool-visible evidence.
 - If the named workflow is not verified, send a plain prompt that inlines the requested review standard, rubric, or task criteria. Ask the peer to report this as a prompt-only fallback. See [references/command-templates.md](references/command-templates.md) (Inlining a Named Skill's Rubric) for a runtime pattern that resolves a named skill's `SKILL.md` and embeds it, with no committed host path. Mark the prompt source and digest in the proposal.
@@ -132,7 +134,7 @@ Permission bypass flags are powerful. Use them deliberately for trusted local co
 
 ## Delegation Lifecycle
 
-Long-running delegation needs a visible lifecycle, not just a prompt.
+Give long-running delegation a visible lifecycle.
 
 - Give each delegated run a short slug tied to the task, for example `<repo>-<issue>-review` or `<feature>-verify`.
 - Record the execution surface before launch: terminal tab, tmux window/session, cloud-agent URL, browser session slug, thread id, or other resume handle.
@@ -160,11 +162,11 @@ Do not wait on a peer run with no observable contract.
 
 ## Quick Consult Express Lane
 
-Not every consult needs a large packet, but even the single-peer express lane runs the discovery/proposal gate and records a deadline. Package the question, wait for explicit selection, run one read-only wrapper with stdin closed, read the typed verdict, and verify locally. Graduate to the full Run Supervision lifecycle when more than one peer is involved, the work is `verify`/`delegate`, or the run could outlast the host's command timeout.
+A single-peer consult still runs discovery, waits for selection, and records a deadline. Package the question, wait for explicit selection, run one read-only wrapper with stdin closed, read the typed verdict, and verify locally. Use full Run Supervision when more than one peer is involved, the work is `verify`/`delegate`, or the run could outlast the host's command timeout.
 
 ## Command Templates
 
-Keep this file focused on routing and verification. After selecting the peer and permission mode, read:
+After selecting the peer and permission mode, read:
 - [references/command-templates.md](references/command-templates.md) for Claude Code, Codex, Cursor Agent, and Antigravity CLI templates.
 - [references/oracle-browser.md](references/oracle-browser.md) for Oracle browser review and ChatGPT Pro Deep Research packets.
 

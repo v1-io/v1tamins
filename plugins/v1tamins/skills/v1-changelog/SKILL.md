@@ -9,7 +9,9 @@ allowed-tools:
 ---
 # Write Changelog
 
-Generate a changelog for recent changes by reviewing merged PRs since the last changelog. This skill *generates* release notes; to sync existing docs (README, AGENTS.md, guides) with what shipped, use `v1-docs-freshness`.
+Write release notes from PRs merged since the last changelog. This writes new
+release notes; to sync existing docs (README, AGENTS.md, guides) with what
+shipped, use `v1-docs-freshness`.
 
 ## Usage
 
@@ -17,19 +19,19 @@ Typical invocations:
 - Claude Code: `/v1-changelog`
 - Codex: invoke `v1-changelog` from the skills menu or use `$v1-changelog`
 
-## What It Does
+## Workflow
 
-1. **Finds Latest Changelog**
-   - Checks your changelog directory (e.g., `docs/internal/changelog/` or `$CHANGELOG_DIR`)
-   - Identifies most recent changelog by date in filename
+1. **Find the latest changelog**
+   - Check the changelog directory (e.g., `docs/internal/changelog/` or `$CHANGELOG_DIR`)
+   - Identify the most recent file by the date in its name
 
-2. **Fetches Recent PRs**
-   - Uses GitHub API to get all PRs merged to main since last changelog
-   - Extracts PR titles, descriptions, and metadata
+2. **Fetch recent PRs**
+   - Use the GitHub API to get PRs merged to main since that changelog
+   - Pull titles, descriptions, and metadata
 
-3. **Generates New Changelog**
-   - Creates markdown file with date in filename
-   - Formats according to project conventions
+3. **Write the new changelog**
+   - Create a markdown file with the date in the filename
+   - Follow the project's conventions
 
 ## Changelog Format
 
@@ -45,37 +47,38 @@ The changelog follows this structure:
 
 ## Focus
 
-- **User-facing changes** and new features
-- **Breaking changes** highlighted prominently
-- **Major bug fixes** and improvements
-- Skip internal refactors unless significant
+- User-facing changes and new features
+- Breaking changes, put them first
+- Major bug fixes and improvements
+- Skip internal refactors unless they matter to users
 
 ## Example Structure
 
 ```markdown
 # Changelog - 2026-01-07
 
-## Advanced Filtering
+## Saved filters
 
-Added support for complex filter expressions in the query interface. Users can now combine multiple conditions using AND/OR operators and apply filters across related tables.
+You can save a filter and come back to it. Combine conditions with AND/OR, and
+apply them across related tables.
 
 [Placeholder for screenshot]
 
-## Performance Boost
+## Faster large exports
 
-Optimized query execution engine reduces average query time by 60% for large datasets through intelligent caching and parallel processing.
+CSV export no longer times out on big tables.
 
 [Placeholder for screenshot]
 
 ## Additional Updates
 
-- Fixed authentication timeout issues in Safari
-- Improved error messages for failed data source connections
-- Updated UI styling for better accessibility
+- Safari no longer drops you after the login timeout
+- Failed data-source connections now say what actually broke
+- Form labels meet contrast requirements
 ```
 
 ## Notes
 
 - Requires GitHub CLI (`gh`) to be installed and authenticated
 - Changelog saved to your changelog directory (e.g., `docs/internal/changelog/YYYY-MM-DD.md`)
-- Focuses on user impact, not technical implementation details
+- Write for users, not the implementation

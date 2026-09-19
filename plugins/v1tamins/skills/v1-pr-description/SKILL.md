@@ -8,7 +8,8 @@ allowed-tools:
 ---
 # Generate PR Description
 
-Write or update a grounded pull request title and description from the actual PR diff, current PR metadata, repository guidance, and user constraints.
+Write or update the PR title and description from the actual diff, current PR
+metadata, repo guidance, and the user's constraints.
 
 ## Usage
 
@@ -71,7 +72,7 @@ git log --oneline "$merge_base"..HEAD
 
 If the current checkout does not match the PR head SHA, say so and either check out the PR branch or base the description on GitHub metadata plus fetched refs. Do not write a description from an unknown local branch.
 
-### 2. Build a Grounding Ledger
+### 2. Build a Ledger
 
 Before drafting, build a compact ledger:
 
@@ -125,7 +126,7 @@ flowchart LR
   "Changed component" --> "New behavior"
 ```
 
-### 4. Validate Alignment Before Posting
+### 4. Check the Draft Before Posting
 
 Before editing GitHub:
 - Check that every major claim in the draft is backed by the ledger.

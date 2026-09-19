@@ -12,7 +12,7 @@
 **Small, reusable skills for healthier AI-assisted development.**
 
 v1tamins is an open-source plugin for [Claude Code](https://claude.ai/code) and
-[Codex](https://openai.com/codex/). It packages 39 focused skills for planning,
+[Codex](https://openai.com/codex/). It packages 40 focused skills for planning,
 debugging, reviewing, shipping, research, documentation, and product work. Use
 one skill for a specific job or combine several into a repeatable workflow.
 
@@ -84,6 +84,7 @@ In Claude Code:
 /v1-deep-review review this branch for merge risk and maintainability
 /v1-pr-description refresh this pull request title and body
 /v1-skin-suit use a natural, plainspoken style for this conversation
+/v1-what-next what should we work on next
 /v1-menu help me choose a skill
 ```
 
@@ -94,6 +95,7 @@ $v1-debug trace why this test fails only in CI
 $v1-deep-review review this branch for merge risk and maintainability
 $v1-pr-description refresh this pull request title and body
 $v1-skin-suit write a casual update from these notes
+$v1-what-next where were we and what is next
 $v1-menu help me choose a skill
 ```
 
@@ -143,6 +145,7 @@ These common entry points cover much of the day-to-day work:
 
 | You need to… | Start with |
 | --- | --- |
+| Decide what to work on next from the thread or the project's backlog | [`/v1-what-next`](plugins/v1tamins/skills/v1-what-next/SKILL.md) |
 | Turn a fuzzy request into clear requirements | [`/v1-interview-me`](plugins/v1tamins/skills/v1-interview-me/SKILL.md) |
 | Cut an oversized plan to the smallest useful scope | [`/v1-bare-bones`](plugins/v1tamins/skills/v1-bare-bones/SKILL.md) |
 | Debug an observable failure to a tested cause | [`/v1-debug`](plugins/v1tamins/skills/v1-debug/SKILL.md) |
@@ -175,6 +178,7 @@ that matches the job.
 
 | Skill | Use it when |
 | --- | --- |
+| [`/v1-what-next`](plugins/v1tamins/skills/v1-what-next/SKILL.md) | The thread has paused and needs one clear next move. |
 | [`/v1-interview-me`](plugins/v1tamins/skills/v1-interview-me/SKILL.md) | An idea, ticket, or feature request needs structured questions before implementation. |
 | [`/v1-strategy-review`](plugins/v1tamins/skills/v1-strategy-review/SKILL.md) | A plan, PRD, or direction needs a strategic challenge. |
 | [`/v1-bare-bones`](plugins/v1tamins/skills/v1-bare-bones/SKILL.md) | A plan needs the smallest useful scope. |

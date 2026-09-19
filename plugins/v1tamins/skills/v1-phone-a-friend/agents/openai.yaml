@@ -1,6 +1,6 @@
 interface:
   display_name: "Phone a Friend"
-  short_description: "After explicit invocation, propose and run one current OAuth-backed counterpart for review, delegation, or research."
+  short_description: "Propose one current subscription-backed peer; wait for selection before launch."
   default_prompt: "Use $v1-phone-a-friend to propose one current subscription-backed counterpart; wait for my selection before launch."
 
 policy:

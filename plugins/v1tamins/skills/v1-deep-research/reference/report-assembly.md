@@ -1,8 +1,9 @@
-# Report Assembly Strategy
+# Report Assembly
 
 ## Progressive Section Generation
 
-Generate the report section-by-section using Write and Edit tools. Never attempt to generate the full report in a single output.
+Write the report one section at a time with Write and Edit. Don't try to dump
+the whole report in one go.
 
 ### Word Count Targets
 
@@ -36,7 +37,8 @@ For each section:
 
 ## sources.json Persistence
 
-Create and maintain a `sources.json` file in the output directory. This survives context compaction and enables accurate bibliography generation.
+Create and keep a `sources.json` file in the output directory. It survives
+context compaction and is what you build the bibliography from.
 
 ```json
 {
@@ -113,7 +115,8 @@ Target: 2-4 citations per 500 words for body sections. The executive summary has
 
 ### FORBIDDEN Patterns
 
-These indicate the model is truncating or getting lazy. If you catch yourself writing any of these, STOP and regenerate the section:
+These mean you cut the section short. If you write any of these, stop and
+rewrite the section:
 
 - "Content continues..."
 - "Due to length constraints..."

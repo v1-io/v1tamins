@@ -1,8 +1,8 @@
 # Peer Execution Contract
 
-Use this contract whenever a peer process is proposed or launched. The
-contract keeps discovery, authentication, selection, execution, and local
-verification separate so one failure cannot be mistaken for another.
+Use this contract whenever a peer process is proposed or launched. Keep
+discovery, auth, selection, execution, and local verification as separate
+facts so one failure cannot be mistaken for another.
 
 ## Discovery result
 

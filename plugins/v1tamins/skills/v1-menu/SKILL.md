@@ -9,7 +9,7 @@ allowed-tools:
 ---
 # V1 Menu
 
-You don't remember every v1 skill, so ask. Read the user's situation, then point them at the right skill or chain below — recommend one, name the runner-up, and say why. This menu is an index, not documentation: each skill's own `SKILL.md` holds the detail.
+You don't remember every v1 skill, so ask. Read the user's situation, then point them at the right skill or chain below — recommend one, name the runner-up, and say why. This menu is an index, not documentation: each skill's own `SKILL.md` holds the detail. If the question is what to work on next rather than which skill fits, use `/v1-what-next`.
 
 Skills marked **(explicit)** never fire autonomously — the user must name them. They are the easiest ones to forget, so surface them whenever they fit.
 

@@ -1,6 +1,6 @@
 # Calibration Workflow
 
-Calibration grounds this skill in the team's actual writing style by analyzing recent merged PRs and producing `.agents/goldpan-signals.md` — a project-specific evidence file that future scout runs use to score candidates.
+Analyze recent merged PRs and write `.agents/goldpan-signals.md`. Future scouts score against that file.
 
 Run on first use, or with `/v1-goldpan recalibrate` to refresh after major team or codebase changes (new authors joined, large refactors, framework migrations).
 

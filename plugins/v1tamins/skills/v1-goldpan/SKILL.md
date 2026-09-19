@@ -16,9 +16,7 @@ allowed-tools:
 ---
 # Goldpan
 
-Pan recent merged PRs and agent session logs (Claude Code + Codex + Cursor) for compound-worthy moments worth documenting, present the finds for approval, then drive `/ce-compound` (lightweight mode) sequentially over the approved set. Discovery is automatic; documentation only happens for items the user approves.
-
-This skill composes two existing primitives — `ce-compound` (writes solution docs) and compound-engineering's session scripts (cross-platform session reading) — and adds the panning workflow around them. It does not write to `docs/solutions/` directly; that is `/ce-compound`'s job.
+Pan recent merged PRs and agent session logs (Claude Code, Codex, Cursor) for compound-worthy moments. Present the finds for approval. Drive `/ce-compound` in lightweight mode over the approved set, one at a time. Discovery is automatic; documentation only happens for items the user approves. Never write to `docs/solutions/` — `/ce-compound` owns that path.
 
 ## Quick Start
 
@@ -27,13 +25,13 @@ This skill composes two existing primitives — `ce-compound` (writes solution d
 3. Launch two scout subagents in parallel — Scout A (merged PRs) and Scout B+C (sessions across all platforms).
 4. De-dup candidates against the project's solutions docs.
 5. Write `.agents/goldpan/session-notes/compound-candidates-<YYYY-MM-DD>.md` and present the top candidates inline.
-6. Ask the user which candidates to queue. For each approved candidate, stage a context bundle and invoke `/ce-compound` in lightweight mode sequentially.
+6. Ask which candidates to queue. For each approved candidate, stage a context bundle and invoke `/ce-compound` in lightweight mode sequentially.
 
-The skill never writes directly into `docs/solutions/` — `/ce-compound` owns that path. The skill only invokes `/ce-compound` after explicit per-candidate approval.
+Never write directly into `docs/solutions/` — `/ce-compound` owns that path. Invoke `/ce-compound` only after explicit per-candidate approval.
 
 ## When to Use
 
-Use when the user wants to look back over recent activity and identify what is worth documenting as a durable solution — typically weekly or after a sprint. Compounding requires fresh material: this skill finds the material, `/ce-compound` writes the doc.
+Look back over recent activity and name what is worth documenting as a durable solution — typically weekly or after a sprint. Compounding needs fresh material: this skill finds it, `/ce-compound` writes the doc.
 
 Do not use for:
 - Documenting a problem solved in the **current** session — use `/ce-compound` directly.
@@ -42,7 +40,7 @@ Do not use for:
 
 ## Inputs
 
-Pass the window as the skill's argument when invoking, e.g. `/v1-goldpan 14d`. Accepts `Nd` (days), an explicit `since:YYYY-MM-DD`, or the literal `recalibrate` to force a fresh calibration pass before scouting. Default `7d`.
+Pass the window as the skill's argument, e.g. `/v1-goldpan 14d`. Accepts `Nd` (days), an explicit `since:YYYY-MM-DD`, or the literal `recalibrate` to force a fresh calibration pass before scouting. Default `7d`.
 
 If the user does not specify a window, ask once: "Default 7-day window — adjust?". Do not loop.
 
@@ -56,7 +54,7 @@ Read these per-project files when present; fall back to defaults otherwise:
 | `docs/solutions/` | this path | Where solution docs live. Symlinks accepted. Override by reading `.agents/goldpan.config.yaml` if present (key: `solutions_path`). |
 | Default PR base branch | `main` | Override via `.agents/goldpan.config.yaml` (key: `pr_base_branch`). |
 
-If `.agents/goldpan-signals.md` is absent the skill still works using only the universal-signal keyword set, but scoring will be weaker until calibration runs.
+If `.agents/goldpan-signals.md` is absent, run on the universal-signal keyword set. Scoring is weaker until calibration runs.
 
 ## Workflow
 
@@ -65,14 +63,14 @@ If `.agents/goldpan-signals.md` is absent the skill still works using only the u
 On every invocation:
 
 1. Check for `.agents/goldpan-signals.md`. If present, skip to Phase 1.
-2. If absent, present a blocking question to the user:
-   - **Calibrate now (recommended, ~3-5 min)** — run the calibration workflow described in [references/calibration.md](references/calibration.md), which dispatches 4 parallel research agents over the project's recent PRs to characterize PR style, identify verbatim signals, and write `.agents/goldpan-signals.md`. After calibration completes, proceed to Phase 1.
+2. If absent, present a blocking question:
+   - **Calibrate now (recommended, ~3-5 min)** — run the calibration workflow in [references/calibration.md](references/calibration.md). It dispatches 4 parallel research agents over the project's recent PRs to characterize PR style, identify verbatim signals, and write `.agents/goldpan-signals.md`. After calibration completes, proceed to Phase 1.
    - **Skip — use universal signals only** — proceed to Phase 1 with weaker scoring. Note in the final report that the project has no calibrated signals.
    - **Cancel** — abort the goldpan run.
 
-If the user passed `recalibrate` as the argument, force-run calibration regardless of whether the signals file exists, overwriting it.
+If the user passed `recalibrate` as the argument, force-run calibration even if the signals file exists, overwriting it.
 
-The calibration is one-time. Re-run it after major team or codebase changes (new authors, large refactors, framework migrations) by invoking `/v1-goldpan recalibrate`.
+Calibration is one-time. Re-run after major team or codebase changes (new authors, large refactors, framework migrations) by invoking `/v1-goldpan recalibrate`.
 
 ### Phase 1: Resolve window and dispatch scouts
 
@@ -113,7 +111,7 @@ gh pr diff <number> | head -400          # cap diff reads
 
 #### Scout B+C — Agent sessions (Claude Code, Codex, Cursor)
 
-Run as **one** scout, not two. The compound-engineering plugin already owns the cross-platform layout knowledge through its session scripts (`discover-sessions.sh`, `extract-metadata.py`, `extract-skeleton.py`, `extract-errors.py`); this skill composes them rather than re-implementing JSONL parsing.
+Run as **one** scout, not two. Use compound-engineering's session scripts (`discover-sessions.sh`, `extract-metadata.py`, `extract-skeleton.py`, `extract-errors.py`) for layout and extraction. Do not parse JSONL yourself.
 
 Brief: discover agent sessions touched within the window for this project, rank them by compound-signal density via the keyword filter, then deep-dive only the top-ranked sessions. Cross-reference any session whose `branch`/`gitBranch` matches a merged-PR head branch from Scout A and treat it as supporting evidence for that PR rather than a separate candidate. Standalone candidates from sessions are rarer; promote only when a session resolves a problem that did NOT result in a PR (e.g. an investigation, a runbook gap, or a convention agreed in chat).
 
@@ -286,13 +284,13 @@ verified: true | false                        # was the fix actually shipped/ver
 - [references/scoring.md](references/scoring.md) — universal compound-worthiness rubric defined against `/ce-compound`'s schema
 - [references/calibration.md](references/calibration.md) — Phase 0 calibration workflow that generates `.agents/goldpan-signals.md`
 - [references/pr-signals-template.md](references/pr-signals-template.md) — template the calibration writes to (also a manual-fill option)
-- [references/sources.md](references/sources.md) — source catalogue and how scouts compose compound-engineering's session scripts
+- [references/sources.md](references/sources.md) — source catalogue and how scouts use compound-engineering's session scripts
 - [references/report-template.md](references/report-template.md) — output report template
 - [scripts/discover-sessions.sh](scripts/discover-sessions.sh) — wraps compound-engineering's session discovery with archived-codex gap fill + pre-baked compound-signal keywords
 
 ## Upstream Primitives Used
 
-This skill composes (rather than re-implements) primitives from [Every's compound-engineering plugin](https://github.com/EveryInc/compound-engineering-plugin):
+Use these primitives from [Every's compound-engineering plugin](https://github.com/EveryInc/compound-engineering-plugin). Do not re-implement them.
 
 - **`ce-compound`** — writes the actual solution doc. Owns `docs/solutions/` and the schema.
 - **session discovery + metadata** — cross-platform session discovery + metadata + keyword ranking via `discover-sessions.sh` and `extract-metadata.py`. Wrapped by `scripts/discover-sessions.sh`.
