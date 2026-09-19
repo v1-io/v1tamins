@@ -1,5 +1,15 @@
 # v1tamins
 
+## 0.13.0
+
+### Minor Changes
+
+- 64dae17: Add v1-what-next, a lightweight checkpoint skill that reads the current thread, looks to the project's own work sources when the thread gives no clear next move, and proposes the single best next thing to work on.
+
+### Patch Changes
+
+- 64dae17: Rewrite stiff skill and reference prose so the listed skills read like a person wrote them, without changing routing, gates, or behavior.
+
 ## 0.12.0
 
 ### Minor Changes
