@@ -1,6 +1,6 @@
 ---
 name: v1-skin-suit
-description: 'Use when writing messages or prose that should sound human, casual, or like the author. Triggers on "sound less AI", "write like a person", or "less corporate".'
+description: 'Remove AI tells from a completed draft. Use when existing prose sounds machine-written and must read human.'
 ---
 # Skin Suit
 

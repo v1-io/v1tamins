@@ -1,6 +1,6 @@
 ---
 name: v1-skilling-it
-description: Use when creating, editing, auditing, validating, or locating an Agent Skill. Triggers on "create a skill", "audit this SKILL.md", or "where should this skill live?".
+description: Audit an existing Agent Skill or locate where a skill should live. Use when validating a SKILL.md or deciding skill placement.
 ---
 # Skilling It
 
