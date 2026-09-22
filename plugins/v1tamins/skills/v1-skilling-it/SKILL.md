@@ -56,16 +56,12 @@ name the exact constraint and offer corrected variants. Skip naming for edits
 and audits.
 
 For an unnamed creation, resolve the Canonical Source and target runtimes
-first, then present exactly 10 numbered candidates in chat. Span at least
-these four approaches: literal, metaphorical, playful compound, and
-action-oriented. Give each candidate a human-facing title, a canonical slug
-that names the capability, and a one-sentence rationale. Mark exactly one
-recommendation. Accept a number, slug, or custom eleventh answer.
+first, then propose a small set of name candidates with a rationale each, and
+mark one recommendation.
 
 Don't scaffold or write any skill file until the user selects or supplies the
 name. Use a native blocking-question tool when it can accept the reply;
-otherwise ask in chat. Don't shrink the 10 candidates to fit a tool's option
-limit.
+otherwise ask in chat.
 
 ### 5. Author the Canonical Source
 
