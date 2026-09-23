@@ -37,13 +37,13 @@ python3 "$SKILL_ROOT/scripts/with_server.py" --server "npm run dev" --port 3000 
 **Basic Playwright test:**
 
 ```python
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
     page = browser.new_page()
     page.goto('http://localhost:3000')
-    page.wait_for_load_state('networkidle')  # CRITICAL: Wait for JS
+    expect(page.get_by_role('button', name='Login')).to_be_visible()  # Wait for the app to render
 
     # Reconnaissance first
     page.screenshot(path='/tmp/inspect.png', full_page=True)
@@ -80,7 +80,7 @@ User task → Is it static HTML?
         ├─ No → Use scripts/with_server.py
         │
         └─ Yes → Reconnaissance-then-action:
-            1. Navigate and wait for networkidle
+            1. Navigate and assert a key element is visible
             2. Take screenshot or inspect DOM
             3. Identify selectors from rendered state
             4. Execute actions with discovered selectors
@@ -190,7 +190,6 @@ await frame.getByRole('textbox', { name: 'Email' }).fill(email);
 await page.waitForTimeout(3000); // Flaky!
 
 // GOOD: Wait for specific conditions
-await page.waitForLoadState("networkidle");
 await page.waitForURL("/dashboard");
 
 // BETTER: Auto-waiting with assertions
@@ -267,7 +266,7 @@ test('checkout flow', async ({ page }) => {
 
 | Cause | Fix |
 |-------|-----|
-| Fixed timeouts | Use proper waits (networkidle, assertions) |
+| Fixed timeouts | Use web-first assertions (`expect(locator).toBeVisible()`) |
 | Race conditions | Wait for specific state before acting |
 | Test interdependence | Make tests independent, clean up data |
 | Stale selectors | Use role-based selectors, avoid CSS classes |
@@ -298,7 +297,7 @@ Run `python3 "$SKILL_ROOT/scripts/with_server.py" --help` first.
 
 ## Common Pitfalls
 
-- **Inspecting DOM before networkidle:** Always wait for JS to execute on dynamic apps
+- **Inspecting DOM before the app renders:** Assert a key element is visible before reading the DOM on dynamic apps
 - **Brittle CSS selectors:** Avoid `.btn.btn-primary`, use roles
 - **Tests depend on order:** Each test must be independent
 - **No cleanup:** Create and destroy test data per test

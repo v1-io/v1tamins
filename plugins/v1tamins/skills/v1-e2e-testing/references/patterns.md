@@ -198,14 +198,14 @@ For reconnaissance on dynamic pages:
 #!/usr/bin/env python3
 """Discover interactive elements on a page."""
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 def discover_elements(url):
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto(url)
-        page.wait_for_load_state('networkidle')
+        expect(page.locator('button, a, input').first).to_be_visible()
 
         # Find all buttons
         buttons = page.locator('button').all()
@@ -332,7 +332,6 @@ test("capture console logs", async ({ page }) => {
 // Wait for multiple conditions
 await Promise.all([
   page.waitForURL("/success"),
-  page.waitForLoadState("networkidle"),
   expect(page.getByText("Payment successful")).toBeVisible(),
 ]);
 

@@ -25,7 +25,7 @@ Typical invocations:
 - Claude Code: `/v1-refine [mode] [target]`
 - Codex: invoke `v1-refine` from the skills menu or use `$v1-refine [mode] [target]`
 
-Old trigger phrases (`simplify`, `deslop`, `hindsight refactor`) still land here — map them to the matching mode.
+`simplify` → quality; `deslop` → deslop; `hindsight refactor` → hindsight.
 
 **Mode (optional):** `quality` (default) | `deslop` | `hindsight`
 
@@ -81,10 +81,7 @@ Reduce complexity, weak boundaries, and future-change cost. This pass covers KIS
 - Comments that narrate what the code does or restate obvious identifiers — keep comments that explain non-obvious *why*
 
 **Cognitive complexity** (use when a function is hard to follow, or on a `file:function` target):
-- Increments (+1 each): `if`/`else if`/`else`, ternary, `for`/`while`/`do`, `catch`, `switch`/`case`, labeled `break`/`continue`, `&&`/`||` in conditions, recursion
-- Nesting multiplier: each nesting level adds +1 to structures nested inside it
-- Free (no increment): function/method calls, simple returns
-- Target: keep each function under ~15
+- Use the project's complexity linter when present; otherwise judge by nesting depth and independent decisions per function.
 - Reduce it by returning early, extracting named predicates, and breaking large functions into single-responsibility helpers
 
 #### 3. Structure (SOLID and YAGNI)

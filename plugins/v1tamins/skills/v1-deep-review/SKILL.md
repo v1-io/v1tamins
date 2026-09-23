@@ -178,6 +178,8 @@ Drift/missing work: ...
 Tests/checks reviewed or run:
 - ...
 
+PR risk score: N/5
+
 Residual risk:
 - ...
 ```
@@ -198,7 +200,7 @@ gh pr review <PR> --request-changes -b "$(cat /tmp/review.md)"
 gh pr review <PR> --comment -b "$(cat /tmp/review.md)"
 ```
 
-## Confidence Scoring Guide
+## PR Risk Score (reported once in Verification)
 
 - **5/5**: Trivial change, well-tested, no risk
 - **4/5**: Standard change, good coverage, minor concerns
@@ -210,10 +212,6 @@ Reduce score for: migrations, auth/permissions, concurrency, broad refactors, mi
 
 ## Anti-Patterns
 
-- Do not rubber-stamp because CI passes.
-- Do not list every possible improvement. Review for merge risk and genuine structural regressions.
-- Do not ask for large refactors unless the current change creates real risk or a clear structural regression.
 - Do not request tests without naming the behavior that must be protected.
-- Do not leave vague comments like "consider handling errors" without a concrete failure mode.
 - Do not soften a major maintainability regression into a mild suggestion.
 - Do not post secrets, private logs, or sensitive data in GitHub comments.
