@@ -1,5 +1,11 @@
 # v1tamins
 
+## 0.13.1
+
+### Patch Changes
+
+- 83fcda4: Remove dated prompting patterns from skills (pressure language, word-count targets, repeated rules, networkidle waits, project-specific conventions), add Claude 5 prompt patterns to v1-prompt-engineering, and move autoresearch measurement into a bundled script.
+
 ## 0.13.0
 
 ### Minor Changes
