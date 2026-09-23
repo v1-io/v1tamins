@@ -37,8 +37,9 @@ User request
 | 1. PLAN | 2 orientation searches, 3 sub-queries | 2 orientation searches, 5 sub-queries | 3 orientation searches, 7 sub-queries |
 | 2. RESEARCH | Parallel sub-queries only | + 2 sub-agents + 1 gap-fill round | + 3 sub-agents + 2 gap-fill rounds + source curation |
 | 3. SYNTHESIZE | Direct synthesis, no critique | Outline refinement + critique | Outline refinement + three-angle critique + delta-queries |
-| Target length | 2,000-4,000 words | 4,000-8,000 words | 8,000-15,000 words |
 | Target sources | 8+ | 15+ | 25+ |
+
+Length follows evidence: Quick answers the question; Standard and Deep cover every sub-question with cited evidence.
 
 ## Execution
 

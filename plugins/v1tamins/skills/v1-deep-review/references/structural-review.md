@@ -11,7 +11,7 @@ For every changed area, decide whether the current structure should merge as-is.
 - the simpler ownership, model, module, or flow that should replace it;
 - the behavior-preservation check needed after the rewrite.
 
-## Non-Negotiable Standards
+## Standards
 
 1. **Look for structural simplification.** Do not stop at "this could be cleaner." Look for a reframing so whole branches, helpers, modes, conditionals, or layers disappear. If there is a concrete path to delete complexity rather than rearrange it, describe it.
 2. **Do not allow random spaghetti growth.** "Weird if statements in random places" is a design problem, not a nit. Prefer pushing logic into a dedicated abstraction, helper, state machine, or module over tangling an existing path. Call out changes that make surrounding code harder to reason about even if they work.
@@ -27,7 +27,9 @@ For every changed area, decide whether the current structure should merge as-is.
 
 For every meaningful change: Is there a "code judo" move that makes this dramatically simpler? Can it be reframed so fewer concepts/branches/layers are needed? Does it improve or worsen local architecture? Did it add branching where a better abstraction should exist? Did a cohesive module become more coupled/stateful/harder to scan? Is the logic in the right file and layer? Did the diff push a file past a healthy size boundary? Do repeated conditionals signal a missing model? Is the abstraction earning its keep, or is it a wrapper? Did the diff add casts/optionality/ad-hoc shapes that obscure the invariant? Is orchestration more sequential or less atomic than it needs to be?
 
-## Flag Aggressively
+## Patterns worth flagging
+
+Flag when the pattern makes a named future change harder.
 
 A complicated implementation where a cleaner reframing could delete whole categories of complexity; refactors that move code without reducing concepts a reader must hold; a file crossing 1000 lines due to the PR (especially if new code could split out); new conditionals bolted onto unrelated paths; one-off booleans/nullable modes/flags complicating control flow; feature-specific logic leaking into general modules; generic "magic" handling; thin/identity wrappers; unnecessary casts/`any`/`unknown`/optionals; copy-pasted logic instead of extracted helpers; narrow edge-case handling buried mid-function; refactors that pass tests but reduce modularity/readability; "temporary" branching likely to become permanent; bespoke helpers where a canonical utility exists; logic in the wrong layer; sequential async where independent work could stay simpler in parallel; partial-update logic leaving state non-atomic.
 

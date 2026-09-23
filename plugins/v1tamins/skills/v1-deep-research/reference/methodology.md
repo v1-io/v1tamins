@@ -161,7 +161,6 @@ Follow `reference/report-assembly.md` for section-by-section writing.
 
 Key rules:
 - Write each section individually using Write/Edit tools
-- Max ~2,000 words per tool call
 - Every factual claim needs an inline citation `[N]`
 - Maintain `sources.json` on disk as you write
 

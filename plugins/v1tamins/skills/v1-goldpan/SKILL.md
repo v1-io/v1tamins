@@ -27,7 +27,7 @@ Pan recent merged PRs and agent session logs (Claude Code, Codex, Cursor) for co
 5. Write `.agents/goldpan/session-notes/compound-candidates-<YYYY-MM-DD>.md` and present the top candidates inline.
 6. Ask which candidates to queue. For each approved candidate, stage a context bundle and invoke `/ce-compound` in lightweight mode sequentially.
 
-Never write directly into `docs/solutions/` — `/ce-compound` owns that path. Invoke `/ce-compound` only after explicit per-candidate approval.
+Invoke `/ce-compound` only after explicit per-candidate approval.
 
 ## When to Use
 
@@ -130,10 +130,9 @@ The default keyword set is the universal compound signals: `AIDEV-NOTE`, `Root C
 **Step 3 — Deep-dive** only the top sessions, using compound-engineering's extract scripts rather than reading raw JSONL:
 
 ```bash
-# Resolve compound-engineering's extract scripts by basename across the layouts
-# the plugin has shipped (ce-session-extract legacy, ce-sessions 3.13.x,
-# ce-compound/scripts/session-history 3.15.x), newest version first. Honors an
-# explicit $CE_SKILLS_DIR (a compound-engineering "skills" dir) override.
+# Resolve compound-engineering's extract scripts by basename across its plugin
+# layouts, newest version first. Set $CE_SKILLS_DIR (a compound-engineering
+# "skills" dir) to override.
 find_ce_script() {
   local script="$1" rel p
   for rel in \
@@ -258,8 +257,6 @@ Queue complete. Documented N of M approved candidates.
 Bundles retained at .agents/goldpan/session-notes/compound-queue/ — delete after review.
 ```
 
-Do not write to `docs/solutions/` directly. All documentation goes through `/ce-compound`.
-
 ## Candidate Schema (what scouts return)
 
 Every candidate must have:
@@ -296,7 +293,7 @@ Use these primitives from [Every's compound-engineering plugin](https://github.c
 - **session discovery + metadata** — cross-platform session discovery + metadata + keyword ranking via `discover-sessions.sh` and `extract-metadata.py`. Wrapped by `scripts/discover-sessions.sh`.
 - **session extraction** — single-file skeleton (filtered narrative) or errors mode via `extract-skeleton.py` and `extract-errors.py`. Used directly by Scout B+C deep-dives.
 
-> **Upstream layout drift:** compound-engineering has relocated these scripts across releases — `ce-session-inventory` / `ce-session-extract` (legacy) → a single `ce-sessions` skill (3.13.x) → `ce-compound/scripts/session-history/` (3.15.x). The wrapper and the Step-3 snippet resolve each script by basename across all of these layouts (in both the `~/.claude` and `~/.codex` plugin caches, newest version first), so the skill keeps working as upstream moves them. Set `CE_SKILLS_DIR` to a compound-engineering `skills` dir to override resolution.
+The resolver finds these scripts by basename across compound-engineering layouts; set `CE_SKILLS_DIR` to override.
 
 If those scripts are absent (compound-engineering plugin uninstalled), the wrapper exits with a clear error naming the missing script. Install the compound-engineering plugin rather than re-implementing — see [v1tamins README → Recommended companion](../../../../README.md#recommended-companion-compound-engineering) for install commands.
 

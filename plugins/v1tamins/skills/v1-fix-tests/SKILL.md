@@ -9,7 +9,7 @@ allowed-tools:
 ---
 # Fix Failing Tests
 
-Use this when you have failing test output. The goal is to **fix ALL failing tests, re-run tests, and iterate until everything passes**.
+Use this when you have failing test output. Done means the original test command exits with zero failures; re-run it after your last fix.
 
 ## Usage
 
@@ -21,51 +21,21 @@ Use this after you've pasted test failure output into the conversation.
 
 ## What It Does
 
-1. **Understands ALL Failures**
-   - Reads entire test log (pytest / Jest / parallel tests)
-   - Checks "Test Results" summary for ALL failing tests (looks for `✗` or `FAILED` markers)
-   - Checks "Failed Test Details" for MULTIPLE failing test groups
-   - Notes ALL test groups that failed (backend, frontend, linting, etc.)
-   - Creates list of all failures before starting fixes
+1. **Understands the Failures**
+   - Reads the entire test log (pytest / Jest / parallel tests), both the summary and the detailed sections
+   - Lists every failing test and test group (backend, frontend, linting, etc.) before starting fixes
    - Confirms the failing command is a reliable feedback loop for the user-visible problem; if not, first narrow or rebuild the loop using the `v1-debug` skill
 
-2. **Fixes EACH Failure**
-   - For EACH failing service/group:
-     - Opens failing test files and implementation files
-     - Makes smallest, clearest change
-     - Prefers fixing implementation over changing tests
-   - Fixes ALL failures before proceeding
+2. **Fixes Each Failure**
+   - Opens failing test files and implementation files
+   - Makes the smallest, clearest change
+   - Prefers fixing implementation over changing tests
 
-3. **Re-runs Tests for EACH Fix**
-   - Backend: `pytest` (or with `-k` for specific tests)
-   - Frontend: `npm run lint` or `npm run test`
-   - Verifies each group passes before moving to next
-   - Repeats if tests still fail
-
-4. **Re-runs Full Test Suite**
-   - **CRITICAL**: Always re-runs original command used to run tests
-   - Catches hidden failures or new failures from fixes
-   - Only stops when full suite passes with zero failures
+3. **Re-runs Tests**
+   - Re-runs the affected tests after each fix, narrowed with the runner's filter (for example `pytest -k`)
 
 ## Important Notes
 
-- Don't stop after fixing one failure - check for multiple failing groups
-- Always re-run full test suite after fixes
-- Parse entire error output - summary AND detailed sections
 - Prefer fixing code over weakening assertions; only change tests when the test is wrong or the intended behavior changed. When a test itself must change, follow the mock-discipline and assertion rules in `v1-write-tests` rather than restating them here.
 - If the failure is flaky rather than a real regression, hand off to `v1-debug` to stabilize the reproduction (measure the failure rate; isolate time, randomness, filesystem, and network) before patching.
 
-## Testing Commands
-
-**Backend (pytest):**
-```bash
-pytest                              # All unit tests
-pytest -k "pattern"                 # Specific tests
-pytest tests/integration/           # Integration tests
-```
-
-**Frontend:**
-```bash
-npm run lint
-npm run test
-```

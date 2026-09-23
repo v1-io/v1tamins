@@ -37,7 +37,7 @@ for _ in range(5):
 ### Waiting for dynamic content
 
 ```python
-page.wait_for_load_state("networkidle")
+expect(page.get_by_text("Loaded content")).to_be_visible()
 time.sleep(0.5)  # Let animations settle
 ```
 
@@ -83,7 +83,7 @@ Standard structure for interaction scripts:
 
 ```python
 """Prove-work interaction script -- auto-generated"""
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 import time
 
 with sync_playwright() as p:
@@ -97,7 +97,7 @@ with sync_playwright() as p:
 
     # --- Navigate and wait ---
     page.goto("http://localhost:PORT/ROUTE")
-    page.wait_for_load_state("networkidle")
+    expect(page.locator("READY_SELECTOR")).to_be_visible()
     time.sleep(1)
 
     # --- Demonstrate the feature ---

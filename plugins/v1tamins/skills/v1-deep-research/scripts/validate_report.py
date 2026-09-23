@@ -189,27 +189,6 @@ def _check_content_truncation(content: str) -> list[str]:
     return errors
 
 
-def _check_word_count(content: str, mode: str = "standard") -> list[str]:
-    """Check total word count against mode targets."""
-    errors = []
-    targets = {
-        "quick": (1500, 5000),
-        "standard": (3000, 10000),
-        "deep": (6000, 20000),
-    }
-
-    min_words, max_words = targets.get(mode, targets["standard"])
-    word_count = len(content.split())
-
-    if word_count < min_words:
-        errors.append(
-            f"WARNING: Report is short for {mode} mode "
-            f"({word_count} words, target {min_words}-{max_words})"
-        )
-
-    return errors
-
-
 def _check_source_count(content: str, mode: str = "standard") -> list[str]:
     """Check that enough sources are cited."""
     errors = []
@@ -247,7 +226,6 @@ def validate(report_path: str, mode: str = "standard", strict: bool = False) -> 
     all_issues.extend(_check_bibliography_truncation(content))
     all_issues.extend(_check_placeholders(content))
     all_issues.extend(_check_content_truncation(content))
-    all_issues.extend(_check_word_count(content, mode))
     all_issues.extend(_check_source_count(content, mode))
 
     errors = [i for i in all_issues if i.startswith("ERROR")]
@@ -285,7 +263,7 @@ if __name__ == "__main__":
         "--mode",
         choices=["quick", "standard", "deep"],
         default="standard",
-        help="Research mode (affects word/source count targets)",
+        help="Research mode (affects source count targets)",
     )
     parser.add_argument(
         "--strict", action="store_true", help="Treat warnings as errors"

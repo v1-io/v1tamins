@@ -5,13 +5,9 @@
 Write the report one section at a time with Write and Edit. Don't try to dump
 the whole report in one go.
 
-### Word Count Targets
+### Length
 
-| Mode | Total words | Exec summary | Per section |
-|------|------------|--------------|-------------|
-| Quick | 2,000-4,000 | 150-250 | 400-800 |
-| Standard | 4,000-8,000 | 200-400 | 600-1,500 |
-| Deep | 8,000-15,000 | 300-400 | 800-2,000 |
+Length follows evidence: Quick answers the question; Standard and Deep cover every sub-question with cited evidence.
 
 ### Generation Order
 
@@ -26,7 +22,7 @@ the whole report in one go.
 
 For each section:
 1. Review the evidence collected for this section from Phase 2 learnings
-2. Write the section (max ~2,000 words per Edit call)
+2. Write the section
 3. Ensure every factual claim has an inline citation `[N]`
 4. After writing, update `sources.json` with any new sources cited
 5. Verify the section meets anti-fatigue checks before moving on:

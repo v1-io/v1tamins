@@ -8,9 +8,11 @@ Improve prompts by tying every instruction to a concrete failure mode, output co
 
 For GPT-5.5, the OpenAI Responses API, OpenRouter, `reasoning_effort`, or model-migration specifics, load `references/gpt-5-5-patterns.md`. For GPT-5.4 hosts only, also load `references/gpt-5-4-patterns.md` (short deltas; load 5.5 first for shared contracts).
 
+For Claude 5 generation hosts (Opus 5.5, Fable 5.1), `output_config.effort`, structured outputs, or Claude prompt migration, load `references/claude-5-patterns.md`.
+
 ## Quick Start
 
-1. Identify the host, model family, tool surface, and output consumer. For GPT-5.5, OpenAI Responses API, or OpenRouter hosts, load `references/gpt-5-5-patterns.md`. On GPT-5.4 only, load that file first, then `references/gpt-5-4-patterns.md` for deltas.
+1. Identify the host, model family, tool surface, and output consumer. For GPT-5.5, OpenAI Responses API, or OpenRouter hosts, load `references/gpt-5-5-patterns.md`. On GPT-5.4 only, load that file first, then `references/gpt-5-4-patterns.md` for deltas. For Claude 5 generation hosts, load `references/claude-5-patterns.md`.
 2. Write the smallest prompt that can pass the task.
 3. Add only blocks that fix a named failure mode.
 4. Test against representative inputs before adding more instruction text.
@@ -112,14 +114,16 @@ Then prune:
 
 ### Structured Output
 
+When the API supports structured outputs (`output_config.format`, or tools with `strict: true`), enforce the schema there and keep only the missing-data rules in the prompt:
+
 ```xml
 <output_contract>
-- Output only valid JSON matching the requested schema.
-- Do not invent fields.
 - Use `null` for unavailable optional values.
 - Return an error object when required schema information is missing.
 </output_contract>
 ```
+
+Without API enforcement, add `Output only valid JSON matching the requested schema.` and `Do not invent fields.` to the block.
 
 ### Tool Workflow
 
@@ -134,6 +138,7 @@ Then prune:
 
 ## Reference Files
 
-- `references/advanced.md` - Carry-forward patterns for context management, degrees of freedom, and prompt discipline.
+- `references/advanced.md` - Carry-forward patterns for concise context, degrees of freedom, and plain constraint wording.
 - `references/gpt-5-5-patterns.md` - GPT-5.5 ready-to-paste blocks, the reasoning-effort ladder, OpenAI Responses API and OpenRouter chat-completions runtime notes, and migration defaults.
 - `references/gpt-5-4-patterns.md` - Short GPT-5.4-only deltas; load after `gpt-5-5-patterns.md` when still on 5.4.
+- `references/claude-5-patterns.md` - Claude 5 generation (Opus 5.5, Fable 5.1) runtime notes: adaptive thinking and `output_config.effort`, structured outputs instead of prefill, tool-choice limits, and plain-constraint wording.

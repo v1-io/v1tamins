@@ -43,7 +43,7 @@ If the user did not provide arguments, collect these inputs interactively using 
 
 **Required inputs:**
 - **Asset path**: File or directory the agent is allowed to modify (e.g., `tests/`, `src/prompts/system.txt`, `webpack.config.js`)
-- **Metric command**: A shell command that produces a single number on stdout. The agent will parse the last number from the output. Examples:
+- **Metric command**: A shell command that produces a single number on stdout. `scripts/measure_cycle.py` parses the last number from the output. Examples:
   - `pytest tests/ 2>&1 | tail -1` (parse time from pytest output)
   - `du -sb dist/ | cut -f1` (bundle size in bytes)
   - `hyperfine --runs 3 'node index.js' --export-json /dev/stdout | jq '.results[0].mean'`
@@ -72,7 +72,15 @@ If any validation fails, report the failure clearly and stop. Do not start the l
 
 ### 1.3 Establish Baseline
 
-Run the metric command {metric_runs} times. Take the **median** value. This is the BASELINE and also the initial BEST_KNOWN.
+The bundled script `scripts/measure_cycle.py` (stdlib Python; run it with `--help` for flags) does every measurement: it runs the metric command `--runs` times, takes the median, compares it to `--best`, appends one row to the results log, and prints one JSON object. Resolve it relative to this skill directory (`${SKILL_DIR}/scripts/measure_cycle.py` when the host exposes `SKILL_DIR`).
+
+Record the baseline by running it without `--best`:
+
+```bash
+python3 "${SKILL_DIR}/scripts/measure_cycle.py" --metric '{metric_command}' --direction {direction} --runs {metric_runs}
+```
+
+The JSON `median` is the BASELINE and also the initial BEST_KNOWN. The script creates `autoresearch-results.tsv` with its header if needed and logs the baseline as cycle 0.
 
 Display:
 
@@ -84,9 +92,9 @@ Asset: {asset_path}
 Cycles: {max_cycles} | Time limit: {time_limit}min
 ```
 
-### 1.4 Initialize Results Log
+### 1.4 Results Log
 
-Create or append to `autoresearch-results.tsv` in the current working directory:
+`autoresearch-results.tsv` in the current working directory has the columns:
 
 ```
 timestamp	cycle	change	metric_before	metric_after	verdict
@@ -148,58 +156,23 @@ git commit -m "autoresearch cycle {N}: {brief description of change}"
 
 This commit happens BEFORE we know if the change helps. This is intentional -- it makes reverts clean.
 
-### 2.4 Run Constraint Check (if configured)
+### 2.4 Measure and Decide
 
-Run the constraint command. If it exits non-zero:
+Run the script with the current best and, if configured, the constraint:
 
 ```bash
-git revert HEAD --no-edit
+python3 "${SKILL_DIR}/scripts/measure_cycle.py" --metric '{metric_command}' --direction {direction} \
+  --runs {metric_runs} --best {BEST_KNOWN} --constraint '{constraint_command}' \
+  --cycle {N} --change '{brief description of change}'
 ```
 
-Log the result:
-```
-{timestamp}	{cycle}	{description}	{BEST_KNOWN}	CONSTRAINT_FAIL	DISCARDED
-```
+Omit `--constraint` when none is configured. The script runs the constraint first; if it fails, the script skips measuring and logs `CONSTRAINT_FAIL`. Read the JSON result:
 
-Skip to 2.8.
+- `verdict: KEPT` - set BEST_KNOWN to `best_after` and report `Cycle {N}: KEPT -- {description} ({best_before} -> {median}, {change_pct}%)`.
+- `verdict: DISCARDED` - run `git revert HEAD --no-edit` and report `Cycle {N}: DISCARDED -- {description}` with the `median` or the constraint failure.
+- `ok: false` (exit 2) - the metric command failed or printed no number, and nothing was logged. Revert the cycle commit, then fix the setup or stop.
 
-### 2.5 Measure New Metric
-
-Run the metric command {metric_runs} times. Take the **median**. This is NEW_SCORE.
-
-### 2.6 Compare and Decide
-
-Compare NEW_SCORE to BEST_KNOWN respecting direction:
-
-- **If direction=lower**: improved means NEW_SCORE < BEST_KNOWN
-- **If direction=higher**: improved means NEW_SCORE > BEST_KNOWN
-
-**If improved:**
-- Update BEST_KNOWN = NEW_SCORE
-- Log: `{timestamp} {cycle} {description} {old_best} {NEW_SCORE} KEPT`
-- Display: `Cycle {N}: KEPT -- {description} ({old_best} -> {NEW_SCORE}, {improvement}%)`
-
-**If NOT improved:**
-```bash
-git revert HEAD --no-edit
-```
-- Log: `{timestamp} {cycle} {description} {BEST_KNOWN} {NEW_SCORE} DISCARDED`
-- Display: `Cycle {N}: DISCARDED -- {description} ({BEST_KNOWN} -> {NEW_SCORE}, no improvement)`
-
-### 2.7 Display Running Summary
-
-After every 5 cycles, display a brief progress summary:
-
-```
---- Progress (cycle {N}/{max_cycles}) ---
-Baseline: {BASELINE}
-Current best: {BEST_KNOWN} ({improvement from baseline}%)
-Kept: {kept_count} | Discarded: {discarded_count}
-Time elapsed: {elapsed}min / {time_limit}min
----
-```
-
-### 2.8 Check Stop Conditions
+### 2.5 Check Stop Conditions
 
 Stop the loop if ANY of these are true:
 1. Cycle count >= max_cycles
@@ -266,7 +239,7 @@ These are inviolable rules during the loop:
 ## Tips for Good Metric Commands
 
 The metric command should:
-- Produce a single number (the agent will parse the last number from stdout)
+- Produce a single number (`scripts/measure_cycle.py` parses the last number from stdout)
 - Be deterministic enough that median-of-3 gives stable results
 - Run in under 5 minutes (longer metrics slow the loop unacceptably)
 - Not require user interaction

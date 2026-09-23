@@ -58,21 +58,8 @@ In Codex, the slash examples below map directly to `$v1-write-tests ...`.
 - Assertion messages or comments explain non-obvious invariants only
 - External APIs, wall-clock time, network calls, and shared mutable state are isolated behind fixtures, fakes, or test doubles unless the project explicitly uses integration tests for that layer
 
-## Project-Specific Conventions
+## Style
 
-**Backend (pytest):**
-- Location: `tests/unit/` or `tests/integration/` (follow project conventions)
-- Fixtures in `conftest.py`
-- Use real objects (not mocks) except for LLM calls
-- Auto-marked by directory (unit vs integration)
-
-**Frontend (Jest/Vitest):**
-- Location: `__tests__/` mirroring `src/` structure
-- Mocks in `__mocks__/`
-- Share mocking functions in `testUtils.ts`
-- Mock all external API calls
-
-**Style:**
 - Arrange-Act-Assert pattern
 - Descriptive test names (test_method_condition_expected_result)
 - Test user-visible UI text when it is the behavior; otherwise prefer roles, labels, states, and user outcomes over brittle copy assertions
@@ -80,13 +67,7 @@ In Codex, the slash examples below map directly to `$v1-write-tests ...`.
 
 ## What NOT to Do (Anti-Patterns)
 
-### The Iron Laws
-
-```
-1. NEVER test mock behavior
-2. NEVER add test-only methods to production classes
-3. NEVER mock without understanding dependencies
-```
+Three rules, each explained below: assert on real behavior, not mocks; keep test-only code out of production classes; understand a dependency before mocking it.
 
 ### Anti-Pattern 1: Testing Mock Behavior
 
