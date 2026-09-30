@@ -1,5 +1,12 @@
 # v1tamins
 
+## 0.13.1
+
+### Patch Changes
+
+- 5a16160: Strengthen consequential review findings with evidence of the deciding safety premise, distinguish reported defects from prescribed fixes, permit bounded next-step source checks, and choose smaller PR explanations and HTML outputs. Interactive HTML verification now exercises the page's main job and exported state when applicable.
+- 83fcda4: Remove dated prompting patterns from skills (pressure language, word-count targets, repeated rules, networkidle waits, project-specific conventions), add Claude 5 prompt patterns to v1-prompt-engineering, and move autoresearch measurement into a bundled script.
+
 ## 0.13.0
 
 ### Minor Changes
