@@ -12,7 +12,9 @@ allowed-tools:
 Name the one next thing to do.
 
 Start from this thread. Look outside it only when the thread has no clear next
-move. If neither the thread nor the project shows one, say so. Don't guess.
+move or one current fact in a named source decides that move. If neither the
+thread nor the project shows one, say so. Don't guess. Recommend the action;
+do not start implementation or mutate a tracker from this skill.
 
 If they want a v1 skill, not a next step, use `v1-menu`. If what's needed is a
 plan, point at a planning skill instead of writing the plan here.
@@ -27,8 +29,12 @@ but never taken, errors seen and not resolved. Leave decisions the user already
 made alone.
 
 Run `git status` only when the next step depends on whether work is committed
-and the thread doesn't already say. Don't follow task, plan, or issue links
-yet. If the answer hinges on one, put that under "Needs you".
+and the thread doesn't already say. Do not expand into the backlog when the
+thread already establishes the next move. If the choice depends on one
+current fact in a named task, plan, PR, or handoff, check that source read-only
+through the authorized route. Stop once the deciding fact is resolved. If
+access is unavailable, name the source gap separately from a decision only
+the user can make; do not ask the user to invent current source state.
 
 ### 2. Look outward when the thread runs dry
 

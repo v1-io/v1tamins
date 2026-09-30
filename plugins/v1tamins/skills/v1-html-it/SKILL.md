@@ -33,9 +33,15 @@ Do not use HTML for:
 - Sensitive data that should not be written to disk.
 - Artifacts that require a full frontend app, server, authentication, or package install.
 
+When HTML was not specifically requested, first check whether a short
+call-tree, pseudocode block, structural diff, or Mermaid diagram completely
+answers the question. Use that directly when it does. Build HTML when spatial
+layout, density, interaction, or a requested shareable artifact adds value.
+An explicit request for an HTML file remains a request to create that file.
+
 ## Output Contract
 
-Create one self-contained `.html` file and tell the user where it is.
+When HTML is the selected output, create one self-contained `.html` file and tell the user where it is.
 
 Default location:
 
@@ -181,7 +187,14 @@ Use this skeleton unless the task calls for something more specific:
 
 Before finishing, check:
 
-- Open the file or verify it is syntactically complete.
+- For a simple static page, open the file or verify syntactic completeness.
+- For a materially interactive page, use the browser to exercise one
+  representative path through its stated job: start at the default state,
+  perform the key interaction, inspect the resulting view and copy/export
+  output when present, then check reset. Inspect the smallest intended width
+  when layout makes it relevant. Reuse the quantitative checklist where it
+  already covers these checks. If browser inspection is unavailable, report
+  that limitation; static completeness does not verify interactive behavior.
 - No external network dependency unless explicitly justified.
 - No console-breaking JavaScript syntax.
 - No overflowing text in buttons, cards, tables, or narrow layouts.

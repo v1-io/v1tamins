@@ -118,7 +118,22 @@ Body:
 
 Use bullets over prose when the PR has multiple concrete changes. Keep the description grounded in files, behavior, validation, and reviewer impact.
 
-Add a Mermaid diagram only when it materially clarifies a flow, architecture change, state transition, migration path, or review sequence. Keep diagrams small and maintainable. Do not add a diagram for a simple list of changes.
+Choose the smallest representation that clarifies a consequential change:
+a structural before/after for responsibilities, a call-tree for execution,
+pseudocode for a branch, or Mermaid for relationships. Include it only when it
+adds information beyond the prose and fits the repository template. Ground
+it in the ledger; skip it when ordinary prose is sufficient. Use
+`v1-pr-walkthrough` for a fuller explanation, not a larger artifact by default.
+
+For an actual responsibility change, a small structural comparison may suffice:
+
+```text
+Before: command → parse + authorize + mutate + format
+After:  command → validated request → scoped mutation → result formatter
+```
+
+Keep Mermaid diagrams small and maintainable. Do not add a diagram for a
+simple list of changes.
 
 ```mermaid
 flowchart LR

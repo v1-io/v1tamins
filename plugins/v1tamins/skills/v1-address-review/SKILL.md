@@ -161,12 +161,25 @@ Treat each distinct finding in a submitted review body, check output, or check a
 Follow [references/code-factory.md](references/code-factory.md) when the body matches multi-finding markers. Otherwise treat the issue comment as a single finding like any other PR-level comment.
 
 ### 4. Analyze Each Finding
-For each finding (regardless of source):
-- Reads the relevant file and code section
-- Critically evaluates if suggestion is:
-  - **Valid**: Issue is real, should be fixed
-  - **Invalid**: False positive, not applicable
-  - **Partial**: Issue valid but fix needs adjustment
+For each finding (regardless of source), read the relevant current code and
+separate the reported problem from the suggested patch. For a consequential
+finding, identify the contract or behavior violated and the concrete failure
+path. Check the fact on which validity depends using the cheapest relevant
+source inspection, existing test, or small reproduction with actual code.
+Reuse adequate evidence; a compiler diagnostic for an unused import does not
+need a new causal essay or reproduction. Stay within authorized execution
+scope and do not launch another whole-PR review.
+
+Classify the problem and proposed fix separately in the ledger's action and
+validation fields:
+- **Valid**: the issue is real and the proposed fix addresses it.
+- **Invalid**: the reported issue is a false positive or does not apply.
+- **Partial**: the issue is real but the proposed fix needs adjustment.
+- **Blocked**: validity remains unresolved; state the missing evidence and
+  do not apply a speculative fix or resolve the thread.
+
+A repeated comment increases priority, not evidential confidence. Lint alone
+does not prove changed runtime behavior.
 
 ### 5. Fix Valid Issues
 - For valid findings: implements fix following existing patterns
@@ -260,7 +273,7 @@ Commit all validated fixes with a descriptive message and push when the user ask
 
 - **Security findings (P1)**: Take seriously, always verify the vulnerability is real
 - **Unused imports**: Usually valid - remove them
-- **Duplicate function calls**: Usually valid - cache results
+- **Duplicate function calls**: Verify purity, timing, and intended effects before caching; repeated calls alone do not establish a defect
 - **Performance suggestions**: Evaluate if impact is meaningful
 - **Architecture violations**: Check `AGENTS.md`, `CLAUDE.md`, relevant `.github/` ownership/workflow guidance, and equivalent repo guidance before dismissing
 - **Documentation updates**: Valid if docs outdated
