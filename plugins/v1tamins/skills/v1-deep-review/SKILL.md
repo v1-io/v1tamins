@@ -124,7 +124,21 @@ When a UI change crosses an API, service client, state hook, or server route bou
 | State hook/store | `...` | loading, empty, stale, error, optimistic update, cancellation | `...` |
 | Component/view | `...` | rendered states, accessibility, responsive layout, destructive-action affordances | `...` |
 
-Use the matrix to catch half-wired work. After the passes, do one adversarial pass:
+Use the matrix to catch half-wired work.
+
+When a consequential change depends on a specific safety claim, state that
+claim and trace the relevant boundary. Check serialized consumers,
+persistence, dependency behavior, or timing when the diff makes them relevant.
+Use the cheapest meaningful execution of actual code to resolve the claim:
+an existing test may suffice; a small reproduction may resolve a remaining
+uncertainty. Respect review-only mode and execution authority; do not mutate
+production or external systems to obtain proof. If execution is unavailable,
+distinguish source-supported reasoning from an unproven premise in Verification.
+A citation is not execution evidence, and a passing focused check does not
+prove deployment. Skip this step when the change has no consequential safety
+premise; do not add an exhaustive consumer search or require new tests by default.
+
+After the passes, do one adversarial pass:
 
 > Think like an attacker, a chaos engineer, and a hostile QA tester. What fails under load, bad input, retries, concurrency, stale state, partial failure, or confused users?
 

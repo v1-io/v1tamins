@@ -105,6 +105,15 @@ skill-like runtime event. `structured_decision` means the runtime returned a
 routing decision in the requested JSON shape. `inconclusive` means no reliable
 decision was available.
 
+## Review and Explanation Behavior Matrix
+
+[`review-and-explanation-behavior.md`](review-and-explanation-behavior.md)
+provides synthetic loaded-workflow scenarios for deep review, PR descriptions,
+next-step recommendations, review feedback, and HTML explanations. It is a
+bounded manual matrix; the routing runner and skilling-it adapter do not
+execute it. Report observed workflow results separately from routing smoke
+checks and static validation.
+
 ## v1-skilling-it Behavior Adapter
 
 Routing evidence proves selection, not workflow execution. The committed
