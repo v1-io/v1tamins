@@ -636,6 +636,11 @@ main() {
   validate_skill_references
   validate_skill_assets
   validate_portable_host_paths
+  if python3 "$repo_root/scripts/test-artifact-converters.py"; then
+    ok "artifact converter regressions"
+  else
+    fail "artifact converter regressions failed"
+  fi
   validate_peer_contract_tests
 
   if [ "$failures" -ne 0 ]; then

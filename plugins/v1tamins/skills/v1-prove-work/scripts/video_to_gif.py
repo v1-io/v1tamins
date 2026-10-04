@@ -100,11 +100,11 @@ def optimize_gif(input_path, output_path, lossy=80, colors=128):
     return Path(output_path).stat().st_size
 
 
-def enforce_size_limit(webm_path, output_path, max_size_bytes):
+def enforce_size_limit(webm_path, output_path, max_size_bytes, fps=10, max_width=800, colors=128):
     """Convert webm to GIF, progressively reducing quality until under the size limit.
 
     Reduction strategy:
-    1. Default: 10fps, 800px, 128 colors
+    1. Requested frame rate, width, and colors (default: 10fps, 800px, 128 colors)
     2. Reduce colors to 64
     3. Reduce fps to 8
     4. Reduce width to 640
@@ -114,13 +114,19 @@ def enforce_size_limit(webm_path, output_path, max_size_bytes):
     has_gifsicle = check_gifsicle()
     raw_path = output_path.with_suffix(".raw.gif")
 
+    reduced_fps = min(fps, 8)
+    reduced_width = min(max_width, 640)
+    reduced_colors = min(colors, 64)
     strategies = [
-        {"fps": 10, "max_width": 800, "colors": 128, "truncate": None},
-        {"fps": 10, "max_width": 800, "colors": 64, "truncate": None},
-        {"fps": 8, "max_width": 800, "colors": 64, "truncate": None},
-        {"fps": 8, "max_width": 640, "colors": 64, "truncate": None},
-        {"fps": 8, "max_width": 640, "colors": 64, "truncate": 80},  # ~10s at 8fps
+        {"fps": fps, "max_width": max_width, "colors": colors, "truncate": None},
+        {"fps": fps, "max_width": max_width, "colors": reduced_colors, "truncate": None},
+        {"fps": reduced_fps, "max_width": max_width, "colors": reduced_colors, "truncate": None},
+        {"fps": reduced_fps, "max_width": reduced_width, "colors": reduced_colors, "truncate": None},
+        {"fps": reduced_fps, "max_width": reduced_width, "colors": reduced_colors,
+         "truncate": reduced_fps * 10},
     ]
+    # Low requested settings can make adjacent reduction steps identical.
+    strategies = [s for i, s in enumerate(strategies) if s not in strategies[:i]]
 
     for i, s in enumerate(strategies):
         label = f"attempt {i + 1}/{len(strategies)}: {s['fps']}fps, {s['max_width']}px, {s['colors']} colors"
@@ -297,6 +303,11 @@ def main():
 
     args = parser.parse_args()
 
+    if args.fps <= 0 or args.max_width <= 0 or not 2 <= args.colors <= 256:
+        parser.error("--fps and --max-width must be positive; --colors must be between 2 and 256")
+    if not 0 < args.max_size_mb < float("inf"):
+        parser.error("--max-size-mb must be positive and finite")
+
     # Ensure deps
     ensure_dependencies()
 
@@ -320,7 +331,7 @@ def main():
     # Convert
     max_size_bytes = int(args.max_size_mb * 1024 * 1024)
     print(f"Converting to GIF (max {args.max_size_mb} MB)...")
-    enforce_size_limit(webm_path, output_path, max_size_bytes)
+    enforce_size_limit(webm_path, output_path, max_size_bytes, args.fps, args.max_width, args.colors)
 
     # Upload
     if args.upload:
