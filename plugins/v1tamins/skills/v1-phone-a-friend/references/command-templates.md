@@ -153,7 +153,7 @@ RUN_DIR="<host-scratch-dir>/v1-phone-a-friend/<run-slug>"
 "$PEER_RUN" launch --dir "$RUN_DIR" --slug codex  --deadline-seconds 900 -- <codex-wrapper>
 "$PEER_RUN" launch --dir "$RUN_DIR" --slug claude --deadline-seconds 900 -- <claude-wrapper>
 
-# Poll across turns until each slug is complete or stalled, then read the verdict:
+# Poll across turns until each slug reaches a terminal state, then read the verdict:
 "$PEER_RUN" status  --dir "$RUN_DIR" --slug codex     # running | complete | failed | empty_output | stalled | timed_out
 "$PEER_RUN" verdict --dir "$RUN_DIR" --slug codex --json
 "$PEER_RUN" teardown --dir "$RUN_DIR" --slug codex    # PID-scoped kill; never pkill -f
@@ -321,8 +321,9 @@ Use `--force` only for trusted verification or delegation. If the installed CLI 
 Use Antigravity CLI (`agy`) when installed and authenticated, especially for Gemini-backed large-context, multimodal, or Google-grounded packets.
 
 Pass `--run-dir` to the recipe helper with this seat's disposable directory so
-`--log-file` records its activity there. The adapter requests `stream-json`;
-`--probe-syntax` checks both flags against the installed CLI. Silence on stdout
+`--log-file` records its activity there. The adapter keeps plain-text stdout:
+Antigravity's `stream-json` output has not been verified against a live run.
+`--probe-syntax` checks the flags against the installed CLI. Silence on stdout
 is not a stall: keep observing the runner and the run-specific log until its
 selected deadline. Activity proves progress, never a completed review. Report
 permission waits or unavailable activity evidence without inventing completion.
@@ -349,7 +350,6 @@ Read-only consult:
 "$PEER_ENV" --provider agy --auth-mode subscription_native -- agy \
   --sandbox \
   --print-timeout 5m \
-  --output-format stream-json \
   --log-file "<run-dir>/provider.log" \
   --model "<current-model-from-catalog>" \
   --effort "<current-reasoning-level>" \
@@ -364,7 +364,6 @@ Trusted verification or isolated delegation:
 "$PEER_ENV" --provider agy --auth-mode subscription_native -- agy \
   --dangerously-skip-permissions \
   --print-timeout 5m \
-  --output-format stream-json \
   --log-file "<run-dir>/provider.log" \
   --model "<current-model-from-catalog>" \
   --effort "<current-reasoning-level>" \

@@ -180,8 +180,8 @@ Git state alone. The full contract is the read-only boundary section of
 Poll each slug across turns (`status`), read `verdict --json` (judged by
 substantive output, not exit code), and tear down stragglers by recorded PID
 only. One peer stalling never blocks the others — slugs are isolated. Record
-which selected peers completed, were partial, timed out, execution-uncertain,
-or were skipped. After dispatch, auth/model/workflow failures do not trigger
+which selected peers completed, were partial, failed, returned empty output,
+timed out, stalled, were execution-uncertain, or were skipped. After dispatch, auth/model/workflow failures do not trigger
 retries or replacement fan-out.
 
 ### Dispatch boundary
@@ -206,7 +206,7 @@ short:
 
 ## Convergence Ledger
 
-After every peer is complete or stalled, **verify each finding against the working tree before acting on it**, then emit:
+After every peer reaches a terminal state (`complete`, `failed`, `empty_output`, `stalled`, or `timed_out`), **verify each finding against the working tree before acting on it**, then emit:
 
 ```text
 | # | Finding                                            | Peers | Disposition          |

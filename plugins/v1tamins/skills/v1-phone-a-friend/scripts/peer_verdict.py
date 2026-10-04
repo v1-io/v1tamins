@@ -68,6 +68,9 @@ TYPE_FAMILY = {
     "agent.completed": "item_completed",
 }
 
+# Envelopes that close a run or turn successfully without carrying the answer.
+SUCCESS_TERMINAL_TYPES = frozenset({"turn.completed", "response.completed"})
+
 ERROR_SUBTYPES = frozenset({"error", "failure", "failed"})
 ERROR_STATUSES = frozenset({"error", "failed", "failure"})
 ERROR_ENVELOPE_TYPES = frozenset({"error", "failure", "failed"})
@@ -278,24 +281,38 @@ def object_answer_family(obj: Any) -> str | None:
 def first_answer_family(objects: list[Any]) -> str | None:
     # The final run-level result owns the outcome. Earlier assistant messages
     # can be progress or useful partial output from a run that later failed.
+    # A bare ``error`` event can be a retryable notification (for example a
+    # reconnect), so it is terminal only when nothing but framing follows it.
+    later_activity = False
     for obj in reversed(objects):
         if not isinstance(obj, dict):
             continue
         typ = envelope_type(obj)
-        if typ in {"result", "error", "turn.failed", "response.failed"}:
-            if (is_error_object(obj) or typ != "result"
-                    or any(
-                        contains_error_envelope(obj[key])
-                        for key in ANSWER_KEYS
-                        if key in obj
-                    )):
+        if typ == "error" and later_activity:
+            continue
+        if typ in SUCCESS_TERMINAL_TYPES:
+            if is_error_object(obj):
                 return "terminal_error"
-            family = object_answer_family(obj)
-            if family is not None:
-                return family
-            # Some providers put text only in assistant events and finish with
-            # a successful result containing metrics. Preserve that answer.
+            # A completed turn supersedes earlier notifications; read the
+            # answer from the events it closed.
             break
+        if typ not in {"result", "error", "turn.failed", "response.failed"}:
+            if typ not in FRAMING_TYPES:
+                later_activity = True
+            continue
+        if (is_error_object(obj) or typ != "result"
+                or any(
+                    contains_error_envelope(obj[key])
+                    for key in ANSWER_KEYS
+                    if key in obj
+                )):
+            return "terminal_error"
+        family = object_answer_family(obj)
+        if family is not None:
+            return family
+        # Some providers put text only in assistant events and finish with
+        # a successful result containing metrics. Preserve that answer.
+        break
     for obj in objects:
         family = object_answer_family(obj)
         if family is not None:

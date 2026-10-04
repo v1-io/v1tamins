@@ -240,7 +240,8 @@ def build_agy(
 ) -> list[str] | LaunchError:
     argv = ["agy"]
     argv += ["--sandbox"] if permission == "readonly" else ["--dangerously-skip-permissions"]
-    argv += ["--print-timeout", context.print_timeout, "--output-format", "stream-json"]
+    # Plain-text output: Antigravity's stream-json shape is unverified live.
+    argv += ["--print-timeout", context.print_timeout]
     if context.run_dir:
         argv += ["--log-file", str(Path(context.run_dir) / "provider.log")]
     if model:

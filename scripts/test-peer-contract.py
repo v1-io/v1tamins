@@ -1110,10 +1110,11 @@ class PeerLaunchTests(unittest.TestCase):
         self.assertIn("--force", recipe.argv)
         self.assertEqual(recipe.argv[recipe.argv.index("--worktree") + 1], "synthetic-tree")
 
-    def test_agy_streams_progress_and_records_run_specific_log(self) -> None:
+    def test_agy_keeps_plain_text_and_records_run_specific_log(self) -> None:
         recipe = self.recipe("agy", model="fake-strong", reasoning="high",
                              context=peer_launch.LaunchContext(run_dir="synthetic-run"))
-        self.assertEqual(recipe.argv[recipe.argv.index("--output-format") + 1], "stream-json")
+        # Antigravity stream-json output is unverified live; keep plain text.
+        self.assertNotIn("--output-format", recipe.argv)
         self.assertEqual(recipe.argv[recipe.argv.index("--log-file") + 1], "synthetic-run/provider.log")
         self.assertEqual(recipe.argv[-2], "--print")
 
@@ -1310,6 +1311,37 @@ class PeerVerdictTests(unittest.TestCase):
         ))
         self.assertTrue(verdict.answer)
         self.assertEqual(verdict.envelope_family, "result_text")
+
+    def test_retryable_codex_error_before_completed_turn_is_not_a_failure(self) -> None:
+        # Realistic `codex exec --json` framing: a reconnect notification is a
+        # bare `error` event, and `turn.completed` is the success terminal.
+        # The nested agent_message shape is not yet read as an answer (tracked
+        # separately), so assert only that the run is not a terminal failure.
+        verdict = peer_verdict.classify_text(stream(
+            {"type": "thread.started", "thread_id": "synthetic-thread"},
+            {"type": "error", "message": "Reconnecting... 1/5", "will_retry": True},
+            {"type": "item.completed", "item": {"id": "item_0", "type": "agent_message", "text": "Review findings"}},
+            {"type": "turn.completed", "usage": {"input_tokens": 1, "output_tokens": 1}},
+        ))
+        self.assertNotEqual(verdict.envelope_family, "terminal_error")
+        # The same framing with an answer shape the classifier reads completes.
+        self.assertAnswer(stream(
+            {"type": "thread.started", "thread_id": "synthetic-thread"},
+            {"type": "error", "message": "Reconnecting... 1/5", "will_retry": True},
+            {"type": "item.completed", "text": "Review findings"},
+            {"type": "turn.completed", "usage": {"input_tokens": 1, "output_tokens": 1}},
+        ), "item_completed")
+
+    def test_bare_error_followed_only_by_framing_is_terminal(self) -> None:
+        self.assertNoAnswer(stream(
+            {"type": "assistant", "text": "Partial findings"},
+            {"type": "error", "message": "Stream disconnected"},
+            {"type": "status", "message": "exiting"},
+        ), "terminal_error")
+        self.assertNoAnswer(stream(
+            {"type": "assistant", "text": "Partial findings"},
+            {"type": "turn.failed", "error": {"message": "Stream disconnected"}},
+        ), "terminal_error")
 
     def test_error_envelopes_are_rejected_at_every_level(self) -> None:
         self.assertNoAnswer(
