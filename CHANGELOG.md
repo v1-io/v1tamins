@@ -1,5 +1,14 @@
 # v1tamins
 
+## 0.13.2
+
+### Patch Changes
+
+- d6c8e12: Keep Mermaid render attempts isolated and preserve later diagrams after an earlier failure. Honor video frame rate, width, and palette options throughout GIF conversion.
+- 0167475: Align PR creation and review-readiness skills with draft PR behavior, configured tracker boundaries, and provider-neutral PRD inputs.
+- b9553ea: Tighten routing evidence validation and run offline routing and behavior checks during plugin validation.
+- a21e1ac: Prevent completion races and let terminal provider errors override earlier assistant text, distinguish unverified model selections from eligible peers, treat retryable provider error notifications before a completed turn as non-terminal, and give Antigravity optional run-specific logs.
+
 ## 0.13.1
 
 ### Patch Changes
