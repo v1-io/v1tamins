@@ -25,6 +25,7 @@ Checks:
   - each SKILL.md stays within the 500-line budget (disclose detail to references/)
   - legacy tracked .agents/skills mirrors are absent
   - dynamic peer discovery, launch supervision, routing, and installed-source verifier contracts pass
+  - routing eval helpers, fixture contradiction rules, and the v1-skilling-it behavior adapter self-test pass
 
 Options:
   --verbose print each successful check
@@ -580,6 +581,32 @@ validate_metadata_checker_tests() {
   fi
 }
 
+validate_routing_eval_tests() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    fail "python3 is required to run routing eval tests"
+    return 0
+  fi
+
+  local test
+  local tests=(
+    "$repo_root/scripts/test-skill-routing-live.py"
+    "$repo_root/scripts/test-check-skill-routing-fixture.py"
+  )
+  for test in "${tests[@]}"; do
+    if python3 "$test"; then
+      ok "$(relpath "$test")"
+    else
+      fail "$(relpath "$test") failed"
+    fi
+  done
+
+  if python3 "$repo_root/scripts/run-skilling-it-behavior-eval.py" --self-test; then
+    ok "v1-skilling-it behavior self-test"
+  else
+    fail "v1-skilling-it behavior self-test failed"
+  fi
+}
+
 validate_peer_contract_tests() {
   if ! command -v python3 >/dev/null 2>&1; then
     fail "python3 is required to run peer contract tests"
@@ -636,6 +663,7 @@ main() {
   validate_skill_references
   validate_skill_assets
   validate_portable_host_paths
+  validate_routing_eval_tests
   validate_peer_contract_tests
 
   if [ "$failures" -ne 0 ]; then

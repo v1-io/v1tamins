@@ -165,9 +165,25 @@ def validate_case(
                 case_id, "expected_skill", expected_skill, skill_names, errors
             )
 
+    skill_lists: dict[str, list[str]] = {}
     for field in ("acceptable_skills", "near_miss_skills", "must_not_trigger"):
-        for skill in require_list_of_strings(case, field, errors):
+        skill_lists[field] = require_list_of_strings(case, field, errors)
+        for skill in skill_lists[field]:
             validate_skill_ref(case_id, field, skill, skill_names, errors)
+
+    expected_or_acceptable = set(skill_lists["acceptable_skills"])
+    if isinstance(expected_skill, str):
+        expected_or_acceptable.add(expected_skill)
+    forbidden_or_near_miss = set(skill_lists["near_miss_skills"]) | set(
+        skill_lists["must_not_trigger"]
+    )
+    contradictory_skills = sorted(expected_or_acceptable & forbidden_or_near_miss)
+    if contradictory_skills:
+        errors.append(
+            f"{case_id}: expected/acceptable skill(s) cannot overlap near_miss_skills "
+            "or must_not_trigger: "
+            + ", ".join(contradictory_skills)
+        )
 
     for field in ("side_effect_allowed", "budget_stress"):
         if not isinstance(case[field], bool):
