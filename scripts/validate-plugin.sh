@@ -25,6 +25,7 @@ Checks:
   - each SKILL.md stays within the 500-line budget (disclose detail to references/)
   - legacy tracked .agents/skills mirrors are absent
   - dynamic peer discovery, launch supervision, routing, and installed-source verifier contracts pass
+  - routing eval helpers, fixture contradiction rules, and the v1-skilling-it behavior adapter self-test pass
 
 Options:
   --verbose print each successful check

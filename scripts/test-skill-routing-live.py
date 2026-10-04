@@ -249,6 +249,16 @@ class LiveRoutingTests(unittest.TestCase):
                 "selected_skill": "v1-debug",
                 "reason": "fake routing decision",
             },
+            {
+                "selected_skill": 5,
+                "reason": "fake routing decision",
+                "confidence": 0.5,
+            },
+            {
+                "selected_skill": "v1-debug",
+                "reason": 5,
+                "confidence": 0.5,
+            },
         ]
 
         for decision in invalid_decisions:
@@ -260,6 +270,23 @@ class LiveRoutingTests(unittest.TestCase):
                 self.assertEqual(evidence_kind, "inconclusive")
                 self.assertIn("invalid structured routing decision", reason)
                 self.assertIsNone(confidence)
+
+    def test_extract_decision_uses_last_decision_in_stream(self):
+        valid = {"selected_skill": "v1-debug", "reason": "matches", "confidence": 0.9}
+        invalid = {"selected_skill": "v1-debug", "reason": "matches", "confidence": "high"}
+
+        selected, evidence_kind, _reason, _confidence = extract_decision(
+            json.dumps(valid) + "\n" + json.dumps(invalid), "codex"
+        )
+        self.assertIsNone(selected)
+        self.assertEqual(evidence_kind, "inconclusive")
+
+        selected, evidence_kind, _reason, confidence = extract_decision(
+            json.dumps(invalid) + "\n" + json.dumps(valid), "codex"
+        )
+        self.assertEqual(selected, "v1-debug")
+        self.assertNotEqual(evidence_kind, "inconclusive")
+        self.assertEqual(confidence, 0.9)
 
     def test_validate_decision_rejects_nonfinite_numeric_values(self):
         for value in (True, math.nan, math.inf, -math.inf):
