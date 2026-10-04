@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Characterization tests for the bounded, stdin-safe peer runner.
 
-set -euo pipefail
+set -Eeuo pipefail
+trap 'printf "peer-run contract failed at line %s (exit %s)\n" "$LINENO" "$?" >&2' ERR
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUNNER="$ROOT_DIR/plugins/v1tamins/skills/v1-phone-a-friend/scripts/peer-run.sh"

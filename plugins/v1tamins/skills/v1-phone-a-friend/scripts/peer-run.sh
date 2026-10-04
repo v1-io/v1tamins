@@ -97,8 +97,29 @@ done
 [ -n "$RUNDIR" ] || die "--dir is required"
 [ -n "$SLUG" ] || die "--slug is required"
 case "$SLUG" in
+  ''|.|..) die "slug must be a non-dot run name" ;;
   *[!A-Za-z0-9._-]*) die "slug must contain only letters, numbers, dot, underscore, and hyphen" ;;
 esac
+
+# Resolve the run directory and slug together before any command can read or
+# write sentinels. Existing symlinks are allowed only when they remain inside
+# the caller's run directory; an escaping target is a path error for every
+# subcommand, including observation and teardown.
+if ! python3 - "$RUNDIR" "$SLUG" <<'PY'
+from pathlib import Path
+import sys
+
+try:
+    run_dir = Path(sys.argv[1]).resolve(strict=False)
+    peer_dir = (run_dir / sys.argv[2]).resolve(strict=False)
+    peer_dir.relative_to(run_dir)
+except (OSError, RuntimeError, ValueError) as exc:
+    print(f"peer-run: slug path escapes run directory: {exc}", file=sys.stderr)
+    raise SystemExit(2)
+PY
+then
+  exit 2
+fi
 
 case "$cmd" in
   launch)

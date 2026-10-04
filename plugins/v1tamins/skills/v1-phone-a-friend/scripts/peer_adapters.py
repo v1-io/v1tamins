@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import signal
 import shutil
 import subprocess
 import time
@@ -45,6 +46,104 @@ class CommandResult:
     timed_out: bool = False
 
 
+def _text(value: str | bytes | None) -> str:
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return value or ""
+
+
+def _probe_process_kwargs() -> dict[str, Any]:
+    if os.name == "nt":
+        return {
+            "creationflags": getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+        }
+    return {"start_new_session": True}
+
+
+def _signal_probe_group(process: subprocess.Popen[str], signal_number: int) -> None:
+    """Signal a POSIX probe group; Windows is best-effort for the direct child."""
+
+    if os.name == "nt":
+        if signal_number == signal.SIGTERM:
+            try:
+                process.send_signal(
+                    getattr(signal, "CTRL_BREAK_EVENT", signal.SIGTERM)
+                )
+                return
+            except (OSError, ValueError):
+                pass
+        try:
+            process.kill()
+        except OSError:
+            pass
+        return
+    try:
+        os.killpg(process.pid, signal_number)
+    except (OSError, ProcessLookupError):
+        try:
+            process.send_signal(signal_number)
+        except OSError:
+            pass
+
+
+def run_probe(
+    command: list[str],
+    environment: dict[str, str],
+    timeout_seconds: float,
+) -> CommandResult:
+    """Run one bounded local probe and tear down its process group on timeout."""
+
+    try:
+        process = subprocess.Popen(
+            command,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            errors="replace",
+            env=environment,
+            **_probe_process_kwargs(),
+        )
+    except OSError as exc:
+        return CommandResult(127, "", str(exc))
+
+    try:
+        stdout, stderr = process.communicate(timeout=timeout_seconds)
+    except subprocess.TimeoutExpired as exc:
+        partial_stdout = _text(exc.stdout)
+        partial_stderr = _text(exc.stderr)
+        _signal_probe_group(process, signal.SIGTERM)
+        try:
+            stdout, stderr = process.communicate(timeout=0.5)
+        except subprocess.TimeoutExpired as tail:
+            partial_stdout = _text(tail.stdout) or partial_stdout
+            partial_stderr = _text(tail.stderr) or partial_stderr
+            _signal_probe_group(process, getattr(signal, "SIGKILL", signal.SIGTERM))
+            try:
+                process.kill()
+            except OSError:
+                pass
+            # A descendant that escaped the process group can retain the pipe
+            # handles. Close our copies and wait for the direct child with a
+            # bound instead of calling communicate() without a timeout.
+            for stream in (process.stdout, process.stderr):
+                if stream is not None:
+                    stream.close()
+            try:
+                process.wait(timeout=0.5)
+            except subprocess.TimeoutExpired:
+                pass
+            stdout = partial_stdout
+            stderr = partial_stderr
+        return CommandResult(
+            None,
+            _text(stdout) or partial_stdout,
+            _text(stderr) or partial_stderr,
+            timed_out=True,
+        )
+    return CommandResult(process.returncode, _text(stdout), _text(stderr))
+
+
 def sha256_text(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8", errors="replace")).hexdigest()
 
@@ -62,25 +161,11 @@ def run_command(
     *,
     provider: str,
 ) -> CommandResult:
-    try:
-        completed = subprocess.run(
-            command,
-            check=False,
-            capture_output=True,
-            stdin=subprocess.DEVNULL,
-            text=True,
-            errors="replace",
-            env=subscription_environment(mode, provider),
-            timeout=timeout_seconds,
-        )
-    except subprocess.TimeoutExpired as exc:
-        stdout = exc.stdout if isinstance(exc.stdout, str) else ""
-        stderr = exc.stderr if isinstance(exc.stderr, str) else ""
-        return CommandResult(None, stdout, stderr, timed_out=True)
-    except OSError as exc:
-        return CommandResult(127, "", str(exc))
-
-    return CommandResult(completed.returncode, completed.stdout, completed.stderr)
+    return run_probe(
+        command,
+        subscription_environment(mode, provider),
+        timeout_seconds,
+    )
 
 
 def parse_json_models(value: Any) -> list[Any]:
