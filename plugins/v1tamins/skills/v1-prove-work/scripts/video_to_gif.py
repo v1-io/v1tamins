@@ -15,6 +15,8 @@ import time
 from pathlib import Path
 
 OUTPUT_DIR = Path("/tmp/prove-work")
+# GIF delays are stored in centiseconds, and browsers clamp delays below 20ms.
+MIN_FRAME_MS = 20
 
 
 def ensure_dependencies():
@@ -41,15 +43,27 @@ def check_gifsicle():
     return shutil.which("gifsicle") is not None
 
 
+def frame_timing(src_fps, target_fps):
+    """Return (frame_skip, duration_ms) so kept frames play back at real-time speed."""
+    frame_skip = max(1, round(src_fps / target_fps))
+    while 1000 * frame_skip / src_fps < MIN_FRAME_MS:
+        frame_skip += 1
+    return frame_skip, round(1000 * frame_skip / src_fps)
+
+
 def decode_webm(webm_path, target_fps=10, max_width=800):
-    """Decode a .webm file into a list of PIL Images at the target fps and resolution."""
+    """Decode a .webm file near the target fps and resolution.
+
+    Returns (frames, duration_ms), where duration_ms is the per-frame delay that
+    matches the effective frame rate of the kept frames.
+    """
     import av
     from PIL import Image
 
     container = av.open(str(webm_path))
     stream = container.streams.video[0]
     src_fps = float(stream.average_rate) if stream.average_rate else 30.0
-    frame_skip = max(1, round(src_fps / target_fps))
+    frame_skip, duration_ms = frame_timing(src_fps, target_fps)
 
     frames = []
     for i, frame in enumerate(container.decode(video=0)):
@@ -63,14 +77,13 @@ def decode_webm(webm_path, target_fps=10, max_width=800):
         frames.append(img)
 
     container.close()
-    return frames
+    return frames, duration_ms
 
 
-def save_gif(frames, output_path, fps=10, colors=128):
-    """Save a list of PIL Images as an animated GIF."""
+def save_gif(frames, output_path, duration_ms=100, colors=128):
+    """Save a list of PIL Images as an animated GIF with a fixed per-frame delay."""
     from PIL import Image
 
-    duration_ms = int(1000 / fps)
     quantized = [f.quantize(colors=colors, method=Image.Quantize.MEDIANCUT) for f in frames]
 
     quantized[0].save(
@@ -123,7 +136,7 @@ def enforce_size_limit(webm_path, output_path, max_size_bytes, fps=10, max_width
         {"fps": reduced_fps, "max_width": max_width, "colors": reduced_colors, "truncate": None},
         {"fps": reduced_fps, "max_width": reduced_width, "colors": reduced_colors, "truncate": None},
         {"fps": reduced_fps, "max_width": reduced_width, "colors": reduced_colors,
-         "truncate": reduced_fps * 10},
+         "truncate": 10},
     ]
     # Low requested settings can make adjacent reduction steps identical.
     strategies = [s for i, s in enumerate(strategies) if s not in strategies[:i]]
@@ -131,18 +144,18 @@ def enforce_size_limit(webm_path, output_path, max_size_bytes, fps=10, max_width
     for i, s in enumerate(strategies):
         label = f"attempt {i + 1}/{len(strategies)}: {s['fps']}fps, {s['max_width']}px, {s['colors']} colors"
         if s["truncate"]:
-            label += f", truncated to {s['truncate']} frames"
+            label += f", truncated to first {s['truncate']}s"
         print(f"  {label}...")
 
-        frames = decode_webm(webm_path, target_fps=s["fps"], max_width=s["max_width"])
+        frames, duration_ms = decode_webm(webm_path, target_fps=s["fps"], max_width=s["max_width"])
         if not frames:
             print("ERROR: No frames extracted from video.", file=sys.stderr)
             sys.exit(1)
 
-        if s["truncate"] and len(frames) > s["truncate"]:
-            frames = frames[: s["truncate"]]
+        if s["truncate"]:
+            frames = frames[: max(1, s["truncate"] * 1000 // duration_ms)]
 
-        save_gif(frames, raw_path, fps=s["fps"], colors=s["colors"])
+        save_gif(frames, raw_path, duration_ms=duration_ms, colors=s["colors"])
 
         if has_gifsicle:
             size = optimize_gif(raw_path, output_path, lossy=80, colors=s["colors"])

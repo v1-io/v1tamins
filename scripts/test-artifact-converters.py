@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """Offline regression checks for document and video conversion boundaries."""
 
+from contextlib import redirect_stderr, redirect_stdout
 import importlib.util
+import io
 from pathlib import Path
 from subprocess import CompletedProcess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+
+sys.dont_write_bytecode = True
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -76,7 +81,26 @@ class DiagramTests(unittest.TestCase):
         self.assertEqual(rendered, '<img alt="10">\n<img alt="1">')
 
 
+def quiet(call, *args, **kwargs):
+    """Run a converter entry point without its progress and error output."""
+    with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+        return call(*args, **kwargs)
+
+
 class VideoTests(unittest.TestCase):
+    def test_frame_delay_matches_kept_frame_rate(self):
+        # 25fps source at default 10fps keeps every 2nd frame: 12.5fps, so 80ms per frame.
+        self.assertEqual(VIDEO.frame_timing(25, 10), (2, 80))
+        self.assertEqual(VIDEO.frame_timing(30, 10), (3, 100))
+        # Requests faster than the GIF floor skip more frames instead of using clamped delays.
+        self.assertEqual(VIDEO.frame_timing(25, 60), (1, 40))
+        self.assertEqual(VIDEO.frame_timing(60, 60), (2, 33))
+        for src in (24, 25, 30, 60, 120):
+            for fps in (1, 5, 10, 30, 60, 100):
+                skip, duration = VIDEO.frame_timing(src, fps)
+                self.assertGreaterEqual(duration, VIDEO.MIN_FRAME_MS)
+                self.assertAlmostEqual(duration, 1000 * skip / src, delta=0.5)
+
     def test_requested_settings_reach_conversion(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "demo.gif"
@@ -85,11 +109,11 @@ class VideoTests(unittest.TestCase):
                 path.write_bytes(b"gif")
 
             with patch.object(VIDEO, "check_gifsicle", return_value=False), \
-                 patch.object(VIDEO, "decode_webm", return_value=[object()]) as decode, \
+                 patch.object(VIDEO, "decode_webm", return_value=([object()], 80)) as decode, \
                  patch.object(VIDEO, "save_gif", side_effect=save) as encode:
-                VIDEO.enforce_size_limit(Path("input.webm"), output, 1024, fps=5, max_width=320, colors=32)
+                quiet(VIDEO.enforce_size_limit, Path("input.webm"), output, 1024, fps=5, max_width=320, colors=32)
             decode.assert_called_once_with(Path("input.webm"), target_fps=5, max_width=320)
-            self.assertEqual(encode.call_args.kwargs, {"fps": 5, "colors": 32})
+            self.assertEqual(encode.call_args.kwargs, {"duration_ms": 80, "colors": 32})
             self.assertEqual(output.read_bytes(), b"gif")
 
     def test_reductions_never_increase_requested_quality(self):
@@ -100,10 +124,10 @@ class VideoTests(unittest.TestCase):
                 path.write_bytes(b"too large")
 
             with patch.object(VIDEO, "check_gifsicle", return_value=False), \
-                 patch.object(VIDEO, "decode_webm", return_value=[object()] * 100) as decode, \
+                 patch.object(VIDEO, "decode_webm", return_value=([object()] * 100, 200)) as decode, \
                  patch.object(VIDEO, "save_gif", side_effect=save) as encode:
                 with self.assertRaises(SystemExit):
-                    VIDEO.enforce_size_limit(Path("input.webm"), output, 1, fps=5, max_width=320, colors=32)
+                    quiet(VIDEO.enforce_size_limit, Path("input.webm"), output, 1, fps=5, max_width=320, colors=32)
             self.assertEqual(decode.call_count, 2)
             self.assertTrue(all(c.kwargs == {"target_fps": 5, "max_width": 320} for c in decode.call_args_list))
             self.assertEqual(len(encode.call_args.args[0]), 50)
@@ -118,12 +142,12 @@ class VideoTests(unittest.TestCase):
                  patch.object(VIDEO, "check_gifsicle", return_value=True), \
                  patch.object(VIDEO, "OUTPUT_DIR", Path(directory)), \
                  patch.object(VIDEO, "enforce_size_limit") as convert:
-                VIDEO.main()
+                quiet(VIDEO.main)
             self.assertEqual(convert.call_args.args[3:], (5, 320, 32))
             with patch.object(VIDEO.sys, "argv", argv + ["--fps", "0"]), \
                  patch.object(VIDEO, "ensure_dependencies") as dependencies:
                 with self.assertRaises(SystemExit) as caught:
-                    VIDEO.main()
+                    quiet(VIDEO.main)
             self.assertEqual(caught.exception.code, 2)
             dependencies.assert_not_called()
 
