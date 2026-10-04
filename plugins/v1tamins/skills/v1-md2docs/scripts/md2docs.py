@@ -115,49 +115,44 @@ def render_mermaid_blocks(md_text):
         return md_text, []
 
     images = []
-    counter = [0]
 
     def replace_mermaid(m):
-        mermaid_source = m.group(1)
-        idx = counter[0]
-        counter[0] += 1
-
+        # Each attempt owns its files; failed renders cannot reuse another
+        # document's output or leave source text in the shared temp directory.
         try:
-            # Write mermaid source to temp file
-            mmd_file = os.path.join(tempfile.gettempdir(), f"md2docs_mermaid_{idx}.mmd")
-            png_file = os.path.join(tempfile.gettempdir(), f"md2docs_mermaid_{idx}.png")
-            with open(mmd_file, "w") as f:
-                f.write(mermaid_source)
-
-            # Try global mmdc first, fall back to npx
-            rendered = False
-            if mmdc:
-                result = subprocess.run(
-                    [mmdc, "-i", mmd_file, "-o", png_file, "-b", "white", "-s", "2"],
-                    capture_output=True, timeout=30,
-                )
-                rendered = result.returncode == 0
-            if not rendered and npx:
-                subprocess.run(
-                    [npx, "--yes", "@mermaid-js/mermaid-cli",
-                     "-i", mmd_file, "-o", png_file, "-b", "white", "-s", "2"],
-                    capture_output=True, timeout=60,
-                )
-
-            if os.path.exists(png_file):
-                with open(png_file, "rb") as f:
-                    b64 = base64.b64encode(f.read()).decode()
-                os.unlink(mmd_file)
-                os.unlink(png_file)
-                img_html = f'<img src="data:image/png;base64,{b64}" style="max-width:100%">'
-                images.append(img_html)
-                # Use a placeholder that won't be mangled by markdown
-                return f"\n\nMERMAID_IMAGE_{idx}\n\n"
-        except Exception:
+            with tempfile.TemporaryDirectory(prefix="md2docs-mermaid-") as temp_dir:
+                mmd_file = Path(temp_dir) / "diagram.mmd"
+                png_file = Path(temp_dir) / "diagram.png"
+                mmd_file.write_text(m.group(1), encoding="utf-8")
+                commands = []
+                if mmdc:
+                    commands.append(([mmdc], 30))
+                if npx:
+                    commands.append(([npx, "--yes", "@mermaid-js/mermaid-cli"], 60))
+                for command, timeout in commands:
+                    # A failed renderer can still leave a partial output.
+                    png_file.unlink(missing_ok=True)
+                    result = subprocess.run(
+                        command + ["-i", str(mmd_file), "-o", str(png_file),
+                                   "-b", "white", "-s", "2"],
+                        capture_output=True, timeout=timeout,
+                    )
+                    if result.returncode != 0 or not png_file.is_file():
+                        continue
+                    content = png_file.read_bytes()
+                    if not content:
+                        continue
+                    b64 = base64.b64encode(content).decode()
+                    idx = len(images)
+                    images.append(
+                        f'<img src="data:image/png;base64,{b64}" style="max-width:100%">'
+                    )
+                    return f"\n\nMERMAID_IMAGE_{idx}\n\n"
+        except (OSError, subprocess.SubprocessError):
             pass
 
-        # Fallback: render as regular code block
-        return m.group(0).replace("```mermaid", "```")
+        # Preserve the source when rendering fails.
+        return m.group(0).replace("```mermaid", "```", 1)
 
     md_text = re.sub(
         r"```mermaid\s*\n(.*?)```",
@@ -172,9 +167,8 @@ def render_mermaid_blocks(md_text):
 def inject_mermaid_images(html, images):
     """Replace MERMAID_IMAGE_N placeholders with actual <img> tags."""
     for i, img_html in enumerate(images):
-        html = html.replace(f"MERMAID_IMAGE_{i}", img_html)
-        # Also catch it wrapped in <p> tags
-        html = html.replace(f"<p>MERMAID_IMAGE_{i}</p>", img_html)
+        html = re.sub(rf"<p>MERMAID_IMAGE_{i}</p>|\bMERMAID_IMAGE_{i}\b",
+                      lambda _: img_html, html)
     return html
 
 
