@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Characterization tests for the bounded, stdin-safe peer runner.
 
-set -euo pipefail
+set -Eeuo pipefail
+trap 'printf "peer-run contract failed at line %s (exit %s)\n" "$LINENO" "$?" >&2' ERR
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUNNER="$ROOT_DIR/plugins/v1tamins/skills/v1-phone-a-friend/scripts/peer-run.sh"
@@ -98,6 +99,21 @@ if grep -q 'stdin-was-open' "$TEST_DIR/output/peer.stdout"; then
   exit 1
 fi
 
+# Publish DONE during observation, after its first read but before process
+# liveness is checked. A completed wrapper must not be reported as stalled.
+RACE_DIR="$TEST_DIR/sentinel-race"
+mkdir -p "$RACE_DIR" "$TEST_DIR/race-bin"
+printf '999999999\n' > "$RACE_DIR/peer.pid"
+printf '999999999\n' > "$RACE_DIR/peer.child.pid"
+printf '9999999999\n' > "$RACE_DIR/peer.deadline"
+printf 'final answer\n' > "$RACE_DIR/peer.stdout"
+: > "$RACE_DIR/peer.stderr"
+printf '%s\n' '#!/usr/bin/env bash' 'printf "DONE rc=0\n" > "$RACE_DONE"' 'printf "0\n"' > "$TEST_DIR/race-bin/date"
+chmod +x "$TEST_DIR/race-bin/date"
+RACE_DONE="$RACE_DIR/peer.done" PATH="$TEST_DIR/race-bin:$PATH" \
+  "$RUNNER" verdict --dir "$TEST_DIR" --slug sentinel-race --json > "$TEST_DIR/sentinel-race.json"
+[ "$(json_field "$TEST_DIR/sentinel-race.json" state)" = 'complete' ]
+
 # A clean empty exit is a typed empty_output, not success by exit code.
 "$RUNNER" launch --dir "$TEST_DIR" --slug empty --deadline-seconds 5 -- "$FAKE_EMPTY" >/dev/null
 poll_verdict "$TEST_DIR" empty "$TEST_DIR/empty.json"
@@ -140,6 +156,20 @@ poll_verdict "$TEST_DIR" reuse "$TEST_DIR/reuse.json"
 [ "$(json_field "$TEST_DIR/reuse.json" state)" = 'complete' ]
 "$RUNNER" teardown --dir "$TEST_DIR" --slug reuse >/dev/null
 
+# Earlier assistant prose cannot mask a final provider error.
+FAKE_JSON_ERROR="$TEST_DIR/fake-json-error.sh"
+cat > "$FAKE_JSON_ERROR" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' '{"type":"assistant","text":"Review started"}'
+printf '%s\n' '{"type":"result","is_error":true,"result":"Provider rejected the request"}'
+exit 1
+SH
+chmod +x "$FAKE_JSON_ERROR"
+"$RUNNER" launch --dir "$TEST_DIR" --slug terminal-error --deadline-seconds 5 -- "$FAKE_JSON_ERROR" >/dev/null
+poll_verdict "$TEST_DIR" terminal-error "$TEST_DIR/terminal-error.json"
+[ "$(json_field "$TEST_DIR/terminal-error.json" state)" = 'failed' ]
+[ "$(json_field "$TEST_DIR/terminal-error.json" envelope_family)" = 'terminal_error' ]
+
 # JSON / stream-json framing without a terminal answer is empty_output, not complete.
 FAKE_JSON_FRAME="$TEST_DIR/fake-json-frame.sh"
 printf '%s\n' '#!/usr/bin/env bash' \
@@ -178,7 +208,7 @@ poll_verdict "$TEST_DIR" nested "$TEST_DIR/nested.json"
 [ "$(json_field "$TEST_DIR/nested.json" state)" = 'complete' ]
 [ "$(json_field "$TEST_DIR/nested.json" envelope_family)" = 'result_event_nested' ]
 
-# A nested terminal envelope reporting failure is empty_output, not complete.
+# A nested terminal envelope reporting failure has a distinct failed state.
 FAKE_NESTED_ERROR="$TEST_DIR/fake-nested-error.sh"
 cat > "$FAKE_NESTED_ERROR" <<'PEER'
 #!/usr/bin/env bash
@@ -191,7 +221,7 @@ PEER
 chmod +x "$FAKE_NESTED_ERROR"
 "$RUNNER" launch --dir "$TEST_DIR" --slug nested-error --deadline-seconds 5 -- "$FAKE_NESTED_ERROR" >/dev/null
 poll_verdict "$TEST_DIR" nested-error "$TEST_DIR/nested-error.json"
-[ "$(json_field "$TEST_DIR/nested-error.json" state)" = 'empty_output' ]
+[ "$(json_field "$TEST_DIR/nested-error.json" state)" = 'failed' ]
 
 # Reasoning and tool traffic without an answer block is empty_output.
 FAKE_THINKING="$TEST_DIR/fake-thinking.sh"

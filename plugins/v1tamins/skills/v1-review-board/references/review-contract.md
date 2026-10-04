@@ -97,7 +97,7 @@ alternative before asking for a roster choice:
 | Prompt | Named profile, resolved source, and source digest. |
 | Permission | `readonly` for the default Board proposal, verified after the run against the recorded boundary. |
 | Auth policy | `eligible`, `not_authenticated`, `auth_not_verified`, `blocked_api_key_present`, `explicit_api_mode`, or `api_key_required`. |
-| Launch state | `eligible` or a distinct typed failure such as `model_unresolved` or `launch_unrepresentable`. |
+| Launch state | `eligible` or a distinct typed failure such as `model_unresolved`, `model_unverified`, or `launch_unrepresentable`. |
 | Catalog confidence | `verified` or `unresolved` from provider catalog commands only. |
 | Prompt status | `resolved`, `degraded` (missing source), or `unresolved`. |
 | Deadline | Explicit maximum lifecycle. |
@@ -180,8 +180,8 @@ Git state alone. The full contract is the read-only boundary section of
 Poll each slug across turns (`status`), read `verdict --json` (judged by
 substantive output, not exit code), and tear down stragglers by recorded PID
 only. One peer stalling never blocks the others — slugs are isolated. Record
-which selected peers completed, were partial, timed out, execution-uncertain,
-or were skipped. After dispatch, auth/model/workflow failures do not trigger
+which selected peers completed, were partial, failed, returned empty output,
+timed out, stalled, were execution-uncertain, or were skipped. After dispatch, auth/model/workflow failures do not trigger
 retries or replacement fan-out.
 
 ### Dispatch boundary
@@ -206,7 +206,7 @@ short:
 
 ## Convergence Ledger
 
-After every peer is complete or stalled, **verify each finding against the working tree before acting on it**, then emit:
+After every peer reaches a terminal state (`complete`, `failed`, `empty_output`, `stalled`, or `timed_out`), **verify each finding against the working tree before acting on it**, then emit:
 
 ```text
 | # | Finding                                            | Peers | Disposition          |

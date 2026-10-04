@@ -283,8 +283,27 @@ class PeerContractTests(unittest.TestCase):
         )
         self.assertEqual(errors, [])
         self.assertEqual(len(selected), 1)
-        self.assertEqual(selected[0].launch_state, "eligible")
+        self.assertEqual(selected[0].launch_state, "model_unverified")
         self.assertEqual(alternatives, [])
+
+    def test_explicit_model_requires_a_provider_namespace(self) -> None:
+        selected, alternatives, errors = peer_catalog.build_candidates(
+            [], "quality", 1, None, "provider-specific-model", None
+        )
+        self.assertEqual(selected, [])
+        self.assertEqual(alternatives, [])
+        self.assertEqual(errors, [{"code": "model_provider_required"}])
+
+    def test_explicit_unavailable_provider_is_rejected(self) -> None:
+        provider = make_provider(cli="agy", installed=False, models=[])
+        selected, alternatives, errors = peer_catalog.build_candidates(
+            [provider], "quality", 1, "agy", None, None
+        )
+        self.assertEqual(selected, [])
+        self.assertEqual(alternatives, [])
+        self.assertEqual(
+            errors, [{"cli": "agy", "code": "provider_not_installed"}]
+        )
 
     def test_catalog_less_installed_peer_is_visible_ineligible_candidate(self) -> None:
         provider = make_provider(
@@ -787,7 +806,7 @@ class SubscriptionDiscoveryTests(unittest.TestCase):
             [provider], "custom", 1, "claude", "fake-alias", "high"
         )
         self.assertEqual(errors, [])
-        self.assertEqual(selected[0].launch_state, "eligible")
+        self.assertEqual(selected[0].launch_state, "model_unverified")
         self.assertEqual(selected[0].launch_model_argument, "fake-alias")
         self.assertEqual(selected[0].representation, "alias")
 
@@ -1091,6 +1110,14 @@ class PeerLaunchTests(unittest.TestCase):
         self.assertIn("--force", recipe.argv)
         self.assertEqual(recipe.argv[recipe.argv.index("--worktree") + 1], "synthetic-tree")
 
+    def test_agy_keeps_plain_text_and_records_run_specific_log(self) -> None:
+        recipe = self.recipe("agy", model="fake-strong", reasoning="high",
+                             context=peer_launch.LaunchContext(run_dir="synthetic-run"))
+        # Antigravity stream-json output is unverified live; keep plain text.
+        self.assertNotIn("--output-format", recipe.argv)
+        self.assertEqual(recipe.argv[recipe.argv.index("--log-file") + 1], "synthetic-run/provider.log")
+        self.assertEqual(recipe.argv[-2], "--print")
+
     def test_agy_keeps_print_adjacent_to_the_prompt(self) -> None:
         recipe = self.recipe("agy", model="fake-strong", reasoning="high")
         self.assertEqual(recipe.argv[-2], "--print")
@@ -1257,27 +1284,129 @@ class PeerVerdictTests(unittest.TestCase):
             )
         )
 
+    def test_terminal_error_overrides_earlier_assistant_text(self) -> None:
+        text = stream(
+            {"type": "assistant", "message": {"content": [{"type": "text", "text": "Working on the review"}]}},
+            {"type": "result", "is_error": True, "result": "Model rejected"},
+        )
+        verdict = peer_verdict.classify_text(text)
+        self.assertFalse(verdict.answer)
+        self.assertEqual(verdict.envelope_family, "terminal_error")
+        self.assertFalse(peer_verdict.classify_text("warning from launcher\n" + text).answer)
+        self.assertFalse(peer_verdict.classify_text(json.dumps([
+            {"type": "assistant", "text": "Partial findings"},
+            {"type": "result", "is_error": True, "result": "Failed"},
+        ], indent=2)).answer)
+
+    def test_success_receipt_preserves_answer_from_assistant_event(self) -> None:
+        self.assertAnswer(stream(
+            {"type": "assistant", "text": "Review findings"},
+            {"type": "result", "is_error": False, "subtype": "success"},
+        ), "assistant_message")
+
+    def test_final_success_supersedes_an_earlier_failure(self) -> None:
+        verdict = peer_verdict.classify_text(stream(
+            {"type": "result", "is_error": True, "result": "Earlier failure"},
+            {"type": "result", "is_error": False, "result": "Completed review"},
+        ))
+        self.assertTrue(verdict.answer)
+        self.assertEqual(verdict.envelope_family, "result_text")
+
+    def test_retryable_codex_error_before_completed_turn_is_not_a_failure(self) -> None:
+        # Realistic `codex exec --json` framing: a reconnect notification is a
+        # bare `error` event, and `turn.completed` is the success terminal.
+        # The nested agent_message shape is not yet read as an answer (tracked
+        # separately), so assert only that the run is not a terminal failure.
+        verdict = peer_verdict.classify_text(stream(
+            {"type": "thread.started", "thread_id": "synthetic-thread"},
+            {"type": "error", "message": "Reconnecting... 1/5", "will_retry": True},
+            {"type": "item.completed", "item": {"id": "item_0", "type": "agent_message", "text": "Review findings"}},
+            {"type": "turn.completed", "usage": {"input_tokens": 1, "output_tokens": 1}},
+        ))
+        self.assertNotEqual(verdict.envelope_family, "terminal_error")
+        # The same framing with an answer shape the classifier reads completes.
+        self.assertAnswer(stream(
+            {"type": "thread.started", "thread_id": "synthetic-thread"},
+            {"type": "error", "message": "Reconnecting... 1/5", "will_retry": True},
+            {"type": "item.completed", "text": "Review findings"},
+            {"type": "turn.completed", "usage": {"input_tokens": 1, "output_tokens": 1}},
+        ), "item_completed")
+
+    def test_bare_error_followed_only_by_framing_is_terminal(self) -> None:
+        self.assertNoAnswer(stream(
+            {"type": "assistant", "text": "Partial findings"},
+            {"type": "error", "message": "Stream disconnected"},
+            {"type": "status", "message": "exiting"},
+        ), "terminal_error")
+        self.assertNoAnswer(stream(
+            {"type": "assistant", "text": "Partial findings"},
+            {"type": "turn.failed", "error": {"message": "Stream disconnected"}},
+        ), "terminal_error")
+
     def test_error_envelopes_are_rejected_at_every_level(self) -> None:
         self.assertNoAnswer(
-            stream({"type": "result", "result": "failed", "is_error": True})
+            stream({"type": "result", "result": "failed", "is_error": True}), "terminal_error"
         )
         self.assertNoAnswer(
-            stream({"type": "result", "subtype": "error", "result": "boom"})
+            stream({"type": "result", "subtype": "error", "result": "boom"}), "terminal_error"
         )
         self.assertNoAnswer(
             stream(
                 {"event": "result", "result": {"status": "FAILED", "response": "boom"}}
+            ), "terminal_error"
+        )
+
+    def test_nested_type_and_event_errors_are_terminal_failures(self) -> None:
+        for key in ("type", "event"):
+            verdict = peer_verdict.classify_text(
+                stream(
+                    {"type": "assistant", "text": "Partial findings"},
+                    {
+                        "type": "result",
+                        "result": {
+                            "status": "SUCCESS",
+                            "response": {key: "error", "message": "Provider rejected"},
+                        },
+                    },
+                )
             )
+            self.assertFalse(verdict.answer, key)
+            self.assertEqual(verdict.envelope_family, "terminal_error")
+            direct_response = peer_verdict.classify_text(
+                stream(
+                    {"type": "assistant", "text": "Partial findings"},
+                    {
+                        "type": "result",
+                        "response": {key: "error", "message": "Provider rejected"},
+                    },
+                )
+            )
+            self.assertFalse(direct_response.answer, key)
+            self.assertEqual(direct_response.envelope_family, "terminal_error")
+
+    def test_error_words_inside_answer_text_are_not_error_envelopes(self) -> None:
+        self.assertAnswer(
+            stream(
+                {
+                    "type": "result",
+                    "result": {
+                        "status": "SUCCESS",
+                        "response": "The type error is explained in this answer.",
+                    },
+                }
+            ),
+            "result_event_nested",
         )
 
     def test_plain_text_and_empty_output(self) -> None:
         self.assertAnswer("substantive synthetic peer output\n", "plain_text")
         self.assertNoAnswer("   \n\n", "empty")
 
-    def test_mixed_prose_and_json_lines_stay_plain_text(self) -> None:
-        self.assertAnswer(
-            'warming up\n{"type":"system","subtype":"init"}\n', "plain_text"
-        )
+    def test_plain_text_with_json_values_remains_an_answer(self) -> None:
+        self.assertAnswer('Found this many issues:\n2\n{"count": 2}\n', "plain_text")
+
+    def test_mixed_prose_and_json_framing_is_not_an_answer(self) -> None:
+        self.assertNoAnswer('warming up\n{"type":"system","subtype":"init"}\n')
 
     def test_pretty_printed_document_is_classified(self) -> None:
         self.assertAnswer(

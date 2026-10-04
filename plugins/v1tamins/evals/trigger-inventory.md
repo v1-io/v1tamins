@@ -51,3 +51,5 @@ table focused on routing evidence and invocation posture.
 | `v1-write-tests` | Strong new-coverage trigger; keep separate from failing-suite repair. | "add unit tests for this parser"; "write coverage for the new behavior" | `v1-fix-tests`, `v1-e2e-testing`, `v1-debug` | high-recall implicit | low |
 | `v1-skin-suit` | Natural prose from scratch, rewrites, and task-scoped writing guidance. | "sound less AI"; "write like a person"; "less corporate"; "draft a quick friendly reply" | `v1-stickify`, `v1-pr-description`, `v1-refine` | implicit; no existing draft required; no external actions | low |
 | `v1-what-next` | Right trigger: next-step recommendation and thread reorientation; one decisive named-source read is allowed, implementation is not. | "what next"; "what should we work on now"; "where were we"; "that's done, what else is there" | `v1-menu`, `v1-interview-me`, `v1-bare-bones` | implicit; read-only, proposes without acting | low |
+
+Peer selection keeps provider namespaces separate: an unverified literal needs explicit acceptance. Quiet stdout before a deadline is observation work, not a new peer launch or completed review.

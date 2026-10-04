@@ -24,6 +24,7 @@ LaunchState = Literal[
     "api_key_required",
     "auth_unverified",
     "model_unresolved",
+    "model_unverified",
     "launch_unrepresentable",
 ]
 # How the selected model ID was established, not where it will be sent.

@@ -36,7 +36,7 @@ Usage:
   peer-run.sh verdict  --dir <run-dir> --slug <slug> [--json]
   peer-run.sh teardown --dir <run-dir> --slug <slug>
 
-States: running | complete | empty_output | stalled | timed_out
+States: running | complete | failed | empty_output | stalled | timed_out
 EOF
 }
 
@@ -183,6 +183,19 @@ terminate_recorded() {
   terminate_peer_processes "$pidfile" "$childpidfile" "$sessfile" 10
 }
 
+resolve_done_state() {
+  if has_peer_answer "$outfile"; then
+    printf 'complete\n'
+    return 0
+  fi
+  if [ "$(python3 "$VERDICT_HELPER" family "$outfile")" = "terminal_error" ]; then
+    printf 'failed\n'
+  else
+    printf 'empty_output\n'
+  fi
+  return 1
+}
+
 resolve_state() {
   local cpid lpid
   cpid="$(peer_read_number "$childpidfile")"
@@ -191,20 +204,15 @@ resolve_state() {
   # A done sentinel is the terminal boundary. Zombie wrappers can still answer
   # kill -0, so never treat "alive" as stronger than a recorded exit.
   if [ -f "$donefile" ]; then
-    if has_peer_answer "$outfile"; then
-      printf 'complete\n'
-      return 0
-    fi
-    printf 'empty_output\n'
-    return 1
+    resolve_done_state
+    return "$?"
   fi
 
   if deadline_expired; then
-    if peer_alive "$cpid" || peer_alive "$lpid"; then
-      printf 'timed_out\n'
-      return 1
+    if [ -f "$donefile" ]; then
+      resolve_done_state
+      return "$?"
     fi
-    # Deadline passed, process gone, no done sentinel: interrupted/stalled.
     printf 'timed_out\n'
     return 1
   fi
@@ -212,6 +220,13 @@ resolve_state() {
   if peer_alive "$cpid" || peer_alive "$lpid"; then
     printf 'running\n'
     return 2
+  fi
+
+  # The wrapper can publish DONE and exit during the liveness checks. Read
+  # the sentinel again before declaring a vanished process stalled.
+  if [ -f "$donefile" ]; then
+    resolve_done_state
+    return "$?"
   fi
 
   # Content without a done sentinel is an interrupted recorder, not complete.
@@ -353,6 +368,7 @@ EOF
       case "$state" in
         complete) printf 'complete (content=%s bytes, rc=%s)\n' "$output_bytes" "$exit_code" ;;
         running) printf 'running (no terminal sentinel yet; process is alive)\n' ;;
+        failed) printf 'failed (provider reported a terminal error; rc=%s)\n' "$exit_code" ;;
         empty_output) printf 'empty_output (exited rc=%s with no substantive output; envelope=%s, dispatch=%s)\n' "$exit_code" "$envelope_family" "$dispatch_state" ;;
         timed_out) printf 'timed_out (deadline exceeded)\n' ;;
         *) printf 'stalled (vanished without substantive output or terminal sentinel)\n' ;;

@@ -153,13 +153,13 @@ RUN_DIR="<host-scratch-dir>/v1-phone-a-friend/<run-slug>"
 "$PEER_RUN" launch --dir "$RUN_DIR" --slug codex  --deadline-seconds 900 -- <codex-wrapper>
 "$PEER_RUN" launch --dir "$RUN_DIR" --slug claude --deadline-seconds 900 -- <claude-wrapper>
 
-# Poll across turns until each slug is complete or stalled, then read the verdict:
-"$PEER_RUN" status  --dir "$RUN_DIR" --slug codex     # running | complete | empty_output | stalled | timed_out
+# Poll across turns until each slug reaches a terminal state, then read the verdict:
+"$PEER_RUN" status  --dir "$RUN_DIR" --slug codex     # running | complete | failed | empty_output | stalled | timed_out
 "$PEER_RUN" verdict --dir "$RUN_DIR" --slug codex --json
 "$PEER_RUN" teardown --dir "$RUN_DIR" --slug codex    # PID-scoped kill; never pkill -f
 ```
 
-The helper owns the contract: stdin closed per launch, detached background, sentinels recording both the launched leader and the **real peer pid**, a watchdog deadline, teardown that reaps the actual peer (its process group when a true session was created, else the recorded peer pid — always PID/PGID-derived, never a pattern kill), and a single state resolver shared by `status` and `verdict` so they never disagree. Completion is **judged by substantive peer answer rather than exit code** — plain-text content under a nonzero/odd exit code is `complete`; JSON / `stream-json` / `--json` stdout counts as `complete` only when a terminal answer payload is present (framing, progress, reasoning, tool, or error-only events alone are `empty_output`); an empty exit is `empty_output`; a process still alive with no terminal sentinel is `running`; a deadline breach is `timed_out`. `scripts/peer_verdict.py` makes that call from the output shape and reports the matching `envelope_family`, so a provider that nests its answer below the terminal event still resolves to `complete`. Before launching, record the selected catalog and prompt fingerprints, deadline, and check-in cadence. If a peer dies, stalls, or becomes execution-uncertain, do not retry or switch automatically; report the typed result and ask for a new explicit selection. A deterministic wrapper failure *before* dispatch is different: it allows exactly one bounded repair of the same approved seat. See the dispatch boundary in `references/peer-execution-contract.md`. On the `nohup` fallback and for long runs, also use the host's own background primitive (e.g. Claude Code `run_in_background`).
+The helper owns the contract: stdin closed per launch, detached background, sentinels recording both the launched leader and the **real peer pid**, a watchdog deadline, teardown that reaps the actual peer (its process group when a true session was created, else the recorded peer pid — always PID/PGID-derived, never a pattern kill), and a single state resolver shared by `status` and `verdict` so they never disagree. Completion is **judged by substantive peer answer rather than exit code** — plain-text content under a nonzero/odd exit code is `complete`; JSON / `stream-json` / `--json` stdout counts as `complete` only when a terminal answer payload is present (framing, progress, reasoning, tool, or error-only events alone are `empty_output`); a final terminal error is `failed` even after earlier assistant text; an empty exit is `empty_output`; a process still alive with no terminal sentinel is `running`; a deadline breach is `timed_out`. `scripts/peer_verdict.py` makes that call from the output shape and reports the matching `envelope_family`, so a provider that nests its answer below the terminal event still resolves to `complete`. Before launching, record the selected catalog and prompt fingerprints, deadline, and check-in cadence. If a peer dies, stalls, or becomes execution-uncertain, do not retry or switch automatically; report the typed result and ask for a new explicit selection. A deterministic wrapper failure *before* dispatch is different: it allows exactly one bounded repair of the same approved seat. See the dispatch boundary in `references/peer-execution-contract.md`. On the `nohup` fallback and for long runs, also use the host's own background primitive (e.g. Claude Code `run_in_background`).
 
 If the helper is unavailable, the manual equivalent is `( "$PEER_ENV" --provider <provider> --auth-mode subscription_native -- <peer-command> </dev/null >"$RUN_DIR/<peer>.stdout" 2>"$RUN_DIR/<peer>.stderr"; printf 'DONE rc=%s\n' "$?" >"$RUN_DIR/<peer>.done" ) &` with `$!` saved to `<peer>.pid` — but this lacks true detachment, a watchdog, and the full typed verdict, so report the degradation and pair it with the host's background primitive. API mode must be an explicit user selection in the manual wrapper too.
 
@@ -320,6 +320,15 @@ Use `--force` only for trusted verification or delegation. If the installed CLI 
 
 Use Antigravity CLI (`agy`) when installed and authenticated, especially for Gemini-backed large-context, multimodal, or Google-grounded packets.
 
+Pass `--run-dir` to the recipe helper with this seat's disposable directory so
+`--log-file` records its activity there. The adapter keeps plain-text stdout:
+Antigravity's `stream-json` output has not been verified against a live run.
+`--probe-syntax` checks the flags against the installed CLI. Silence on stdout
+is not a stall: keep observing the runner and the run-specific log until its
+selected deadline. Activity proves progress, never a completed review. Report
+permission waits or unavailable activity evidence without inventing completion.
+`--sandbox` describes terminal restrictions, not verified filesystem containment.
+
 Capability probe:
 
 ```bash
@@ -341,6 +350,7 @@ Read-only consult:
 "$PEER_ENV" --provider agy --auth-mode subscription_native -- agy \
   --sandbox \
   --print-timeout 5m \
+  --log-file "<run-dir>/provider.log" \
   --model "<current-model-from-catalog>" \
   --effort "<current-reasoning-level>" \
   --print "$PHONE_A_FRIEND_PROMPT" < /dev/null
@@ -354,6 +364,7 @@ Trusted verification or isolated delegation:
 "$PEER_ENV" --provider agy --auth-mode subscription_native -- agy \
   --dangerously-skip-permissions \
   --print-timeout 5m \
+  --log-file "<run-dir>/provider.log" \
   --model "<current-model-from-catalog>" \
   --effort "<current-reasoning-level>" \
   --print "$PHONE_A_FRIEND_PROMPT" < /dev/null

@@ -68,8 +68,12 @@ TYPE_FAMILY = {
     "agent.completed": "item_completed",
 }
 
+# Envelopes that close a run or turn successfully without carrying the answer.
+SUCCESS_TERMINAL_TYPES = frozenset({"turn.completed", "response.completed"})
+
 ERROR_SUBTYPES = frozenset({"error", "failure", "failed"})
 ERROR_STATUSES = frozenset({"error", "failed", "failure"})
+ERROR_ENVELOPE_TYPES = frozenset({"error", "failure", "failed"})
 
 # Families reported when no terminal answer was found.
 EMPTY_FAMILY = "empty"
@@ -188,11 +192,34 @@ def is_error_object(obj: dict[str, Any]) -> bool:
 
     if obj.get("is_error") is True:
         return True
+    envelope = str(obj.get("type") or obj.get("event") or "").strip().lower()
+    if envelope in ERROR_ENVELOPE_TYPES:
+        return True
     if str(obj.get("subtype") or "").strip().lower() in ERROR_SUBTYPES:
         return True
     status = obj.get("status")
     if isinstance(status, str) and status.strip().lower() in ERROR_STATUSES:
         return True
+    return False
+
+
+def contains_error_envelope(value: Any, depth: int = 0) -> bool:
+    """Find structured error metadata without inspecting ordinary text."""
+
+    if depth > MAX_DEPTH:
+        return False
+    if isinstance(value, dict):
+        if is_error_object(value):
+            return True
+        return any(
+            contains_error_envelope(child, depth + 1)
+            for child in value.values()
+        )
+    if isinstance(value, list):
+        return any(
+            contains_error_envelope(item, depth + 1)
+            for item in value
+        )
     return False
 
 
@@ -252,6 +279,40 @@ def object_answer_family(obj: Any) -> str | None:
 
 
 def first_answer_family(objects: list[Any]) -> str | None:
+    # The final run-level result owns the outcome. Earlier assistant messages
+    # can be progress or useful partial output from a run that later failed.
+    # A bare ``error`` event can be a retryable notification (for example a
+    # reconnect), so it is terminal only when nothing but framing follows it.
+    later_activity = False
+    for obj in reversed(objects):
+        if not isinstance(obj, dict):
+            continue
+        typ = envelope_type(obj)
+        if typ == "error" and later_activity:
+            continue
+        if typ in SUCCESS_TERMINAL_TYPES:
+            if is_error_object(obj):
+                return "terminal_error"
+            # A completed turn supersedes earlier notifications; read the
+            # answer from the events it closed.
+            break
+        if typ not in {"result", "error", "turn.failed", "response.failed"}:
+            if typ not in FRAMING_TYPES:
+                later_activity = True
+            continue
+        if (is_error_object(obj) or typ != "result"
+                or any(
+                    contains_error_envelope(obj[key])
+                    for key in ANSWER_KEYS
+                    if key in obj
+                )):
+            return "terminal_error"
+        family = object_answer_family(obj)
+        if family is not None:
+            return family
+        # Some providers put text only in assistant events and finish with
+        # a successful result containing metrics. Preserve that answer.
+        break
     for obj in objects:
         family = object_answer_family(obj)
         if family is not None:
@@ -283,19 +344,23 @@ def classify_text(text: str) -> Verdict:
     # Every non-empty line parsed: this is a stream of events, not a document.
     if nonempty and json_lines == nonempty:
         family = first_answer_family(objects)
-        return Verdict(family is not None, family or UNKNOWN_FAMILY)
+        return Verdict(family not in (None, "terminal_error"), family or UNKNOWN_FAMILY)
 
     try:
         payload = json.loads(stripped)
     except json.JSONDecodeError:
-        # Plain text with non-whitespace content is its own answer.
+        # Provider warnings may surround JSON events. A terminal error still
+        # wins; mixed framing must not turn a failed run into plain-text success.
+        if any(isinstance(obj, dict) and envelope_type(obj) for obj in objects):
+            family = first_answer_family(objects)
+            return Verdict(family not in (None, "terminal_error"), family or UNKNOWN_FAMILY)
         return Verdict(True, PLAIN_TEXT_FAMILY)
 
     if isinstance(payload, list):
         family = first_answer_family(payload)
-        return Verdict(family is not None, family or UNKNOWN_FAMILY)
-    family = object_answer_family(payload)
-    return Verdict(family is not None, family or UNKNOWN_FAMILY)
+        return Verdict(family not in (None, "terminal_error"), family or UNKNOWN_FAMILY)
+    family = first_answer_family([payload])
+    return Verdict(family not in (None, "terminal_error"), family or UNKNOWN_FAMILY)
 
 
 def read_capture(path: str | None) -> str:

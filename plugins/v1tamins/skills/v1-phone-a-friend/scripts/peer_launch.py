@@ -75,6 +75,7 @@ class LaunchContext:
     repo: str | None = None
     worktree: str | None = None
     print_timeout: str = DEFAULT_PRINT_TIMEOUT
+    run_dir: str | None = None
 
 
 @dataclass(frozen=True)
@@ -239,7 +240,10 @@ def build_agy(
 ) -> list[str] | LaunchError:
     argv = ["agy"]
     argv += ["--sandbox"] if permission == "readonly" else ["--dangerously-skip-permissions"]
+    # Plain-text output: Antigravity's stream-json shape is unverified live.
     argv += ["--print-timeout", context.print_timeout]
+    if context.run_dir:
+        argv += ["--log-file", str(Path(context.run_dir) / "provider.log")]
     if model:
         argv += ["--model", model]
     argv += effort_option("agy", reasoning)
@@ -446,8 +450,8 @@ def doc_examples() -> list[dict[str, str]]:
         ),
         ("cursor-agent", "readonly", LaunchContext(), None),
         ("cursor-agent", "isolated-delegate", LaunchContext(worktree="<name>"), None),
-        ("agy", "readonly", LaunchContext(), DOC_REASONING),
-        ("agy", "isolated-delegate", LaunchContext(), DOC_REASONING),
+        ("agy", "readonly", LaunchContext(run_dir="<run-dir>"), DOC_REASONING),
+        ("agy", "isolated-delegate", LaunchContext(run_dir="<run-dir>"), DOC_REASONING),
     ]
     examples: list[dict[str, str]] = []
     for cli, permission, context, reasoning in plans:
@@ -485,6 +489,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--repo")
     parser.add_argument("--worktree")
+    parser.add_argument("--run-dir", help="this seat's disposable directory for provider logs")
     parser.add_argument("--print-timeout", default=DEFAULT_PRINT_TIMEOUT)
     parser.add_argument("--version-fingerprint")
     parser.add_argument("--catalog-fingerprint")
@@ -542,7 +547,8 @@ def main(argv: list[str] | None = None) -> int:
         reasoning=args.reasoning,
         auth_mode=args.auth_mode,
         context=LaunchContext(
-            repo=args.repo, worktree=args.worktree, print_timeout=args.print_timeout
+            repo=args.repo, worktree=args.worktree, print_timeout=args.print_timeout,
+            run_dir=args.run_dir
         ),
         version_fingerprint=args.version_fingerprint,
         catalog_fingerprint=args.catalog_fingerprint,

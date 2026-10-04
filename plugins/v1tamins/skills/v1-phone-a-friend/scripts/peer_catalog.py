@@ -106,8 +106,8 @@ def choose_model(
                 )
                 explicit = True
                 # A provider with no catalog command selects by alias. The user
-                # named it, so it resolves with unresolved confidence rather
-                # than staying model_unresolved.
+                # named it, so preserve it as an unverified selection without
+                # promoting it to a verified eligible model.
                 representation = "alias" if alias_provider else "explicit"
             else:
                 return SelectionError(
@@ -241,13 +241,13 @@ def candidate_launch_state(
     if policy in {"auth_not_verified", "not_installed"}:
         return "auth_unverified"
     # eligible | explicit_api_mode
-    if provider.model_catalog.status != "resolved" and not selection.explicit:
-        return "model_unresolved"
     if selection.model is None:
         return "model_unresolved"
-    # The model resolved but the selected level has no launch argument.
+    # An unrepresentable level cannot be approved even as an unverified model.
     if selection.launch_model is None:
         return "launch_unrepresentable"
+    if selection.model_confidence != "verified":
+        return "model_unverified" if selection.explicit else "model_unresolved"
     return "eligible"
 
 
@@ -261,6 +261,13 @@ def build_candidates(
 ) -> tuple[list[Candidate], list[Candidate], list[dict[str, Any]]]:
     """Build the candidate universe once, then slice roster vs alternatives."""
 
+    if requested_model and not requested_cli:
+        return [], [], [{"code": "model_provider_required"}]
+    if requested_cli and not any(
+        provider.cli == requested_cli and provider.installed
+        for provider in providers
+    ):
+        return [], [], [{"cli": requested_cli, "code": "provider_not_installed"}]
     universe: list[Candidate] = []
     errors: list[dict[str, Any]] = []
     for provider_rank, provider in enumerate(providers):
@@ -460,6 +467,10 @@ def main() -> int:
         print(json.dumps({"ok": False, "error": {"code": "invalid_timeout"}}))
         return 2
 
+    if args.model and not args.cli:
+        print(json.dumps({"ok": False, "error": {"code": "model_provider_required"}}))
+        return 2
+
     provider_names = tuple(PROVIDERS)
     with ThreadPoolExecutor(max_workers=len(provider_names)) as pool:
         discovered = list(
@@ -514,7 +525,7 @@ def main() -> int:
     )
     # Explicit custom/model/reasoning failures are a rejected proposal, not a
     # successful discovery receipt with selection_errors buried in the body.
-    if errors and (args.profile == "custom" or args.model or args.reasoning):
+    if errors and (args.profile == "custom" or args.cli or args.model or args.reasoning):
         print(
             json.dumps(
                 {
