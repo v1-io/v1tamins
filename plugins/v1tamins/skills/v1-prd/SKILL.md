@@ -30,7 +30,7 @@ In Codex, the slash examples below map directly to `$v1-prd ...`.
 
 ### 1. Gather inputs
 - Read the supplied ticket, issue, feature request, or pasted context (title, description, acceptance criteria)
-- If an identifier or URL is supplied, use the project's documented tracker route. Do not assume a specific tracker.
+- If an identifier or URL is supplied, use the project's documented tracker route. Do not assume a specific tracker. If the project documents no route, read it with an available tool (for example, `gh issue view <url>` for a GitHub issue) or ask the user to paste it.
 - Pull linked designs, mocks, or prior context
 - If image URLs have no captions, add descriptive captions
 - Ask for missing inputs if needed
@@ -97,6 +97,7 @@ Use these sections:
 ### 4. Update the Configured Tracker (Explicit Only)
 - Return the PRD as a draft and make no external changes by default.
 - Update a ticket or issue only when the user explicitly asks and repository or project instructions identify a configured writable tracker.
+- Post the PRD as a new comment by default. Replace the ticket or issue description only when the user explicitly asks for that.
 - Use that tracker's documented route and verify the readback after updating it.
 - If no configured tracker or access is available, return the draft and state that external state was unchanged or unverified.
 

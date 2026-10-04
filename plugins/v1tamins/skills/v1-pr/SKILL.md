@@ -42,21 +42,32 @@ the exact current HEAD and create a feature branch from it before continuing:
 `git switch -c <branch-name>`. Do not switch to the default branch or stash
 the work to repair a detached checkout.
 
-Resolve the default branch from `refs/remotes/origin/HEAD`, or the base
-repository's `gh repo view --json defaultBranchRef` result. Keep it as
-`DEFAULT_BRANCH`; if neither resolves, stop before changing branches or
-pushing. Never assume an unknown default is `main`.
+Resolve the default branch from the base repository's
+`gh repo view --json defaultBranchRef` result first, falling back to
+`refs/remotes/origin/HEAD`. Keep it as `DEFAULT_BRANCH`; if neither resolves,
+stop before changing branches or pushing. Never assume an unknown default is
+`main`.
 
-**If on the resolved default branch (`$DEFAULT_BRANCH`):**
+Treat the current branch as a non-feature branch when it is the resolved
+default branch, `main`, `master`, or a branch GitHub reports as protected
+(`gh api repos/<owner>/<repo>/branches/<branch> --jq .protected`). Never commit
+or push on a non-feature branch; create a feature branch instead.
 
-- If the worktree is clean, update the base safely with
-  `git pull --ff-only origin $DEFAULT_BRANCH`, then create a feature branch.
-  Before pulling, verify `refs/remotes/origin/$DEFAULT_BRANCH` exists and
-  check `git rev-list --count origin/$DEFAULT_BRANCH..HEAD` for commits that
-  exist locally but not on the remote. If any exist, preserve them and ask the
-  user to confirm their intended scope before including them in a new PR.
-- If the worktree has changes, create the feature branch directly from the
-  current worktree with `git switch -c <branch-name>`; do not stash or pop.
+**If on a non-feature branch (the resolved base or a protected branch):**
+
+1. Run `git fetch origin`, then count commits that exist locally but not on
+   the remote with `git rev-list --count origin/<current-branch>..HEAD`
+   (use `origin/$DEFAULT_BRANCH` if `origin/<current-branch>` does not exist;
+   stop if neither ref exists). Do this before choosing a path below. If any
+   exist, preserve them and ask the user to confirm their intended scope before
+   carrying them into a new branch or PR.
+2. If the worktree is clean and there are no local-only commits, stop and
+   report that there is nothing to ship.
+3. If the worktree is clean and the user confirmed the local-only commits,
+   create the feature branch from the current HEAD with
+   `git switch -c <branch-name>`.
+4. If the worktree has changes, create the feature branch directly from the
+   current worktree with `git switch -c <branch-name>`; do not stash or pop.
 
 If already on a feature branch, keep it and proceed. Leave any pre-existing
 stash entries untouched. If a branch or base update cannot be resolved safely,
@@ -85,7 +96,7 @@ Stage and commit all meaningful changes. Follow the repository's commit conventi
 
 Do NOT commit files that likely contain secrets: `.env*`, `credentials*.json`, `service-account*.json`, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `.npmrc`, `.pypirc`, or any file listed in `.gitignore`. When in doubt, check file contents before staging.
 
-If there are no uncommitted changes but there are unpushed commits, skip to Step 3.
+If there are no uncommitted changes but there are unpushed commits, skip to Step 4.
 
 ### Step 3: Pre-commit Hooks
 
@@ -99,16 +110,29 @@ Repeat until the commit succeeds.
 
 ### Step 4: Push
 
-Verify not on the resolved default branch before pushing. Use the
-`DEFAULT_BRANCH` value from Step 1:
+Verify the current branch is a feature branch before pushing. Agent harnesses
+may run each command in a fresh shell, so this check re-resolves the default
+branch itself and fails closed when it cannot:
 ```bash
 CURRENT_BRANCH=$(git branch --show-current)
-if [ -z "$CURRENT_BRANCH" ] || [ "$CURRENT_BRANCH" = "$DEFAULT_BRANCH" ]; then
-  echo "ERROR: Refusing to push directly to the resolved default or detached HEAD"
+DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name 2>/dev/null)
+if [ -z "$DEFAULT_BRANCH" ]; then
+  DEFAULT_BRANCH=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+  DEFAULT_BRANCH=${DEFAULT_BRANCH#origin/}
+fi
+if [ -z "$DEFAULT_BRANCH" ]; then
+  echo "ERROR: Cannot resolve the default branch; refusing to push"
   exit 1
 fi
+case "$CURRENT_BRANCH" in
+  ""|"$DEFAULT_BRANCH"|main|master)
+    echo "ERROR: Refusing to push detached HEAD, the default branch, main, or master"
+    exit 1 ;;
+esac
 git push -u origin HEAD
 ```
+
+Also refuse to push when GitHub reports the current branch as protected.
 
 If the remote branch does not exist, this creates it. If push is rejected (e.g., diverged history), inform the user -- never force-push.
 

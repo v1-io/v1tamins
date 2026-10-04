@@ -45,7 +45,10 @@ The user can invoke this command without arguments from the repository containin
 2. **Commit and Push**
    - Review the diff before committing with `git diff` and, when relevant, `git diff --staged`.
    - Run the fastest relevant local validation when it is clear from the changed files.
-   - If the worktree is clean and local `HEAD` already matches its upstream, skip staging, committing, and pushing only when any existing PR's `headRefOid` also matches local `HEAD`. Never create an empty commit or no-op push; if the PR head differs, do not treat the branch as current.
+   - Run `git fetch origin` before comparing local `HEAD` with its upstream or an existing PR's `headRefOid`.
+   - If the worktree is clean and local `HEAD` already matches its upstream, skip staging, committing, and pushing only when any existing PR's `headRefOid` also matches local `HEAD`. Never create an empty commit or no-op push.
+   - If an existing PR's `headRefOid` differs from local `HEAD`, stop and report both SHAs. Integrate the remote commits only with the user's approval.
+   - Never force-push. If a push is rejected, stop and report the rejection.
    - Stage only intended files.
    - Commit with a concise message that describes the user-visible or operational value.
    - Push the branch and set upstream if needed: `git push -u origin HEAD`.
