@@ -61,7 +61,7 @@ Resolve models and the thermo-nuclear rubric path at runtime. Don't commit model
 
 ### Phase 1: Resolve and audit
 
-1. Run the sibling `v1-phone-a-friend/scripts/peer_catalog.py` once for the selected profile and auth mode. It discovers current installed CLIs, versions, provider-owned catalogs, reasoning levels, auth sources, read-only capability, and catalog fingerprints. A missing catalog is `model_unresolved`, never a guessed model.
+1. Run the sibling `v1-phone-a-friend/scripts/peer_catalog.py` once for the selected profile and auth mode. It discovers current installed CLIs, versions, provider-owned catalogs, reasoning levels, auth sources, read-only capability, and catalog fingerprints. A missing catalog is `model_unresolved`, never a guessed model. A named literal without provider verification is `model_unverified`; show that uncertainty and require explicit acceptance before launch. Never copy a model ID from another provider.
 2. Rank candidates by verified subscription auth, read-only workflow support, catalog confidence, role fit, current model strength, and model-family diversity. The proposal is opinionated but they pick. It doesn't launch or add peers.
 3. Resolve each review lens from the current installed `v1-deep-review`, maintainability, correctness, or specialist rubric and record its source digest. If unavailable, offer a clearly marked prompt-only fallback; don't silently substitute a lens.
 4. Resolve `v1-phone-a-friend`'s `peer-run.sh` by the installed sibling skill root. If you can't resolve it, report the degradation and wait for them to approve a reviewed manual bounded runner. Don't crash or silently fan out.

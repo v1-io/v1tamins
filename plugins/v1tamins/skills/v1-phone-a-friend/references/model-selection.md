@@ -39,7 +39,11 @@ as a level.
 
 A provider with no catalog command selects by alias: the user names the model,
 the result records `representation: alias`, and model confidence stays
-`unresolved`. That is a resolved selection, not `model_unresolved`. Installed
+`unresolved` and launch state is `model_unverified`. It is excluded from the
+verified eligible count. Show the exact provider and literal model argument;
+require provider-owned evidence or the user's explicit acceptance of that
+unverified selection before launching. Never infer an alias or full model ID
+from another provider's catalog. `--model` requires `--cli`. Installed
 catalog-less providers the user has not named still appear as Candidates with
 `launch_state=model_unresolved`; they are never dropped into silent
 `selection_errors`.

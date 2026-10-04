@@ -97,7 +97,7 @@ alternative before asking for a roster choice:
 | Prompt | Named profile, resolved source, and source digest. |
 | Permission | `readonly` for the default Board proposal, verified after the run against the recorded boundary. |
 | Auth policy | `eligible`, `not_authenticated`, `auth_not_verified`, `blocked_api_key_present`, `explicit_api_mode`, or `api_key_required`. |
-| Launch state | `eligible` or a distinct typed failure such as `model_unresolved` or `launch_unrepresentable`. |
+| Launch state | `eligible` or a distinct typed failure such as `model_unresolved`, `model_unverified`, or `launch_unrepresentable`. |
 | Catalog confidence | `verified` or `unresolved` from provider catalog commands only. |
 | Prompt status | `resolved`, `degraded` (missing source), or `unresolved`. |
 | Deadline | Explicit maximum lifecycle. |
