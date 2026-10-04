@@ -660,6 +660,11 @@ main() {
   validate_skill_routing_fixture
   validate_metadata_hygiene
   validate_metadata_checker_tests
+  if python3 "$repo_root/scripts/test-artifact-converters.py"; then
+    ok "artifact converter regressions"
+  else
+    fail "artifact converter regressions failed"
+  fi
   validate_skill_references
   validate_skill_assets
   validate_portable_host_paths
