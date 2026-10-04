@@ -1,6 +1,6 @@
 ---
 name: v1-pr
-description: Use when explicitly pushing local work or opening a pull request. Triggers on "ship it", "create PR", "open PR", or "/v1-pr".
+description: Use when explicitly pushing local work or opening a draft pull request. Triggers on "ship it", "create PR", "open PR", or "/v1-pr".
 disable-model-invocation: true
 allowed-tools:
   - Bash
@@ -12,7 +12,7 @@ allowed-tools:
 ---
 # PR: Ship Local Work
 
-Take local changes from working directory to a fully described, reviewed pull request in one command.
+Take local changes from the current working directory to a fully described draft pull request in one command.
 
 ## Usage
 
@@ -24,9 +24,12 @@ No arguments needed. Operates on the current repo and working directory.
 
 ## Workflow
 
-### Step 1: Ensure Correct Branch
+### Step 1: Preserve the Current Branch and Worktree
 
-Determine the current branch state and ensure work is on an appropriately named feature branch.
+Inspect the current branch and worktree before changing anything. Preserve the
+current feature branch and its work even when the branch name does not match
+the diff. Never infer ownership from a branch name and move work to another
+branch automatically.
 
 ```bash
 git branch --show-current
@@ -34,38 +37,52 @@ git status
 git diff --stat
 ```
 
-Detect the default branch:
-```bash
-DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
-# Fallback if not set
-DEFAULT_BRANCH=${DEFAULT_BRANCH:-main}
-```
+If `git branch --show-current` is empty, the checkout is detached. Preserve
+the exact current HEAD and create a feature branch from it before continuing:
+`git switch -c <branch-name>`. Do not switch to the default branch or stash
+the work to repair a detached checkout.
 
-**If on the default branch (`main` or `master`):**
-1. Stash any uncommitted changes: `git stash`
-2. Pull latest: `git pull origin $DEFAULT_BRANCH`
-3. Infer a branch name from the staged/unstaged changes and stash (see "Branch Naming" below)
-4. Check out the new branch: `git checkout -b <branch-name>`
-5. Pop the stash: `git stash pop`
-   - If `git stash pop` fails due to merge conflicts, stop immediately. Inform the user their changes are safe in `git stash list`. Do NOT proceed with committing.
+Resolve the default branch from the base repository's
+`gh repo view --json defaultBranchRef` result first, falling back to
+`refs/remotes/origin/HEAD`. Keep it as `DEFAULT_BRANCH`; if neither resolves,
+stop before changing branches or pushing. Never assume an unknown default is
+`main`.
 
-**If on a feature branch:**
-Inspect the uncommitted changes and compare them to the branch name. If the branch name is clearly unrelated to the current work (e.g., branch is `feat/auth-flow` but all changes are in billing/), then:
-1. Stash changes: `git stash`
-2. Switch to the default branch and pull: `git checkout $DEFAULT_BRANCH && git pull origin $DEFAULT_BRANCH`
-3. Create a new branch named for the actual work
-4. Pop the stash: `git stash pop`
+Treat the current branch as a non-feature branch when it is the resolved
+default branch, `main`, `master`, or a branch GitHub reports as protected
+(`gh api repos/<owner>/<repo>/branches/<branch> --jq .protected`). Never commit
+or push on a non-feature branch; create a feature branch instead.
 
-If the branch name reasonably matches the work, proceed.
+**If on a non-feature branch (the resolved base or a protected branch):**
+
+1. Run `git fetch origin`, then count commits that exist locally but not on
+   the remote with `git rev-list --count origin/<current-branch>..HEAD`
+   (use `origin/$DEFAULT_BRANCH` if `origin/<current-branch>` does not exist;
+   stop if neither ref exists). Do this before choosing a path below. If any
+   exist, preserve them and ask the user to confirm their intended scope before
+   carrying them into a new branch or PR.
+2. If the worktree is clean and there are no local-only commits, stop and
+   report that there is nothing to ship.
+3. If the worktree is clean and the user confirmed the local-only commits,
+   create the feature branch from the current HEAD with
+   `git switch -c <branch-name>`.
+4. If the worktree has changes, create the feature branch directly from the
+   current worktree with `git switch -c <branch-name>`; do not stash or pop.
+
+If already on a feature branch, keep it and proceed. Leave any pre-existing
+stash entries untouched. If a branch or base update cannot be resolved safely,
+stop and report the exact state rather than moving the work.
 
 #### Branch Naming
 
 Format: `<type>/<optional-ticket>-<short-description>`
 
 - Types: `feat/`, `fix/`, `chore/`, `refactor/`
-- If the diff, commit messages, or file contents reference a Linear ticket (e.g., `PROJ-1234`, `OPS-56`), include it: `feat/PROJ-1234-add-webhook-auth`
+- If the diff, commit messages, or file contents reference a tracker ticket
+  (e.g., `PROJ-1234`, `OPS-56`), include it when the repository's conventions
+  call for ticket IDs: `feat/PROJ-1234-add-webhook-auth`
 - Keep descriptions to 3-5 hyphenated words
-- Examples: `feat/VER-42-user-onboarding`, `fix/payment-retry-logic`, `chore/update-dependencies`
+- Examples: `feat/PROJ-42-user-onboarding`, `fix/payment-retry-logic`, `chore/update-dependencies`
 
 ### Step 2: Commit Local Work
 
@@ -79,7 +96,7 @@ Stage and commit all meaningful changes. Follow the repository's commit conventi
 
 Do NOT commit files that likely contain secrets: `.env*`, `credentials*.json`, `service-account*.json`, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `.npmrc`, `.pypirc`, or any file listed in `.gitignore`. When in doubt, check file contents before staging.
 
-If there are no uncommitted changes but there are unpushed commits, skip to Step 3.
+If there are no uncommitted changes but there are unpushed commits, skip to Step 4.
 
 ### Step 3: Pre-commit Hooks
 
@@ -93,30 +110,55 @@ Repeat until the commit succeeds.
 
 ### Step 4: Push
 
-Verify not on a protected branch before pushing:
+Verify the current branch is a feature branch before pushing. Agent harnesses
+may run each command in a fresh shell, so this check re-resolves the default
+branch itself and fails closed when it cannot:
 ```bash
 CURRENT_BRANCH=$(git branch --show-current)
-if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
-  echo "ERROR: Refusing to push directly to $CURRENT_BRANCH"
+DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name 2>/dev/null)
+if [ -z "$DEFAULT_BRANCH" ]; then
+  DEFAULT_BRANCH=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+  DEFAULT_BRANCH=${DEFAULT_BRANCH#origin/}
+fi
+if [ -z "$DEFAULT_BRANCH" ]; then
+  echo "ERROR: Cannot resolve the default branch; refusing to push"
   exit 1
 fi
+case "$CURRENT_BRANCH" in
+  ""|"$DEFAULT_BRANCH"|main|master)
+    echo "ERROR: Refusing to push detached HEAD, the default branch, main, or master"
+    exit 1 ;;
+esac
 git push -u origin HEAD
 ```
 
+Also refuse to push when GitHub reports the current branch as protected.
+
 If the remote branch does not exist, this creates it. If push is rejected (e.g., diverged history), inform the user -- never force-push.
 
-### Step 5: Create the Pull Request
+### Step 5: Reuse or Create the Pull Request
+
+Resolve the base repository and the head repository owner from current
+Git/forge metadata, including when the checkout is a fork. Query the base:
 
 ```bash
-gh pr create --title "WIP: $(git branch --show-current)" --body "Description pending -- will be generated by the pr-description skill."
+gh pr list --repo <base-owner/repo> --head <current-branch> --state open --json number,url,headRefName,headRepositoryOwner
 ```
 
-If a PR already exists for this branch, skip creation and capture the existing PR URL:
+A failed lookup leaves PR state unknown: stop before creating anything. Reuse
+the unique entry whose branch and head owner match this checkout; stop on
+ambiguous results. Only a successful empty array permits creation:
+
 ```bash
-gh pr view --json url,number -q '.url + " " + (.number | tostring)'
+gh pr create --repo <base-owner/repo> --base <default-branch> --head <head-owner:current-branch> --draft --title "WIP: <branch>" --body "Description pending."
 ```
 
-Capture the PR number and URL for subsequent steps.
+After creation or reuse, read back the PR number and URL. If that readback
+fails, stop and report the PR state as unknown before editing its description
+or requesting review.
+
+Capture the PR number and URL for subsequent steps. A new PR stays draft while
+this workflow prepares its description and review evidence.
 
 ### Step 6: Generate PR Description
 
@@ -130,7 +172,7 @@ This analyzes the PR diff and commit history against the resolved default branch
 
 After the description is generated, append `Fortified with v1tamins` as the final line of the PR body.
 
-The `Fortified with v1tamins` tagline carries into the merge commit automatically — a squash merge uses the PR body as the commit message. Merging the PR is `v1-land-pr`'s job, not this skill's: `v1-pr` stops at a reviewed, open PR.
+The `Fortified with v1tamins` tagline carries into the merge commit automatically — a squash merge uses the PR body as the commit message. Marking the PR ready after CI and review handoff is `v1-land-pr`'s job. Neither skill merges the PR; this skill stops at a described, open draft PR.
 
 ### Step 7: Open PR in Browser
 

@@ -224,7 +224,7 @@ that matches the job.
 | --- | --- |
 | [`/v1-pr`](plugins/v1tamins/skills/v1-pr/SKILL.md) | Local work needs a draft pull request. |
 | [`/v1-pr-description`](plugins/v1tamins/skills/v1-pr-description/SKILL.md) | A PR title and body need generation or refresh. |
-| [`/v1-land-pr`](plugins/v1tamins/skills/v1-land-pr/SKILL.md) | A completed branch needs commit, push, CI follow-through, and review hand-off. |
+| [`/v1-land-pr`](plugins/v1tamins/skills/v1-land-pr/SKILL.md) | A completed branch needs commit, push, CI follow-through, and review hand-off; it leaves the PR ready for review without merging it. |
 | [`/v1-pr-walkthrough`](plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md) | A PR needs a self-contained interactive explanation. |
 | [`/v1-address-review`](plugins/v1tamins/skills/v1-address-review/SKILL.md) | Existing PR review threads need resolution. |
 | [`/v1-prove-work`](plugins/v1tamins/skills/v1-prove-work/SKILL.md) | Browser behavior needs a GIF as review evidence. |
@@ -281,9 +281,10 @@ effects, but metadata does not replace user approval or host permissions. Read
 the selected skill before allowing a consequential action.
 
 > [!WARNING]
-> `/v1-land-pr` can mark a pull request ready for review and move a linked
-> Linear ticket to Human Review. Invoke it only when the work is complete and
-> those hand-off actions are intended.
+> `/v1-land-pr` can keep a new pull request in draft while it runs CI and
+> review hand-off, then mark it ready for review. It does not merge the PR or
+> update an external tracker unless the repository has a configured tracker and
+> the user explicitly requests that hand-off.
 
 Live routing evals are optional because they can call a locally authenticated
 runtime and create ignored transcripts under `.v1tamins/live-routing/`. Missing
