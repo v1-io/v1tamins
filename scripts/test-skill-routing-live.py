@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -24,6 +26,7 @@ from skill_routing_live import (
     score_result,
     side_effect_skills,
     subscription_runtime_env,
+    validate_decision,
     validate_result_shape,
 )
 
@@ -219,6 +222,79 @@ class LiveRoutingTests(unittest.TestCase):
         self.assertEqual(selected, "v1-debug")
         self.assertEqual(evidence_kind, "structured_decision")
 
+    def test_extract_decision_rejects_decision_schema_violations(self):
+        invalid_decisions = [
+            {
+                "selected_skill": "v1-debug",
+                "reason": "fake routing decision",
+                "confidence": 1.0,
+                "extra": "not allowed",
+            },
+            {
+                "selected_skill": "v1-debug",
+                "reason": "fake routing decision",
+                "confidence": "high",
+            },
+            {
+                "selected_skill": "v1-debug",
+                "reason": "fake routing decision",
+                "confidence": True,
+            },
+            {
+                "selected_skill": "v1-debug",
+                "reason": "fake routing decision",
+                "confidence": math.nan,
+            },
+            {
+                "selected_skill": "v1-debug",
+                "reason": "fake routing decision",
+            },
+        ]
+
+        for decision in invalid_decisions:
+            with self.subTest(decision=decision):
+                selected, evidence_kind, reason, confidence = extract_decision(
+                    json.dumps(decision), "codex"
+                )
+                self.assertIsNone(selected)
+                self.assertEqual(evidence_kind, "inconclusive")
+                self.assertIn("invalid structured routing decision", reason)
+                self.assertIsNone(confidence)
+
+    def test_validate_decision_rejects_nonfinite_numeric_values(self):
+        for value in (True, math.nan, math.inf, -math.inf):
+            with self.subTest(value=value):
+                errors = validate_decision(
+                    {
+                        "selected_skill": None,
+                        "reason": "no matching skill",
+                        "confidence": value,
+                    }
+                )
+                self.assertTrue(errors)
+
+    def test_invalid_decision_cannot_score_as_pass(self):
+        selected, evidence_kind, reason, _confidence = extract_decision(
+            json.dumps(
+                {
+                    "selected_skill": "v1-debug",
+                    "reason": "fake routing decision",
+                    "confidence": "not-a-number",
+                }
+            ),
+            "codex",
+        )
+        result = base_result(fixture_case(), "codex", "fake", None)
+        result.update(
+            {
+                "selected_skill": selected,
+                "evidence_kind": evidence_kind,
+                "reason": reason,
+            }
+        )
+        scored = score_result(result, fixture_case(), set())
+        self.assertEqual(scored["status"], "inconclusive")
+
     def test_subscription_runtime_env_strips_api_key_auth(self):
         old_values = {
             name: os.environ.get(name)
@@ -322,6 +398,27 @@ class LiveRoutingTests(unittest.TestCase):
 
         self.assertEqual(len(loaded), 1)
         self.assertEqual(loaded[0]["case_id"], "fake-debug-case")
+
+    def test_score_cli_rejects_zero_result_records(self):
+        repo_root = Path(__file__).resolve().parents[1]
+        scorer = repo_root / "scripts" / "score-skill-routing-live-eval.py"
+        with tempfile.TemporaryDirectory() as tmp:
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(scorer),
+                    tmp,
+                    "--repo-root",
+                    str(repo_root),
+                ],
+                cwd=repo_root,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("no result records found", result.stderr)
 
     def test_process_failure_reason_includes_stderr_and_stdout(self):
         completed = subprocess.CompletedProcess(
