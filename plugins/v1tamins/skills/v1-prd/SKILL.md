@@ -1,25 +1,27 @@
 ---
 name: v1-prd
-description: Use when turning a Linear ticket or feature request into a PRD. Triggers on "write PRD", "requirements doc", or "PRD from ticket".
+description: Use when turning a ticket, issue, or feature request into a PRD. Triggers on "write PRD", "requirements doc", or "PRD from ticket".
 allowed-tools:
   - Bash
   - Read
   - Grep
+  - Skill
 ---
-# PRD from Linear Ticket
+# PRD from Ticket or Feature Request
 
-Turn a Linear ticket or project into a PRD a builder can implement from.
+Turn a ticket, issue, pasted request, or feature idea into a PRD a builder can
+implement from.
 
 ## Usage
 
 Typical invocations:
-- Claude Code: `/v1-prd <LINEAR_TICKET_ID>`
-- Codex: invoke `v1-prd` from the skills menu or use `$v1-prd <LINEAR_TICKET_ID>`
+- Claude Code: `/v1-prd <TICKET_OR_REQUEST>`
+- Codex: invoke `v1-prd` from the skills menu or use `$v1-prd <TICKET_OR_REQUEST>`
 
 Examples:
 ```bash
-/v1-prd ABC-123
-/v1-prd https://linear.app/your-team/issue/ABC-123
+/v1-prd https://github.com/your-org/your-repo/issues/123
+/v1-prd "Add an export button for filtered results"
 ```
 
 In Codex, the slash examples below map directly to `$v1-prd ...`.
@@ -27,7 +29,8 @@ In Codex, the slash examples below map directly to `$v1-prd ...`.
 ## Workflow
 
 ### 1. Gather inputs
-- Fetch the ticket or project from Linear (title, description, acceptance criteria)
+- Read the supplied ticket, issue, feature request, or pasted context (title, description, acceptance criteria)
+- If an identifier or URL is supplied, use the project's documented tracker route. Do not assume a specific tracker.
 - Pull linked designs, mocks, or prior context
 - If image URLs have no captions, add descriptive captions
 - Ask for missing inputs if needed
@@ -40,6 +43,7 @@ In Codex, the slash examples below map directly to `$v1-prd ...`.
 - Name the user-facing conceptual model: core objects, states, relationships, actions, permissions, and feedback the product must make visible
 - Flag hidden state, mode switches, unclear object ownership, destructive actions, or memory burdens that need explicit requirements
 - Add a compact customer-job section when the request comes from customer discovery, market validation, or a new product wedge. Use the full Job Spec template in [v1-learning-from-customers](../v1-learning-from-customers/SKILL.md) when you need the detail.
+- Label assumptions and unresolved decisions when the input is a pasted request or lacks supporting context.
 
 ### 3. Write the PRD
 
@@ -90,11 +94,11 @@ Use these sections:
 [Images with captions if applicable]
 ```
 
-### 4. Upload PRD (Explicit Only)
-- Upload to Linear only when the user explicitly asks to update the ticket or publish the PRD
-- If upload is requested, replace the existing description in the Linear ticket with the PRD
-- If upload is requested, add comment: "PRD uploaded"
-- If upload is not requested, return the PRD as a draft and state that Linear was not changed
+### 4. Update the Configured Tracker (Explicit Only)
+- Return the PRD as a draft and make no external changes by default.
+- Update a ticket or issue only when the user explicitly asks and repository or project instructions identify a configured writable tracker.
+- Use that tracker's documented route and verify the readback after updating it.
+- If no configured tracker or access is available, return the draft and state that external state was unchanged or unverified.
 
 ## Quality Bar
 
@@ -109,8 +113,8 @@ Use these sections:
 
 ## Notes
 
-- Requires Linear access (via whatever Linear tooling the project has wired up)
+- Requires access to the configured ticket or issue source only when the user asks to fetch or update it; pasted requests need no tracker access.
 - Turn vague language into testable statements
 - Prefer bullets over prose
 - Include existing images with descriptive captions
-- Use `v1-learning-from-customers` first when the ticket lacks concrete customer evidence or needs a customer-discovery plan before becoming a PRD
+- Use `v1-learning-from-customers` first only when the user requests customer discovery or validation, or when unresolved customer scope prevents an implementable PRD. Missing customer evidence alone does not block a pasted-request draft; label its assumptions and unresolved decisions instead.

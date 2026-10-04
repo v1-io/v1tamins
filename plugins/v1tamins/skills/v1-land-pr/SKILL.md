@@ -1,6 +1,6 @@
 ---
 name: v1-land-pr
-description: Use when asked to land a PR or commit, push, and watch CI. Remediate, reply to, and resolve all human and automated feedback regardless of source.
+description: 'Use when asked to prepare a completed branch for review: commit, push, monitor CI, and remediate feedback without merging. Triggers on "get this PR ready".'
 disable-model-invocation: true
 allowed-tools:
   - Bash
@@ -8,13 +8,17 @@ allowed-tools:
   - Edit
   - Grep
   - Write
+  - Skill
 ---
 
-# Land PR
+# Prepare a PR for Review
 
 ## Overview
 
-Commit, push, open, and land a pull request through CI and review handoff. Use this command when implementation work is done and the next goal is a review-ready pull request with passing CI and fully dispositioned feedback.
+Commit, push, open or reuse a draft pull request, and take it through CI and
+review handoff. Use this command when implementation work is done and the
+next goal is a review-ready pull request with passing CI and fully dispositioned
+feedback. Stop with the PR ready for human review; do not merge it.
 
 ## Input
 
@@ -32,22 +36,24 @@ The user can invoke this command without arguments from the repository containin
    - Resolve the PR base branch in this order:
      1. Reuse the base branch from an existing PR for the current branch.
      2. Honor an explicit base branch requested by the user.
-     3. Detect the repository default branch with `gh repo view --json defaultBranchRef` or `git remote show origin`.
-     4. Fall back to a local `main` or `master` only when remote/default metadata is unavailable.
+     3. Detect the configured repository default branch with `gh repo view --json defaultBranchRef` or `git remote show origin` when it reports a configured HEAD branch.
+     4. If neither source resolves a configured default branch, stop before changing branches, committing, pushing, or creating a PR. Never guess `main`, `master`, or another base branch.
    - Do not assume a staging, release, or environment-specific branch exists. If the base branch cannot be determined, or branch choice has release-routing implications, ask the user before creating the PR.
-   - If the branch is `main` or another protected base branch, create a feature branch before committing.
+   - If the current branch is the resolved base or a protected branch, create a feature branch before committing.
    - Do not revert unrelated user changes. Leave unrelated changes unstaged unless the user clearly wants them included.
 
 2. **Commit and Push**
    - Review the diff before committing with `git diff` and, when relevant, `git diff --staged`.
    - Run the fastest relevant local validation when it is clear from the changed files.
+   - If the worktree is clean and local `HEAD` already matches its upstream, skip staging, committing, and pushing only when any existing PR's `headRefOid` also matches local `HEAD`. Never create an empty commit or no-op push; if the PR head differs, do not treat the branch as current.
    - Stage only intended files.
    - Commit with a concise message that describes the user-visible or operational value.
    - Push the branch and set upstream if needed: `git push -u origin HEAD`.
 
 3. **Open a PR**
    - Reuse an existing PR for the branch when one exists.
-   - Otherwise create one with `gh pr create`.
+   - Otherwise create one with `gh pr create --draft`.
+   - Keep a new PR in draft state while checks and review feedback are pending.
    - Pass the resolved base branch explicitly when creating a new PR.
    - Include a PR body with summary, a walkthrough of the changes, and validation steps taken. Where possible, invoke the **v1-pr-description** skill to generate the PR body.
    - Capture the PR number or URL with `gh pr view --json number,url,headRefName,baseRefName`.
@@ -68,7 +74,7 @@ The user can invoke this command without arguments from the repository containin
    - Make up to three remediation pushes.
    - Inspect the failing check details before changing code. Prefer `gh run view --log-failed` or the failing job logs when available.
    - Remediate every valid or partial finding regardless of source. For invalid, duplicate, or already-fixed findings, verify the current code and explain the disposition instead of silently skipping the feedback.
-   - Use subagents to identify root cause(s), fix them locally with the narrowest possible changes, and push the fix.
+   - Investigate failing checks from their concrete output before changing code; use the narrowest relevant debugging or review workflow.
    - Reply to every review item, including items that require no code change. Use an inline reply for line comments and a summary reply for aggregate bot reports or PR-level feedback.
    - Resolve every review thread whose finding is fixed, already fixed, duplicate and covered, or confirmed invalid. Leave a thread open only when work is partial or blocked, a reviewer answer is required, or the current code still leaves reasonable ambiguity; record the exact reason in the ledger.
    - Repeat the monitoring loop. Invoke **v1-address-review** after every remediation push and use **v1-debug** for failing checks as needed.
@@ -77,8 +83,9 @@ The user can invoke this command without arguments from the repository containin
 6. **Run the Final Review Audit**
    - After the latest head's checks and automated reviews finish, fetch all feedback surfaces again and rebuild the ledger against that head SHA. A remediation push can trigger new bot feedback, so an earlier clean ledger is not sufficient.
    - Verify that every discovered item has a disposition and reply, every valid or partial item is remediated or explicitly blocked, and every thread eligible for resolution reports `isResolved: true`.
-   - Do not mark the PR ready, update a linked ticket to Human Review, or report review completion while an unaddressed item or resolvable open thread remains.
+   - Do not mark the PR ready or report review completion while an unaddressed item or resolvable open thread remains.
    - If GitHub API access, pagination, permissions, or tooling prevents a complete audit or thread resolution, fail closed: keep the PR in draft and report the exact blocker. Do not treat an incomplete feedback inventory as zero feedback.
+   - When the final audit passes, mark the PR ready with `gh pr ready <pr>`. Read back `gh pr view <pr> --json number,url,headRefOid,isDraft` and require the returned `headRefOid` to equal the audited head SHA and `isDraft` to be `false`. If the command or readback fails or the head does not match, keep the readiness state unknown and do not claim the PR is ready.
 
 ## CI Loop
 
@@ -89,7 +96,11 @@ remediation_pushes = 0
 while remediation_pushes <= 3:
   monitor checks and all feedback surfaces for up to 3 minutes
   if required checks passed and the final review audit passed:
-    mark ready and update Linear
+    mark the PR ready for review with `gh pr ready <pr>` and verify the current head plus `isDraft: false` by readback
+    if the user explicitly requested tracker handoff and repository instructions identify a configured tracker:
+      update that configured tracker through its documented route and verify readback
+    else:
+      leave external tracker state unchanged and report that
     stop
   if checks are still pending after timeout:
     continue monitoring unless progress is clearly stuck
@@ -110,14 +121,15 @@ Do not make speculative fixes without reading the failing check output. If the f
 - Every valid or partial finding was remediated and validated, or is explicitly blocked with the exact reason.
 - Every review thread eligible for resolution is verified resolved; any intentionally open thread has a recorded reason.
 - The PR is marked ready only when checks pass, no feedback item is unaddressed, and no resolvable review thread remains open.
+- The workflow never merges the PR.
 
 ## Output
 
 Report:
 
-- PR URL and whether it is ready for review.
+- PR URL and whether it remains draft or is ready for review.
 - Checks status.
 - Review ledger totals by disposition, reply status, and thread resolution status.
 - Number of remediation pushes used.
-- Linear ticket status, if applicable.
+- Configured tracker status only when explicitly requested; otherwise state that it was unchanged.
 - Any validation, feedback inventory, reply, or thread resolution that could not be completed.

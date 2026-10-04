@@ -161,7 +161,7 @@ Work is tracked in GitHub Issues on this public repository, not Linear. See
 
 ### Triage labels
 
-Use the canonical triage vocabulary and its Linear workflow-state mapping. See
+Use the canonical triage vocabulary and its GitHub label mapping. See
 `docs/agents/triage-labels.md`.
 
 ### Domain docs

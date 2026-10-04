@@ -1,7 +1,7 @@
 interface:
   display_name: "PR"
-  short_description: "Ship local changes as a reviewed pull request"
-  default_prompt: "Use $v1-pr to turn the current working tree into a ready-to-review pull request."
+  short_description: "Prepare local changes as a draft pull request"
+  default_prompt: "Use $v1-pr to turn the current working tree into a draft pull request."
 
 policy:
   allow_implicit_invocation: false
