@@ -3,7 +3,9 @@
 Use this reference when a skill bundles scripts, commands, tool calls, or other
 executable resources, or when reviewing a third-party skill that contains them.
 Prefer a script when repeated work needs deterministic reliability. Don't add
-one when clear instructions are enough.
+one when clear instructions are enough. Reuse an existing owner or helper
+before introducing another runner or receipt ledger. Automate mechanical,
+failure-prone work; keep semantic review with its declared reviewer.
 
 ## Contents
 
@@ -63,6 +65,12 @@ Use stable codes rather than parsing prose. Reserve exit `0` for a verified
 success; use documented nonzero codes for categories the caller must handle.
 Include the affected synthetic or user-approved path and a corrective action,
 without echoing file contents, credentials, or environment values.
+
+For multi-output operations, preserve per-output partial, missing, and failed
+outcomes and safe recovery evidence. Keep successful artifacts when the
+contract permits it; never flatten mixed outcomes into complete success. A
+helper's receipt certifies only the operation it owns, not upstream semantic
+review or completion of the enclosing workflow.
 
 Callers must check both the exit status and structured result before
 proceeding. If a required result can't be verified, report failure or
