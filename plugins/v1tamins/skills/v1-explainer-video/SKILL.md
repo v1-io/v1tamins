@@ -9,6 +9,8 @@ Produce an understandable video and rebuildable source. Build understanding thro
 
 Use this workflow for a narrated animation, not a screen recording or an interactive HTML walkthrough. A plain "explain this PR" request belongs to `v1-pr-walkthrough`; an explicit video request belongs here.
 
+When another skill supplies the context, reuse its audience, question, takeaway, example, source evidence, material caveats, and narration preferences. Resolve only missing details; pass these directly in context without requiring a separate handoff file. Verify freshness when the underlying work has changed.
+
 ## 1. Establish the lesson
 
 Before scenes, write three short statements: the viewer's question, what they already know, and what they should understand afterward. Aim for one central takeaway in 60–120 seconds; expand when the subject needs it. Infer these choices from the request unless a missing choice would materially change the explanation.

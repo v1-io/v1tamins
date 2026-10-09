@@ -13,6 +13,10 @@ allowed-tools:
 
 Generate an animated GIF showing the result of work done during a session and embed it in a GitHub PR.
 
+## Recording or explanation
+
+This skill records actual browser behavior. For a requested conceptual animation, use `v1-explainer-video`; an illustration is not proof that the implementation works. If a backend change cannot be recorded here, explain that limit rather than automatically substituting an animation. When the user requests a narrated explanation using an existing recording, pass that footage, what it demonstrates, and its verification limits to the video skill. Keep observed footage distinct from illustrative scenes.
+
 ## Quick Start
 
 Typical invocations:

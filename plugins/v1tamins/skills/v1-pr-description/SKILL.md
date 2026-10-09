@@ -141,6 +141,8 @@ flowchart LR
   "Changed component" --> "New behavior"
 ```
 
+If a relevant explainer video already exists, link it as supplementary explanation alongside the concise written summary. Verify which PR revision it covers and whether reviewers can access its destination; disclose material staleness and keep an inaccessible local file out of the posted body. Creating or uploading a video is not part of writing a PR description unless requested. A video explains the change; it does not replace validation evidence.
+
 ### 4. Check the Draft Before Posting
 
 Before editing GitHub:
