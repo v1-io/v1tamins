@@ -6,7 +6,7 @@ Question: What is the viewer trying to understand?
 Prior knowledge: What can the explanation safely assume?
 Takeaway: What should the viewer be able to explain afterward?
 
-Visual direction: choose a setting, palette, type treatment, and consistent objects suited to this subject. Identify where captions will sit. Timing below is provisional until narration is generated.
+Visual direction: choose a recipe from [style.md](style.md), or state a subject-specific alternative. Record background, accent colors and their meanings, type treatment, consistent objects, motion behavior, and caption position. Timing below is provisional until narration is generated.
 
 | Beat | Viewer sees | Visible change | What it explains | Short narration | Cue / inspection pause |
 |---|---|---|---|---|---|
