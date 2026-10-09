@@ -12,7 +12,7 @@
 **Small, reusable skills for healthier AI-assisted development.**
 
 v1tamins is an open-source plugin for [Claude Code](https://claude.ai/code) and
-[Codex](https://openai.com/codex/). It packages 40 focused skills for planning,
+[Codex](https://openai.com/codex/). It packages 41 focused skills for planning,
 debugging, reviewing, shipping, research, documentation, and product work. Use
 one skill for a specific job or combine several into a repeatable workflow.
 
@@ -154,6 +154,7 @@ These common entry points cover much of the day-to-day work:
 | Review a branch or PR before merge | [`/v1-deep-review`](plugins/v1tamins/skills/v1-deep-review/SKILL.md) |
 | Prepare a pull request | [`/v1-pr`](plugins/v1tamins/skills/v1-pr/SKILL.md) |
 | Explain a pull request visually | [`/v1-pr-walkthrough`](plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md) |
+| Explain a concept or PR through narrated animation | [`/v1-explainer-video`](plugins/v1tamins/skills/v1-explainer-video/SKILL.md) |
 | Write naturally from notes or improve an existing draft | [`/v1-skin-suit`](plugins/v1tamins/skills/v1-skin-suit/SKILL.md) |
 | Research a complex question | [`/v1-deep-research`](plugins/v1tamins/skills/v1-deep-research/SKILL.md) |
 | Create or audit an Agent Skill | [`/v1-skilling-it`](plugins/v1tamins/skills/v1-skilling-it/SKILL.md) |
@@ -243,6 +244,7 @@ that matches the job.
 | [`/v1-stickify`](plugins/v1tamins/skills/v1-stickify/SKILL.md) | Communication needs to be clearer and more memorable. |
 | [`/v1-md2docs`](plugins/v1tamins/skills/v1-md2docs/SKILL.md) | Markdown needs publishing as a formatted Google Doc. |
 | [`/v1-html-it`](plugins/v1tamins/skills/v1-html-it/SKILL.md) | A review, report, prototype, or explainer needs a self-contained HTML artifact. |
+| [`/v1-explainer-video`](plugins/v1tamins/skills/v1-explainer-video/SKILL.md) | A concept, process, or PR benefits from a narrated animated explanation. |
 | [`/v1-goldpan`](plugins/v1tamins/skills/v1-goldpan/SKILL.md) | Recent work needs scanning for lessons worth documenting. |
 | [`/v1-docs-freshness`](plugins/v1tamins/skills/v1-docs-freshness/SKILL.md) | Existing documentation needs synchronization with shipped behavior. |
 | [`/v1-changelog`](plugins/v1tamins/skills/v1-changelog/SKILL.md) | Merged PRs need release notes. |

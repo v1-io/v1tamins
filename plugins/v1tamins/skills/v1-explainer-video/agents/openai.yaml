@@ -1,0 +1,10 @@
+interface:
+  display_name: "Explainer Video"
+  short_description: "Teach a concept through narrated animation"
+  default_prompt: "Use $v1-explainer-video to create a clear narrated animation with a focused lesson, meaningful visuals, captions, and rebuildable source."
+
+policy:
+  allow_implicit_invocation: true
+  invocation_posture: selective_implicit
+  side_effects:
+    - external_write

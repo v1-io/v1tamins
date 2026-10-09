@@ -11,6 +11,8 @@ allowed-tools:
 ---
 # PR Walkthrough
 
+For an explicitly requested narrated video, use `v1-explainer-video`. This workflow produces an interactive HTML explanation.
+
 Please make me a rich, interactive explanation of the specified code change.
 
 It should have these sections:
