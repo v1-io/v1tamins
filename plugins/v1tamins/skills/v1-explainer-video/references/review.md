@@ -22,7 +22,7 @@ Inspect the encoded artifact, not just the source renderer:
 - **Picture:** inspect the busiest frame at normal viewing size, each scene's representative frame, and transitions. Labels and captions must be legible, unclipped, and distinct. Check short-lived overlaps that a contact sheet can miss: inspect a short sequence of adjacent frames around suspect transitions, then replay the interval.
 - **Motion:** changes must follow the explanation; preserve object identity, units, quantities, and causal order. Leave inspection time after a new visual idea.
 - **Sound and timing:** play with sound. Check actual spoken words, pronunciation, natural pace, cue alignment, pauses, and caption accuracy. Stream presence, playback commands, or transcription alone do not prove listening quality.
-- **Personality:** check that expressive motion or humor clarifies the lesson, suits the audience, and does not mock affected people. Remove competing scenery and decorative slogans. A premature success stamp must remain visibly withheld, including in paused frames.
+- **Personality:** check that expressive motion or humor clarifies the lesson, suits the audience, and does not mock affected people. Remove competing scenery and decorative slogans. Check that visual jokes do not imply unsupported outcomes, including in paused frames.
 - **Meaning:** confirm that the ending answers the opening and that editing has not removed a qualification or changed what an arrow, scale, or checkmark claims.
 - **File:** inspect streams and duration with an available media inspector; verify playable video, captions, script, editable source, and source-note links.
 
