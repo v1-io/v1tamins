@@ -50,6 +50,7 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 - `/v1-skin-suit` — draft or lightly edit natural prose for its reader and channel while preserving meaning and requested voice.
 
 - `/v1-stickify` — make copy memorable. `/v1-html-it` — self-contained HTML page or report. `/v1-md2docs` **(explicit)** — markdown to Google Doc.
+- `/v1-explainer-video` — narrated animated explanation of a concept, process, or PR using your available renderer and speech provider.
 - `/v1-changelog` — what shipped, from merged PRs. `/v1-docs-freshness` — sync docs after changes.
 
 ## Working on skills and prompts

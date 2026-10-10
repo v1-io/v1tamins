@@ -39,6 +39,8 @@ answers the question. Use that directly when it does. Build HTML when spatial
 layout, density, interaction, or a requested shareable artifact adds value.
 An explicit request for an HTML file remains a request to create that file.
 
+For an explicitly requested narrated animation, use `v1-explainer-video`. HTML suits exploration, comparison, and interaction; video can explain a sequence or mechanism through motion and narration. Honor the requested format rather than generating both. Pass relevant evidence and existing diagrams or examples to the selected workflow.
+
 ## Output Contract
 
 When HTML is the selected output, create one self-contained `.html` file and tell the user where it is.
