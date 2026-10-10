@@ -1,5 +1,11 @@
 # v1tamins
 
+## 0.14.0
+
+### Minor Changes
+
+- 5971c6d: Add v1-explainer-video for focused narrated animations with provider-neutral speech, visual storyboards, clarity review, and rebuildable deliverables. Distinguish video requests from interactive PR walkthroughs. Add focused handoffs from PR walkthroughs, HTML explainers, research, recorded proof, and PR descriptions without automatically generating or publishing videos. Include a concrete illustrated-process recipe with expressive drawing, subject-specific objects, and restrained dry humor for approachable explanations of queues and handoffs.
+
 ## 0.13.2
 
 ### Patch Changes
