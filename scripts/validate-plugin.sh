@@ -670,6 +670,11 @@ main() {
   validate_portable_host_paths
   validate_routing_eval_tests
   validate_peer_contract_tests
+  if python3 "$repo_root/scripts/test-peer-boundary.py"; then
+    ok "peer boundary regressions"
+  else
+    fail "peer boundary regressions failed"
+  fi
 
   if [ "$failures" -ne 0 ]; then
     print_failure_summary

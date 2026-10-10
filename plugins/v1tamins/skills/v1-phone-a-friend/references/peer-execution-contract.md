@@ -141,9 +141,15 @@ can write, then reports it in `verdict --json` once the run is terminal:
 | `readonly_violated` | The reviewed checkout changed. A read-only seat must not do this. |
 | `containment_unverified` | The boundary could not be fully observed, so no read-only claim is available. |
 
-Only `readonly_verified` supports a statement that nothing was written. A
-sandbox flag and a prompt instruction are not proof, and the repository's Git
-state alone cannot see provider-owned artifacts.
+`readonly_verified` means no changes were observed in the declared repository
+and provider paths. Before/after manifests include ignored and already-dirty
+files and detect deletions. Each root is limited to 50,000 entries and 64 MiB of
+hashed content; incomplete or unreadable scans, external symlinks, and linked
+worktree metadata outside the checkout make containment unverified.
+
+These observations do not establish OS-level isolation or detect writes that
+were reverted before verification. A sandbox flag and a prompt instruction are
+not proof, and Git state alone cannot see provider-owned artifacts.
 
 `$HOME` is never redirected by default: a subscription peer keeps its login
 state there, and moving it would break the auth the run depends on. A provider

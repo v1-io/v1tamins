@@ -18,7 +18,6 @@ import hashlib
 import json
 import re
 import shutil
-import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -28,7 +27,7 @@ _SCRIPT_DIR = Path(__file__).resolve().parent
 if str(_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPT_DIR))
 
-from peer_adapters import reasoning_encoded_in_model  # noqa: E402
+from peer_adapters import reasoning_encoded_in_model, run_probe  # noqa: E402
 from peer_policy import PROVIDERS, subscription_environment  # noqa: E402
 
 SCHEMA = "v1-peer-launch/v1"
@@ -327,20 +326,14 @@ def help_surface(cli: str, auth_mode: str, timeout_seconds: float) -> str | None
     executable = shutil.which(entry[0])
     if executable is None:
         return None
-    try:
-        completed = subprocess.run(
-            [executable, *entry[1:], "--help"],
-            check=False,
-            capture_output=True,
-            stdin=subprocess.DEVNULL,
-            text=True,
-            errors="replace",
-            env=subscription_environment(auth_mode, cli),
-            timeout=timeout_seconds,
-        )
-    except (subprocess.TimeoutExpired, OSError):
+    result = run_probe(
+        [executable, *entry[1:], "--help"],
+        subscription_environment(auth_mode, cli),
+        timeout_seconds,
+    )
+    if result.timed_out or result.returncode != 0:
         return None
-    text = f"{completed.stdout}\n{completed.stderr}"
+    text = f"{result.stdout}\n{result.stderr}"
     return text if text.strip() else None
 
 

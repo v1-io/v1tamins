@@ -53,7 +53,7 @@ def main() -> int:
         and "--boundary-provider" in contract
         and "permission_state" in skill
         and "readonly_verified" in contract,
-        "board never claims a clean tree unverified": "Only `permission_state: readonly_verified` supports `Files changed: none`"
+        "board never claims a clean tree unverified": "Only `permission_state: readonly_verified` supports `Files changed: none observed in declared repository and provider paths`"
         in skill
         and "readonly_violated" in contract
         and "containment_unverified" in contract,

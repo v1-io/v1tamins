@@ -164,7 +164,7 @@ separately, from `verdict --json`'s `boundary` block, never from the checkout's
 Git state alone. The full contract is the read-only boundary section of
 `v1-phone-a-friend`'s `references/peer-execution-contract.md`.
 
-- **Only `permission_state: readonly_verified` supports `Files changed: none`.**
+- **Only `permission_state: readonly_verified` supports `Files changed: none observed in declared repository and provider paths`.**
   Every other value must be reported as it is.
 - `readonly_degraded_provider_state` means the checkout is clean but the peer
   wrote provider-owned session or report files. List them; that is a typed
