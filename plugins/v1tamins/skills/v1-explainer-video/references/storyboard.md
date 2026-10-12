@@ -8,13 +8,13 @@ Takeaway: What should the viewer be able to explain afterward?
 
 Visual direction: choose a recipe from [style.md](style.md), or state a subject-specific alternative. Record background, accent colors and their meanings, type treatment, consistent objects, motion behavior, and caption position. Timing below is provisional until narration is generated.
 
-| Beat | Viewer sees | Visible change | What it explains | Short narration | Cue / inspection pause |
-|---|---|---|---|---|---|
-| Opening | A concrete example of the problem | The problem occurs | Why the question matters | One or two spoken sentences | Event that starts the action |
-| Mechanism | The same example, with needed detail | Construct, compare, move, or transform | How or why it works | Explain the visible action | Spoken event, then time to look |
-| Payoff | The result beside its relevant earlier state | The consequence becomes visible | Answer to the opening | State the takeaway and material limit | Hold the result |
+| Beat | Object | Before → after | Action | What it explains | Short narration | Cue / inspection pause |
+|---|---|---|---|---|---|---|
+| Opening | The worked example | Working → problem occurs | Show the failure happen | Why the question matters | One or two spoken sentences | Event that starts the action |
+| Mechanism | The same example, with needed detail | Problem state → changed state | Construct, compare, move, or transform | How or why it works | Explain the visible action | Spoken event, then time to look |
+| Payoff | The result beside its earlier state | Earlier state → consequence | Place them side by side | Answer to the opening | State the takeaway and material limit | Hold the result |
 
-Add rows only when each has a distinct explanatory job. Record source support for consequential claims and what belongs in supporting notes. Explicitly label hypothetical examples. A real unresolved case must remain unresolved on screen.
+A beat fails if its "before → after" is only text, bullets, labels, or a screenshot appearing; redesign it around an object that changes. Add rows only when each has a distinct explanatory job. Record source support for consequential claims and what belongs in supporting notes. Explicitly label hypothetical examples. A real unresolved case must remain unresolved on screen.
 
 ## Weak and strong examples
 
@@ -42,5 +42,6 @@ Stronger: an explicitly hypothetical plant has dry soil. Show a moisture check, 
 
 - Reuse an object's shape and color while it represents the same thing. Change those deliberately when its state changes.
 - Use a wide view for orientation, then reveal or focus the relevant detail. Keep spatial relationships stable when they help the explanation.
+- Crop screenshots and other evidence to the detail the narration names, large enough to read at normal viewing size. A whole interface beside bullet points is a slide, not a mechanism.
 - Let narration carry sentences; let the picture carry relationships and changes. Captions have their own reserved space.
 - Use counts, terms, and exceptions only when removing them would change the lesson. Simplification must preserve uncertainty and causality.
