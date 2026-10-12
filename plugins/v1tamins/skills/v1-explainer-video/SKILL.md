@@ -13,13 +13,13 @@ When another skill supplies the context, reuse its audience, question, takeaway,
 
 ## 1. Establish the lesson
 
-Before scenes, write three short statements: the viewer's question, what they already know, and what they should understand afterward. Aim for one central takeaway in 60–120 seconds; expand when the subject needs it. Infer these choices from the request unless a missing choice would materially change the explanation.
+Before scenes, write three short statements: the viewer's question, what they already know, and what they should understand afterward. Use one question, one central takeaway, and one worked example that carries it, in 60–120 seconds. Going past about three minutes needs a stated reason; when a brief holds several questions, pick the one that matters most or propose a short series. Infer these choices from the request unless a missing choice would materially change the explanation.
 
-Verify material claims against the task's sources. Select the evidence needed to explain the takeaway. Put detailed IDs, inventories, and secondary statistics in supporting notes unless the lesson depends on them. Keep caveats that would change the conclusion in the explanation itself.
+Verify material claims against the task's sources. A broad research brief is source material, not a script: select the evidence the worked example needs. Put tool-by-tool inventories, IDs, and secondary statistics in supporting notes unless the lesson depends on them. Keep caveats that would change the conclusion in the explanation itself.
 
 ## 2. Design the visual sequence
 
-Read [storyboard.md](references/storyboard.md) before drafting scenes. For each beat, name what the viewer sees, what visibly changes, what that change explains, and its short narration. Complete the rough sequence before polishing the script or generating final audio.
+Read [storyboard.md](references/storyboard.md) before drafting scenes. For each beat, name the object, its state before and after, the action that changes it, what that change explains, and its short narration. Text, bullets, or a screenshot appearing is not a change. Complete the rough sequence before polishing the script or generating final audio.
 
 Use a worked example, comparison, transformation, or process unfolding. Start with the subject's actual inputs and outputs: animate a form entry becoming a document paragraph, for example, before introducing internal architecture. Replace “display this text” scenes with visible reasoning. Follow recognizable objects across scenes when useful; reveal details when the narration needs them. Give each scene one explanatory job and make the ending answer the opening question.
 
@@ -35,7 +35,7 @@ Choose the smallest suitable available toolchain. Inspect installed capabilities
 
 Write natural spoken sentences, explain unfamiliar terms when introduced, and allow viewing pauses. Cut secondary material before increasing speech speed. Keep displayed terms separate from spoken pronunciations where needed; choose plain-language narration and map visual cues to it rather than forcing filenames into the script.
 
-Read [speech.md](references/speech.md) when selecting narration, generating speech, or synchronizing it. Respect the requested provider or supplied recording; otherwise use a configured tool within the user's authorized scope. If none is available, ask for a choice while continuing the storyboard. Do not silently switch providers or deliver a silent video as if narration succeeded.
+Read [speech.md](references/speech.md) and resolve the provider before generating speech. A provider named in the request, the user's instructions, or a local skill in context wins over whatever is convenient. If it is unavailable, report a specific blocker; never fall back silently to another provider or an operating-system voice, and never deliver a silent video as if narration succeeded.
 
 Use one timeline based on measured audio, with stable named cues for important visual events. Bind cues to narration segments or verified word timings rather than sentence-array positions. After script changes, verify cues and retime affected visuals. Reuse unchanged audio where practical.
 
@@ -43,6 +43,6 @@ Render a short representative scene first to catch layout, font, timing, and ren
 
 ## 5. Verify and deliver
 
-Run the finished-video pass in [review.md](references/review.md). Inspect busy frames at normal viewing size and transitions; play the finished video with sound. Check pacing, pronunciation, synchronization, captions, and consequential visual claims, separately from technical stream and duration checks with an available media inspector. Report unavailable checks precisely; successful encoding or an agent's clarity review does not establish human understanding.
+Run the finished-video pass in [review.md](references/review.md). Judge whether the encoded frames explain the lesson separately from technical validity; clean decoding, loudness, captions, and a reproducible rebuild never show that the video communicates. Play it with sound when the host can. Report unavailable or waived checks precisely in the delivery note; they do not block delivery and must not be described as performed.
 
 Deliver the playable video, captions, narration, editable animation source, supporting source notes, and the audio/assets needed to rebuild. Use relative paths, document dependencies and font choices, and check a rebuild from the delivered folder. Include licensed redistributable assets or state how to obtain restricted assets; do not leave essential inputs only in a temporary directory. Use the host's supported video preview and checked local links. Publication remains a separate action unless requested.
