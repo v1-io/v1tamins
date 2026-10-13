@@ -13,9 +13,11 @@ When another skill supplies the context, reuse its audience, question, takeaway,
 
 ## 1. Establish the lesson
 
-Before scenes, write three short statements: the viewer's question, what they already know, and what they should understand afterward. Use one question, one central takeaway, and one worked example that carries it, in 60–120 seconds. Going past about three minutes needs a stated reason; when a brief holds several questions, pick the one that matters most or propose a short series. Infer these choices from the request unless a missing choice would materially change the explanation.
+Before scenes, write three short statements: the viewer's question, what they already know, and what they should understand afterward. Use one question, one central takeaway, and one worked example that carries it. Let the story set the length: a short idea may need 90 seconds, and a richer one can run past three minutes when each scene still earns its place. When a brief holds several unrelated questions, pick the one that matters most or propose a short series. Infer these choices from the request unless a missing choice would materially change the explanation.
 
 Verify material claims against the task's sources. A broad research brief is source material, not a script: select the evidence the worked example needs. Put tool-by-tool inventories, IDs, and secondary statistics in supporting notes unless the lesson depends on them. Keep caveats that would change the conclusion in the explanation itself.
+
+Explain at the level of ideas, not records. Keep ticket, task, and pull-request numbers, version strings, file and field names, and exact counts out of the narration and off the screen unless the viewer will use them. Name things by their role instead: "the parent company", "one task", "the fix". Prefer a familiar analogy or an explicitly hypothetical example over the literal record when it carries the same mechanism. A request for "everything" widens the supporting notes, not the script.
 
 ## 2. Design the visual sequence
 
@@ -23,7 +25,7 @@ Read [storyboard.md](references/storyboard.md) before drafting scenes. For each 
 
 Use a worked example, comparison, transformation, or process unfolding. Start with the subject's actual inputs and outputs: animate a form entry becoming a document paragraph, for example, before introducing internal architecture. Replace “display this text” scenes with visible reasoning. Follow recognizable objects across scenes when useful; reveal details when the narration needs them. Give each scene one explanatory job and make the ending answer the opening question.
 
-Use the [visual recipe](references/style.md) to choose a coherent palette, typography, and visual setting. Prefer the illustrated everyday system—expressive drawing, subject-specific objects, and restrained dry humor—for queues, handoffs, and similar processes; honor requested styles and use literal interfaces or precise geometry when those explain the subject better. Use readable labels rather than paragraphs, reserve space for captions, and hold new diagrams long enough to inspect. Motion explains a change or directs attention; stillness gives the viewer time to think. If a scene could explain an unrelated subject unchanged, make its objects and actions more specific while retaining useful familiar analogies.
+Use the [visual recipe](references/style.md) to choose a coherent palette, typography, and visual setting. Prefer the illustrated everyday system—expressive drawing, subject-specific objects, and restrained dry humor—for queues, handoffs, and similar processes; honor requested styles and use literal interfaces or precise geometry when those explain the subject better. Use readable labels rather than paragraphs, reserve space for captions, and hold new diagrams long enough to inspect. Keep the picture alive with smooth motion that explains a change or directs attention, then hold briefly so the viewer can read. If a scene could explain an unrelated subject unchanged, make its objects and actions more specific while retaining useful familiar analogies.
 
 ## 3. Review the rough explanation
 
@@ -31,7 +33,7 @@ Read [review.md](references/review.md), then run its first-viewer pass on rough 
 
 ## 4. Build, narrate, and synchronize
 
-Choose the smallest suitable available toolchain. Inspect installed capabilities before writing renderer-specific code; no renderer or speech SDK is a skill dependency. A lightweight frame renderer can suit document and software explanations; a mathematical animation engine can suit geometry; HTML or canvas can suit interface flows. Keep exact labels and data in a deterministic renderer even when using illustrative footage. Install missing tools only within the task's authorized scope, preferably in a project-local environment.
+Choose the smallest suitable available toolchain. Inspect installed capabilities before writing renderer-specific code; no renderer or speech SDK is a skill dependency. Use a renderer that draws anti-aliased vector shapes at sub-pixel positions, such as cairo, a canvas, or a mathematical animation engine, so lines stay smooth and motion does not jitter. Do not ship plain raster shape drawing that snaps to whole pixels. Animate with eased movement, scale and camera changes, and transitions that carry objects between scenes, not only fades. When a configured image generator is available, generated illustrations can serve as scenery and props. Keep exact labels and data in a deterministic renderer even when using illustrative footage. Install missing tools only within the task's authorized scope, preferably in a project-local environment.
 
 Write natural spoken sentences, explain unfamiliar terms when introduced, and allow viewing pauses. Cut secondary material before increasing speech speed. Keep displayed terms separate from spoken pronunciations where needed; choose plain-language narration and map visual cues to it rather than forcing filenames into the script.
 
