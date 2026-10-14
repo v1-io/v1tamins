@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -46,6 +47,55 @@ def make_repo(root: Path) -> Path:
 
 
 class BoundaryManifestTests(unittest.TestCase):
+    def test_overlapping_scratch_is_rejected_before_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            repo = make_repo(root / "repo")
+            home = root / "home"
+            for run_dir in (repo / "scratch", repo, root):
+                with self.subTest(run_dir=run_dir):
+                    with self.assertRaisesRegex(ValueError, "must not overlap"):
+                        peer_boundary.take_snapshot(run_dir, repo, "claude", home)
+                    self.assertFalse((run_dir / peer_boundary.SNAPSHOT_NAME).exists())
+            self.assertFalse((repo / "scratch").exists())
+
+    def test_overlapping_launch_preserves_repo_and_does_not_run(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            repo = make_repo(root / "repo")
+            before = peer_boundary.scan_manifest(repo).entries
+            result = subprocess.run(
+                [str(RUNNER), "launch", "--dir", str(repo / "scratch"),
+                 "--slug", "overlap", "--boundary-repo", str(repo),
+                 "--boundary-provider", "claude", "--", sys.executable,
+                 "-c", "raise SystemExit('must never launch')"],
+                capture_output=True, text=True, timeout=10,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("must not overlap", result.stderr)
+            self.assertEqual(peer_boundary.scan_manifest(repo).entries, before)
+
+    def test_cold_checkout_overlap_preflight_does_not_write_bytecode(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            repo = make_repo(root / "repo")
+            scripts = repo / "scripts"
+            shutil.copytree(SCRIPTS, scripts, ignore=shutil.ignore_patterns("__pycache__"))
+            before = peer_boundary.scan_manifest(repo).entries
+            environment = dict(os.environ)
+            environment.pop("PYTHONDONTWRITEBYTECODE", None)
+            result = subprocess.run(
+                [str(scripts / "peer-run.sh"), "launch", "--dir", str(repo / "scratch"),
+                 "--slug", "overlap", "--boundary-repo", str(repo),
+                 "--boundary-provider", "claude", "--", sys.executable,
+                 "-c", "raise SystemExit('must never launch')"],
+                capture_output=True, text=True, timeout=10, env=environment,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("must not overlap", result.stderr)
+            self.assertFalse((repo / "scratch").exists())
+            self.assertEqual(peer_boundary.scan_manifest(repo).entries, before)
+
     def test_ignored_and_git_metadata_changes_are_reported(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)

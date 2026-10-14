@@ -267,6 +267,13 @@ case "$cmd" in
   launch)
     [ -x "$INNER" ] || die "missing executable peer-run-inner.sh"
     [ -x "$WATCHDOG" ] || die "missing executable peer-run-watchdog.sh"
+    # Reject overlapping roots before creating, truncating or stopping anything.
+    if [ -n "$BOUNDARY_REPO" ] || [ -n "$BOUNDARY_PROVIDER" ]; then
+      [ -n "$BOUNDARY_REPO" ] || die "--boundary-provider needs --boundary-repo"
+      [ -n "$BOUNDARY_PROVIDER" ] || die "--boundary-repo needs --boundary-provider"
+      python3 -B "$BOUNDARY_HELPER" check-layout --run-dir "$peerdir" --repo "$BOUNDARY_REPO" \
+        || die "invalid read-only boundary layout"
+    fi
     mkdir -p "$peerdir" || die "cannot create run directory"
     # Reusing a slug must not leave a prior watchdog/peer to kill the new run.
     if [ -f "$pidfile" ] || [ -f "$watchdogfile" ] || [ -f "$childpidfile" ]; then
@@ -279,12 +286,9 @@ case "$cmd" in
     printf '%s\n' "$deadline_epoch" > "$deadlinefile"
     rm -f "$peerdir/boundary.snapshot.json"
 
-    # Record the read-only boundary before anything can write. A snapshot that
-    # cannot be taken must not become a silent "nothing changed" later.
-    if [ -n "$BOUNDARY_REPO" ] || [ -n "$BOUNDARY_PROVIDER" ]; then
-      [ -n "$BOUNDARY_REPO" ] || die "--boundary-provider needs --boundary-repo"
-      [ -n "$BOUNDARY_PROVIDER" ] || die "--boundary-repo needs --boundary-provider"
-      python3 "$BOUNDARY_HELPER" snapshot \
+    # Record the snapshot after old peers stop and runner sentinels are reset.
+    if [ -n "$BOUNDARY_REPO" ]; then
+      python3 -B "$BOUNDARY_HELPER" snapshot \
         --run-dir "$peerdir" --repo "$BOUNDARY_REPO" --provider "$BOUNDARY_PROVIDER" \
         >/dev/null || die "cannot record the read-only boundary"
     fi
@@ -373,7 +377,7 @@ EOF
     # once the run is terminal rather than on every poll.
     boundary="null"
     if [ -f "$peerdir/boundary.snapshot.json" ] && [ "$state" != "running" ]; then
-      boundary="$(python3 "$BOUNDARY_HELPER" verify --run-dir "$peerdir" 2>/dev/null)"
+      boundary="$(python3 -B "$BOUNDARY_HELPER" verify --run-dir "$peerdir" 2>/dev/null)"
       case "$boundary" in
         \{*) ;;
         *) boundary='{"schema":"v1-peer-boundary/v1","containment":"unverified","permission_state":"containment_unverified"}' ;;

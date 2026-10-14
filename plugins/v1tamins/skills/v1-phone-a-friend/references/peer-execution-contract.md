@@ -128,6 +128,10 @@ never collapse them into one claim.
 | --- | --- | --- |
 | repository | the reviewed checkout | unchanged — any change is a violation |
 | scratch | the run-specific directory | writes are fine and disposable |
+
+Keep scratch and the reviewed checkout disjoint, including after resolving
+symlinks. The runner rejects overlap before changing files or stopping a peer,
+so its snapshot and sentinels cannot count as unauthorized repository writes.
 | provider state | the provider's own home-relative directories | provider-owned session and report files may appear |
 
 Pass `--boundary-repo <path> --boundary-provider <name>` to `peer-run.sh launch`

@@ -439,9 +439,17 @@ def env_isolation_overrides(provider: str, run_dir: Path) -> dict[str, str]:
     return {spec.state_env_var: str(target)}
 
 
+def validate_layout(run_dir: Path, repo: Path) -> None:
+    run_dir, repo = run_dir.resolve(), repo.resolve()
+    if run_dir == repo or repo in run_dir.parents or run_dir in repo.parents:
+        raise ValueError("peer scratch directory and repository must not overlap")
+
+
 def take_snapshot(
     run_dir: Path, repo: Path, provider: str, home: Path
 ) -> dict[str, Any]:
+    validate_layout(run_dir, repo)
+    run_dir, repo = run_dir.resolve(), repo.resolve()
     spec = PROVIDERS.get(provider)
     roots = state_roots(provider, home)
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -632,6 +640,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     snapshot.add_argument("--provider", required=True, choices=tuple(PROVIDERS))
     snapshot.add_argument("--home", default=None)
 
+    layout = subcommands.add_parser("check-layout", help="require disjoint scratch and repository roots")
+    layout.add_argument("--run-dir", required=True)
+    layout.add_argument("--repo", required=True)
+
     verify = subcommands.add_parser("verify", help="report what the run wrote")
     verify.add_argument("--run-dir", required=True)
     verify.add_argument("--visit-budget", type=int, default=DEFAULT_VISIT_BUDGET)
@@ -645,10 +657,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     home = Path(getattr(args, "home", None) or Path.home())
+    if args.command == "check-layout":
+        try:
+            validate_layout(Path(args.run_dir), Path(args.repo))
+        except ValueError as error:
+            print(json.dumps({"schema": SCHEMA, "error": str(error)}), file=sys.stderr)
+            return 2
+        return 0
     if args.command == "snapshot":
-        take_snapshot(
-            Path(args.run_dir), Path(args.repo).resolve(), args.provider, home
-        )
+        try:
+            take_snapshot(
+                Path(args.run_dir), Path(args.repo).resolve(), args.provider, home
+            )
+        except ValueError as error:
+            print(json.dumps({"schema": SCHEMA, "error": str(error)}), file=sys.stderr)
+            return 2
         print(json.dumps({"schema": SCHEMA, "snapshot": "recorded"}, sort_keys=True))
         return 0
     if args.command == "plan":
