@@ -68,13 +68,18 @@ item with its impact and a proposed correction.
 - **[Protocol]** Assume clients load `name` and `description` for discovery,
   load the complete `SKILL.md` after activation, and load bundled resources
   only when required.
-- **[Protocol]** Keep `SKILL.md` under 500 lines and move detailed material to
-  focused references.
+- **[General guidance]** The specification recommends a body below 5,000
+  tokens and a main file under 500 lines. These are authoring recommendations,
+  not format validity limits or demonstrated reliability thresholds. Choose
+  disclosure from the workflow's needs; don't shorten away required behavior.
 - **[Protocol]** Reference bundled files with paths relative to the skill root.
 - **[Protocol]** Keep file references one level deep from `SKILL.md`. Don't
   chain a reference that only another reference can reveal.
 - **[General guidance]** Link every required resource directly from `SKILL.md`
   and state the condition that makes the agent load or run it.
+- **[General guidance]** References add a loading dependency. Put the load
+  instruction before the governed action and check access when that branch is
+  exercised. An important rule in an unread reference cannot govern execution.
 - **[General guidance]** Add a compact table of contents when a long reference
   would otherwise hide its scope during preview.
 
