@@ -11,6 +11,8 @@ allowed-tools:
 ---
 # PR Walkthrough
 
+For an explicitly requested narrated video, hand off directly to `v1-explainer-video` without first building HTML. Pass the PR problem, before/after behavior, a concrete example, source evidence, and validation limits. Otherwise this workflow produces an interactive HTML explanation.
+
 Please make me a rich, interactive explanation of the specified code change.
 
 It should have these sections:

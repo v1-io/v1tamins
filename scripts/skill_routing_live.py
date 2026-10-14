@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import shutil
@@ -47,6 +48,9 @@ DECISION_SCHEMA: dict[str, Any] = {
     },
     "required": ["selected_skill", "reason", "confidence"],
 }
+
+DECISION_FIELDS = set(DECISION_SCHEMA["properties"])
+DECISION_REQUIRED_FIELDS = set(DECISION_SCHEMA["required"])
 
 
 def utc_now() -> str:
@@ -360,11 +364,49 @@ def decision_texts_from_event(event: dict[str, Any], runtime: str) -> list[str]:
     return texts
 
 
+def validate_decision(decision: Any) -> list[str]:
+    """Return schema violations for a runtime's structured routing decision."""
+
+    if not isinstance(decision, dict):
+        return ["decision must be an object"]
+
+    errors: list[str] = []
+    missing = sorted(DECISION_REQUIRED_FIELDS - set(decision))
+    if missing:
+        errors.append(f"missing required field(s): {', '.join(missing)}")
+
+    extra = sorted(set(decision) - DECISION_FIELDS)
+    if extra:
+        errors.append(f"unexpected field(s): {', '.join(extra)}")
+
+    selected_skill = decision.get("selected_skill")
+    if selected_skill is not None and not isinstance(selected_skill, str):
+        errors.append("selected_skill must be a string or null")
+
+    if "reason" in decision and not isinstance(decision["reason"], str):
+        errors.append("reason must be a string")
+
+    confidence = decision.get("confidence")
+    if "confidence" in decision:
+        if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
+            errors.append("confidence must be a number (boolean is not accepted)")
+        else:
+            try:
+                finite = math.isfinite(confidence)
+            except (OverflowError, ValueError):
+                finite = False
+            if not finite:
+                errors.append("confidence must be finite")
+
+    return errors
+
+
 def extract_decision(
     stdout: str, runtime: str
 ) -> tuple[str | None, str, str, float | None]:
     observed_skill: str | None = None
     decision: dict[str, Any] | None = None
+    invalid_decision_errors: list[str] = []
 
     for line in stdout.splitlines():
         parsed = json_from_text(line)
@@ -373,14 +415,14 @@ def extract_decision(
 
         observed_skill = observed_skill or skill_name_from_tool_use(parsed, runtime)
 
-        if "selected_skill" in parsed:
-            decision = parsed
-            continue
-
-        for text in decision_texts_from_event(parsed, runtime):
-            maybe_decision = json_from_text(text)
-            if maybe_decision and "selected_skill" in maybe_decision:
-                decision = maybe_decision
+        candidates = [parsed] if "selected_skill" in parsed else [
+            json_from_text(text) for text in decision_texts_from_event(parsed, runtime)
+        ]
+        for candidate in candidates:
+            if candidate is None or "selected_skill" not in candidate:
+                continue
+            invalid_decision_errors = validate_decision(candidate)
+            decision = None if invalid_decision_errors else candidate
 
     if observed_skill:
         return (
@@ -391,22 +433,26 @@ def extract_decision(
         )
 
     if decision is None:
+        if invalid_decision_errors:
+            return (
+                None,
+                "inconclusive",
+                "invalid structured routing decision: "
+                + "; ".join(invalid_decision_errors),
+                None,
+            )
         return None, "inconclusive", "no structured selected_skill result found", None
 
     selected = decision.get("selected_skill")
     if isinstance(selected, str):
         selected = skill_name_from_value(selected) or selected
-    elif selected is not None:
-        selected = None
-    reason = str(decision.get("reason", "structured routing decision"))
-    confidence = decision.get("confidence")
-    if not isinstance(confidence, (int, float)):
-        confidence = None
+    reason = decision["reason"]
+    confidence = decision["confidence"]
     return (
         selected,
         "structured_decision",
         reason,
-        float(confidence) if confidence is not None else None,
+        float(confidence),
     )
 
 

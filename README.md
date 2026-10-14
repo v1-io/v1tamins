@@ -12,7 +12,7 @@
 **Small, reusable skills for healthier AI-assisted development.**
 
 v1tamins is an open-source plugin for [Claude Code](https://claude.ai/code) and
-[Codex](https://openai.com/codex/). It packages 40 focused skills for planning,
+[Codex](https://openai.com/codex/). It packages 41 focused skills for planning,
 debugging, reviewing, shipping, research, documentation, and product work. Use
 one skill for a specific job or combine several into a repeatable workflow.
 
@@ -154,6 +154,7 @@ These common entry points cover much of the day-to-day work:
 | Review a branch or PR before merge | [`/v1-deep-review`](plugins/v1tamins/skills/v1-deep-review/SKILL.md) |
 | Prepare a pull request | [`/v1-pr`](plugins/v1tamins/skills/v1-pr/SKILL.md) |
 | Explain a pull request visually | [`/v1-pr-walkthrough`](plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md) |
+| Explain a concept or PR through narrated animation | [`/v1-explainer-video`](plugins/v1tamins/skills/v1-explainer-video/SKILL.md) |
 | Write naturally from notes or improve an existing draft | [`/v1-skin-suit`](plugins/v1tamins/skills/v1-skin-suit/SKILL.md) |
 | Research a complex question | [`/v1-deep-research`](plugins/v1tamins/skills/v1-deep-research/SKILL.md) |
 | Create or audit an Agent Skill | [`/v1-skilling-it`](plugins/v1tamins/skills/v1-skilling-it/SKILL.md) |
@@ -224,7 +225,7 @@ that matches the job.
 | --- | --- |
 | [`/v1-pr`](plugins/v1tamins/skills/v1-pr/SKILL.md) | Local work needs a draft pull request. |
 | [`/v1-pr-description`](plugins/v1tamins/skills/v1-pr-description/SKILL.md) | A PR title and body need generation or refresh. |
-| [`/v1-land-pr`](plugins/v1tamins/skills/v1-land-pr/SKILL.md) | A completed branch needs commit, push, CI follow-through, and review hand-off. |
+| [`/v1-land-pr`](plugins/v1tamins/skills/v1-land-pr/SKILL.md) | A completed branch needs commit, push, CI follow-through, and review hand-off; it leaves the PR ready for review without merging it. |
 | [`/v1-pr-walkthrough`](plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md) | A PR needs a self-contained interactive explanation. |
 | [`/v1-address-review`](plugins/v1tamins/skills/v1-address-review/SKILL.md) | Existing PR review threads need resolution. |
 | [`/v1-prove-work`](plugins/v1tamins/skills/v1-prove-work/SKILL.md) | Browser behavior needs a GIF as review evidence. |
@@ -243,6 +244,7 @@ that matches the job.
 | [`/v1-stickify`](plugins/v1tamins/skills/v1-stickify/SKILL.md) | Communication needs to be clearer and more memorable. |
 | [`/v1-md2docs`](plugins/v1tamins/skills/v1-md2docs/SKILL.md) | Markdown needs publishing as a formatted Google Doc. |
 | [`/v1-html-it`](plugins/v1tamins/skills/v1-html-it/SKILL.md) | A review, report, prototype, or explainer needs a self-contained HTML artifact. |
+| [`/v1-explainer-video`](plugins/v1tamins/skills/v1-explainer-video/SKILL.md) | A concept, process, or PR benefits from a narrated animated explanation. |
 | [`/v1-goldpan`](plugins/v1tamins/skills/v1-goldpan/SKILL.md) | Recent work needs scanning for lessons worth documenting. |
 | [`/v1-docs-freshness`](plugins/v1tamins/skills/v1-docs-freshness/SKILL.md) | Existing documentation needs synchronization with shipped behavior. |
 | [`/v1-changelog`](plugins/v1tamins/skills/v1-changelog/SKILL.md) | Merged PRs need release notes. |
@@ -281,9 +283,10 @@ effects, but metadata does not replace user approval or host permissions. Read
 the selected skill before allowing a consequential action.
 
 > [!WARNING]
-> `/v1-land-pr` can mark a pull request ready for review and move a linked
-> Linear ticket to Human Review. Invoke it only when the work is complete and
-> those hand-off actions are intended.
+> `/v1-land-pr` can keep a new pull request in draft while it runs CI and
+> review hand-off, then mark it ready for review. It does not merge the PR or
+> update an external tracker unless the repository has a configured tracker and
+> the user explicitly requests that hand-off.
 
 Live routing evals are optional because they can call a locally authenticated
 runtime and create ignored transcripts under `.v1tamins/live-routing/`. Missing

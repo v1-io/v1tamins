@@ -40,6 +40,9 @@ def run() -> int:
             print(f"ERROR: {error}", file=sys.stderr)
         return 2
     results = load_results([Path(path) for path in args.results])
+    if not results:
+        print("ERROR: no result records found", file=sys.stderr)
+        return 2
     scored = []
     errors = []
 

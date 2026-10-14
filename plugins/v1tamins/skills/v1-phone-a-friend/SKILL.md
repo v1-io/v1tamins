@@ -79,12 +79,12 @@ Report:
 - **host:** current runtime when known, otherwise `unknown`
 - **installed peers:** `claude`, `codex`, `cursor-agent`, `agy` (Antigravity CLI); Oracle remains a manual/browser path outside the discovery allowlist
 - **credential policy:** `eligible`, `not_authenticated`, `auth_not_verified`, `blocked_api_key_present`, `explicit_api_mode`, `api_key_required`, or `not_installed`
-- **launch state:** derived readiness such as `eligible`, `model_unresolved`, `launch_unrepresentable`, or a distinct policy failure
+- **launch state:** derived readiness such as `eligible`, `model_unresolved`, `model_unverified`, `launch_unrepresentable`, or a distinct policy failure
 - **model catalog:** `resolved`/`unresolved`, with `verified`/`unresolved` confidence from provider catalog commands only
 - **default peer:** proposed counterpart and reason; not yet launched
 - **limits:** subscription tier, browser access, and cloud-agent access if not directly verified
 
-Treat command presence as `installed`, not authenticated. Do not claim a specific subscription tier unless the tool explicitly reports it or a safe probe succeeds. A current CLI with no reliable model-list surface is `model_unresolved`; never guess a model. In `subscription_native` mode, an API-key variable being present is a visible policy block, not permission to use it.
+Treat command presence as `installed`, not authenticated. Do not claim a specific subscription tier unless the tool explicitly reports it or a safe probe succeeds. A current CLI with no reliable model-list surface is `model_unresolved`; never guess a model. An explicit literal remains `model_unverified` until supported by that provider; disclose it and obtain acceptance of that uncertainty before launch. In `subscription_native` mode, an API-key variable being present is a visible policy block, not permission to use it.
 
 The script bounds every provider probe. A timeout becomes `auth_not_verified`/`unresolved` evidence rather than a launch or a replacement-peer trigger. The audit is a quick orientation, never a blocker.
 

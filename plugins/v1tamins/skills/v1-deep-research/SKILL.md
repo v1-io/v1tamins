@@ -86,6 +86,10 @@ Every report includes:
 
 Output location: `~/Documents/Research/[Topic]_[YYYYMMDD]/report.md`
 
+## Requested video summary
+
+When the user requests a narrated video of the research, hand the central finding, supporting sources, material uncertainty, and a concrete example to `v1-explainer-video`. Reuse existing research; do not repeat the investigation merely to change formats. Keep the cited report as detailed evidence and select one lesson for the video instead of narrating the whole report. Preserve the requested report or `--context` output; video generation is an additional requested format, not a default research step.
+
 ## Flags
 
 - `--quick` / `--deep` -- override mode selection

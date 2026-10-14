@@ -18,9 +18,9 @@ record per discovered CLI. The result records:
 | catalog format | `json`, `tsv`, `id_dash_label`, `lines`, `unresolved` | Shape the provider's catalog command emitted. Tab-separated `id<TAB>label` output is a catalog, not prose. |
 | model representation | `catalog`, `alias`, `explicit` | How the model ID was established. `alias` is a user-named model on a provider with no catalog command. |
 | catalog confidence | `verified`, `unresolved` | Provider catalog command output only; help text is never a catalog source. Unresolved means no model may be invented unless custom `--model` is explicit. |
-| launch state | `eligible`, `blocked_api_key_present`, `not_authenticated`, `api_key_required`, `auth_unverified`, `model_unresolved`, `launch_unrepresentable` | Derived candidate readiness. Distinct policy failures stay distinct. `launch_unrepresentable` means the model resolved but the selected level has no launch argument. |
-| runner lifecycle | `running`, `complete`, `empty_output`, `stalled`, `timed_out` | Exact states from `peer-run.sh` status/verdict. |
-| envelope family | `plain_text`, `result_text`, `result_event_nested`, `assistant_message`, `item_completed`, `json_object`, `unknown`, `empty` | Which output shape carried the answer. Reporting only; it never changes the resolved state. |
+| launch state | `eligible`, `blocked_api_key_present`, `not_authenticated`, `api_key_required`, `auth_unverified`, `model_unresolved`, `model_unverified`, `launch_unrepresentable` | Derived candidate readiness. Distinct policy failures stay distinct. `launch_unrepresentable` means the model resolved but the selected level has no launch argument. |
+| runner lifecycle | `running`, `complete`, `failed`, `empty_output`, `stalled`, `timed_out` | Exact states from `peer-run.sh` status/verdict. |
+| envelope family | `plain_text`, `result_text`, `result_event_nested`, `assistant_message`, `item_completed`, `json_object`, `terminal_error`, `unknown`, `empty` | Which output shape carried the answer or terminal failure. `terminal_error` resolves the runner to `failed`. |
 | execution (parent) | runner lifecycle, or `execution_uncertain` | Parent interpretation when dispatch occurred but lifecycle evidence is ambiguous. Not a runner-emitted state. |
 
 Structured auth probes are provider-owned JSON surfaces only:
@@ -51,7 +51,7 @@ Prompt: <profile name>, source <path or provider rubric>, digest <sha256>
 Permission: readonly | local-verify | isolated-delegate | external
 Auth policy: eligible | not_authenticated | auth_not_verified | blocked_api_key_present | explicit_api_mode | api_key_required
 Catalog confidence: verified | unresolved
-Launch state: eligible | blocked_api_key_present | not_authenticated | api_key_required | auth_unverified | model_unresolved | launch_unrepresentable
+Launch state: eligible | blocked_api_key_present | not_authenticated | api_key_required | auth_unverified | model_unresolved | model_unverified | launch_unrepresentable
 Deadline: <seconds>
 Selection: recommended | alternative | user-named
 ```
@@ -97,8 +97,9 @@ Do not regex free-form auth prose.
 4. Poll `status` or read `verdict --json`; do not branch on provider exit code
    alone. A terminal sentinel plus a real peer answer is `complete` (plain text
    non-whitespace, or a terminal JSON / stream-json answer payload — framing,
-   reasoning, tool, or error-only JSON alone is not enough), an empty or
-   answer-less terminal result is `empty_output`, a vanished process is
+   reasoning, tool, or error-only JSON alone is not enough), a
+   terminal error is `failed` even after earlier assistant output, an
+   answer-less successful result is `empty_output`, a vanished process is
    `stalled`, and a deadline breach is `timed_out`. `status` and `verdict` are
    pure observation; the watchdog and explicit `teardown` own process mutation.
 5. `scripts/peer_verdict.py` owns that judgment and reports the matching

@@ -1,5 +1,32 @@
 # v1tamins
 
+## 0.14.2
+
+### Patch Changes
+
+- 7e0de41: Make v1-explainer-video explain at the level of ideas: keep IDs, versions, file names, and exact counts out of narration and frames unless the viewer uses them, and let the story set the length. Require anti-aliased sub-pixel rendering with eased motion and camera moves, a recognizable drawn object in every scene, and optional generated illustrations. Add first-viewer and finished-video checks for jargon, static box-and-line scenes, and attention drops. Draw moving text as cached outlines so letters do not jump under camera motion.
+
+## 0.14.1
+
+### Patch Changes
+
+- 011e448: Make v1-explainer-video resolve the narration provider from the request, user instructions, or local skills before generating speech, and block instead of falling back to an operating-system voice. Replace narrated-slide beats with a before-and-after object test, a one-question scope rule, and a narration-hidden review. Record communication review separately from technical checks, and treat unavailable or waived listening as a disclosed limit rather than a delivery gate.
+
+## 0.14.0
+
+### Minor Changes
+
+- 5971c6d: Add v1-explainer-video for focused narrated animations with provider-neutral speech, visual storyboards, clarity review, and rebuildable deliverables. Distinguish video requests from interactive PR walkthroughs. Add focused handoffs from PR walkthroughs, HTML explainers, research, recorded proof, and PR descriptions without automatically generating or publishing videos. Include a concrete illustrated-process recipe with expressive drawing, subject-specific objects, and restrained dry humor for approachable explanations of queues and handoffs.
+
+## 0.13.2
+
+### Patch Changes
+
+- d6c8e12: Keep Mermaid render attempts isolated and preserve later diagrams after an earlier failure. Honor video frame rate, width, and palette options throughout GIF conversion.
+- 0167475: Align PR creation and review-readiness skills with draft PR behavior, configured tracker boundaries, and provider-neutral PRD inputs.
+- b9553ea: Tighten routing evidence validation and run offline routing and behavior checks during plugin validation.
+- a21e1ac: Prevent completion races and let terminal provider errors override earlier assistant text, distinguish unverified model selections from eligible peers, treat retryable provider error notifications before a completed turn as non-terminal, and give Antigravity optional run-specific logs.
+
 ## 0.13.1
 
 ### Patch Changes
