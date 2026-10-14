@@ -17,10 +17,12 @@ directory is created. Evidence files are never deleted by this script.
 from __future__ import annotations
 
 import argparse
+import ctypes
 import json
 import os
 import shutil
 import signal
+import struct
 import subprocess
 import sys
 import time
@@ -70,11 +72,76 @@ def write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def record_pid(run_dir: Path, pid: int, label: str) -> None:
+def process_identity(pid: int) -> dict | None:
+    """Use kernel birth time, not PID alone, to recognize a recorded child."""
+    try:
+        if sys.platform == "darwin":
+            # PROC_PIDTBSDINFO: twelve uint32s, 16/32-byte names, six uint32s,
+            # and the process birth time in seconds and microseconds.
+            info = ctypes.create_string_buffer(136)
+            libproc = ctypes.CDLL("libproc.dylib")
+            if libproc.proc_pidinfo(pid, 3, 0, info, len(info)) != len(info):
+                return None
+            seconds, microseconds = struct.unpack_from("=QQ", info.raw, 120)
+            return {"start": f"{seconds}:{microseconds}"}
+        if sys.platform.startswith("linux"):
+            fields = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()
+            return {"start": fields[19]}
+    except (OSError, ValueError, IndexError):
+        pass
+    # Persisted PIDs cannot be signalled safely without a process birth identity.
+    return None
+
+
+def record_pid(run_dir: Path, pid: int, label: str) -> Path:
     # One file per child so parallel drives never race on a shared list.
     pids_dir = run_dir / "pids"
     pids_dir.mkdir(exist_ok=True)
-    write_json(pids_dir / f"{pid}.json", {"pid": pid, "label": label, "started_at": datetime.now(UTC).isoformat()})
+    path = pids_dir / f"{pid}.json"
+    write_json(path, {"pid": pid, "label": label, "identity": process_identity(pid),
+                      "started_at": datetime.now(UTC).isoformat()})
+    return path
+
+
+def signal_child(proc: subprocess.Popen, sig: int) -> None:
+    try:
+        if os.name == "posix":
+            # Every captured child starts a new session; its descendants share
+            # the group even when the direct child has already exited.
+            os.killpg(proc.pid, sig)
+        else:
+            proc.send_signal(sig)
+    except (ProcessLookupError, PermissionError):
+        pass
+
+
+def captured_text(value: str | bytes | None) -> str:
+    return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else value or ""
+
+
+def stop_capture(proc: subprocess.Popen) -> tuple[str, str]:
+    signal_child(proc, signal.SIGTERM)
+    try:
+        return proc.communicate(timeout=1)
+    except subprocess.TimeoutExpired:
+        pass
+    finally:
+        # Parent exit and pipe EOF do not prove the group stopped: a descendant
+        # can ignore TERM and redirect stdio. Escalate even after early EOF.
+        signal_child(proc, signal.SIGKILL)
+    try:
+        return proc.communicate(timeout=1)
+    except subprocess.TimeoutExpired as exc:
+        # An escaped descendant may still hold pipes. Preserve partial proof
+        # and close our handles instead of waiting indefinitely for its EOF.
+        for stream in (proc.stdout, proc.stderr):
+            if stream:
+                stream.close()
+        try:
+            proc.wait(timeout=1)
+        except subprocess.TimeoutExpired:
+            pass
+        return captured_text(exc.output), captured_text(exc.stderr)
 
 
 def run_capture(cmd: list[str], *, cwd: Path, timeout: int, run_dir: Path, label: str) -> tuple[int, str, str, float]:
@@ -87,15 +154,23 @@ def run_capture(cmd: list[str], *, cwd: Path, timeout: int, run_dir: Path, label
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        start_new_session=os.name == "posix",
     )
-    record_pid(run_dir, proc.pid, label)
+    record = record_pid(run_dir, proc.pid, label)
     try:
-        out, err = proc.communicate(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        out, err = proc.communicate()
-        err += f"\nverify-v1tamins: killed after {timeout}s timeout\n"
-    return proc.returncode, out, err, round(time.monotonic() - started, 3)
+        try:
+            out, err = proc.communicate(timeout=timeout)
+            code = proc.returncode
+        except subprocess.TimeoutExpired:
+            out, err = stop_capture(proc)
+            code = 124
+            err += f"\nverify-v1tamins: timeout after {timeout}s; bounded process cleanup attempted\n"
+        return code, out, err, round(time.monotonic() - started, 3)
+    finally:
+        if proc.poll() is None:
+            stop_capture(proc)
+        if proc.poll() is not None:
+            record.unlink(missing_ok=True)
 
 
 def version_of(binary: str | None) -> str | None:
@@ -191,7 +266,7 @@ def cmd_doctor(args, root: Path) -> int:
 
 
 def claude_summary(stdout: str, root: Path, expect_skill: str | None) -> dict:
-    summary: dict = {"plugin": None, "plugin_is_checkout": False, "skills_loaded": 0, "skills_missing": [], "tool_uses": [], "final_text": None, "structured_output": None, "result_subtype": None, "num_turns": None}
+    summary: dict = {"plugin": None, "plugin_is_checkout": False, "skills_loaded": 0, "skills_missing": [], "skills_unexpected": [], "result_is_error": None, "tool_uses": [], "final_text": None, "structured_output": None, "result_subtype": None, "num_turns": None}
     disk = set(skills_on_disk(root))
     for line in stdout.splitlines():
         try:
@@ -212,14 +287,12 @@ def claude_summary(stdout: str, root: Path, expect_skill: str | None) -> dict:
             for block in (event.get("message") or {}).get("content", []):
                 if block.get("type") == "tool_use":
                     summary["tool_uses"].append({"name": block.get("name"), "input": block.get("input")})
-                elif block.get("type") == "text":
-                    summary["final_text"] = block.get("text")
         elif event.get("type") == "result":
             summary["result_subtype"] = event.get("subtype")
+            summary["result_is_error"] = event.get("is_error")
             summary["num_turns"] = event.get("num_turns")
             summary["structured_output"] = event.get("structured_output")
-            if event.get("result") and not summary["final_text"]:
-                summary["final_text"] = event.get("result")
+            summary["final_text"] = event.get("result")
     return summary
 
 
@@ -242,7 +315,14 @@ def cmd_claude(args, root: Path) -> int:
     summary = {"runtime": "claude", "label": args.label, "run_dir": str(run_dir), "prompt": args.prompt,
                "command": [c if not c.startswith("{") else "<schema>" for c in cmd], "returncode": code, "duration_seconds": duration}
     summary.update(claude_summary(out, root, args.expect_skill))
-    ok = code == 0 and summary["plugin_is_checkout"] and not summary["skills_missing"] and summary.get("expected_skill_loaded") is not False
+    ok = (
+        code == 0 and summary["plugin_is_checkout"]
+        and not summary["skills_missing"] and not summary["skills_unexpected"]
+        and summary.get("expected_skill_loaded") is not False
+        and summary["result_subtype"] == "success" and summary["result_is_error"] is False
+        and (bool((summary["final_text"] or "").strip()) or summary["structured_output"] is not None)
+        and (not args.schema or summary["structured_output"] is not None)
+    )
     summary["status"] = "pass" if ok else "fail"
     write_json(run_dir / f"{args.label}.claude.summary.json", summary)
     emit(summary)
@@ -281,6 +361,17 @@ def cmd_codex(args, root: Path) -> int:
     binary = shutil.which("codex")
     if not binary:
         sys.exit("verify-v1tamins: codex binary not on PATH")
+    # Recheck parity for this drive; a prior Doctor report may be stale or
+    # belong to another checkout. Never launch a stale build as verified.
+    installed = installed_codex_root(root)
+    parity = verify_installed(root, installed, "codex") if installed else {"verification_status": "missing"}
+    if parity.get("verification_status") != "match":
+        summary = {"runtime": "codex", "label": args.label, "status": "fail",
+                   "installed_root": str(installed) if installed else None,
+                   "installed_verification": parity, "reason": "installed Codex cache does not match checkout"}
+        write_json(run_dir / f"{args.label}.codex.summary.json", summary)
+        emit(summary)
+        return 1
     cmd = [binary, "exec", "--cd", str(root), "--sandbox", "read-only", "--ephemeral", "--json"]
     if args.schema:
         cmd += ["--output-schema", str(Path(args.schema).resolve())]
@@ -290,6 +381,8 @@ def cmd_codex(args, root: Path) -> int:
     (run_dir / f"{args.label}.codex.stderr.txt").write_text(err, encoding="utf-8")
     summary = {"runtime": "codex", "label": args.label, "run_dir": str(run_dir), "prompt": args.prompt, "command": cmd,
                "returncode": code, "duration_seconds": duration}
+    summary["installed_root"] = str(installed)
+    summary["installed_verification"] = parity
     summary.update(codex_summary(out, bool(args.schema)))
     ok = code == 0 and summary["turn_completed"] and bool(summary["final_text"])
     summary["status"] = "pass" if ok else "fail"
@@ -303,25 +396,43 @@ def cmd_route(args, root: Path) -> int:
     cmd = [sys.executable, str(root / "scripts" / "run-skill-routing-live-eval.py"), "--repo-root", str(root),
            "--output-dir", str(run_dir / "routing"), *args.runner_args]
     print(f"run_dir={run_dir}", file=sys.stderr)
-    proc = subprocess.Popen(cmd, cwd=root, env=child_env(), stdin=subprocess.DEVNULL)
-    record_pid(run_dir, proc.pid, "route")
-    return proc.wait()
+    proc = subprocess.Popen(cmd, cwd=root, env=child_env(), stdin=subprocess.DEVNULL,
+                            start_new_session=os.name == "posix")
+    record = record_pid(run_dir, proc.pid, "route")
+    try:
+        return proc.wait()
+    finally:
+        if proc.poll() is None:
+            signal_child(proc, signal.SIGTERM)
+            try:
+                proc.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                signal_child(proc, signal.SIGKILL)
+                proc.wait(timeout=1)
+        record.unlink(missing_ok=True)
 
 
 def cmd_cleanup(args, root: Path) -> int:
     run_dir = resolve_run_dir(root, args.run_dir)
-    report = {"run_dir": str(run_dir), "stopped": [], "removed": [], "evidence_kept": sorted(p.name for p in run_dir.iterdir())}
+    report = {"run_dir": str(run_dir), "stopped": [], "unverified": [], "removed": [], "evidence_kept": sorted(p.name for p in run_dir.iterdir())}
     pids_dir = run_dir / "pids"
     if pids_dir.is_dir():
         for entry_path in sorted(pids_dir.glob("*.json")):
             entry = json.loads(entry_path.read_text())
-            pid = int(entry["pid"])
-            try:
-                os.kill(pid, 0)
-            except (ProcessLookupError, PermissionError):
+            pid = entry.get("pid")
+            if type(pid) is not int or pid <= 1 or not entry.get("identity") or process_identity(pid) != entry["identity"]:
+                report["unverified"].append(entry)
                 continue
-            os.kill(pid, signal.SIGTERM)
-            report["stopped"].append(entry)
+            try:
+                # Do not trust a stored group number; signal the child group
+                # only when the identified child is still its leader.
+                if os.name == "posix" and os.getpgid(pid) == pid:
+                    os.killpg(pid, signal.SIGTERM)
+                else:
+                    os.kill(pid, signal.SIGTERM)
+                report["stopped"].append(entry)
+            except (ProcessLookupError, PermissionError):
+                report["unverified"].append(entry)
         shutil.rmtree(pids_dir)
         report["removed"].append("pids/")
     scratch = run_dir / "scratch"
@@ -353,7 +464,21 @@ def main() -> int:
     route = sub.add_parser("route")
     route.add_argument("runner_args", nargs=argparse.REMAINDER, help="arguments passed to scripts/run-skill-routing-live-eval.py")
     sub.add_parser("cleanup")
-    args = parser.parse_args()
+    # Split at the route subcommand before parsing so leading flags such as
+    # --runtime are forwarded unchanged, without weakening other subcommands.
+    argv = sys.argv[1:]
+    route_index = 0
+    if argv[:1] == ["--run-dir"]:
+        route_index = 2
+    elif argv and argv[0].startswith("--run-dir="):
+        route_index = 1
+    if len(argv) > route_index and argv[route_index] == "route":
+        args = parser.parse_args(argv[:route_index + 1])
+        args.runner_args = argv[route_index + 1:]
+        if args.runner_args[:1] == ["--"]:
+            args.runner_args = args.runner_args[1:]
+    else:
+        args = parser.parse_args(argv)
     root = repo_root()
     handler = {"new-run": cmd_new_run, "doctor": cmd_doctor, "claude": cmd_claude, "codex": cmd_codex, "route": cmd_route, "cleanup": cmd_cleanup}[args.command]
     return handler(args, root)

@@ -20,9 +20,9 @@ Preconditions:
 - `python3 "$V" doctor` reports `drivable: true`.
 - `V1_VERIFY_RUN_DIR` is exported.
 
-- **Load from checkout (Claude).** Run `python3 "$V" claude --label load --max-turns 1 'Reply with exactly: ok'`. The summary shows `plugin.source` of `v1tamins@inline`, `plugin_is_checkout: true`, `skills_missing: []`, and `skills_loaded` equal to the on-disk count reported by Doctor.
+- **Load from checkout (Claude).** Run `python3 "$V" claude --label load --max-turns 1 'Reply with exactly: ok'`. The summary shows `plugin.source` of `v1tamins@inline`, `plugin_is_checkout: true`, `skills_missing: []`, `skills_unexpected: []`, `result_subtype: success`, `result_is_error: false`, a final answer, and `skills_loaded` equal to the on-disk count reported by Doctor.
 - **Installed parity (Codex).** Run `python3 "$V" doctor --runtime codex`. `codex.installed_verification.verification_status` is `match` and `installed_root` names the version from `plugins/v1tamins/.codex-plugin/plugin.json`.
-- **Codex answers at all.** Run `python3 "$V" codex --label load 'Reply with exactly: ok'`. The summary shows `turn_completed: true` and `final_text` of `ok`.
+- **Codex answers at all.** Run `python3 "$V" codex --label load 'Reply with exactly: ok'`. The helper first rechecks installed-cache parity. The summary shows `installed_verification.verification_status: match`, `turn_completed: true`, and `final_text` of `ok`.
 - **Proof.** Keep `load.claude.raw.jsonl` (the init event is the listing) and `doctor.json`.
 
 ## Gotchas

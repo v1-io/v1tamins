@@ -29,7 +29,8 @@ There is no long-lived process. Each drive is one headless turn that exits:
 - **Codex**: `codex exec --cd <checkout> --sandbox read-only --ephemeral --json`
   has no plugin-dir flag. It drives the **installed** cache
   `$HOME/.codex/plugins/cache/v1tamins/v1tamins/<version>`, so Doctor must
-  prove that cache equals the checkout first. Ready when the stream emits
+  prove that cache equals the checkout first. Each Codex drive rechecks parity
+  before launching and records the result in its summary. Ready when the stream emits
   `thread.started`.
 
 Create one evidence directory for the whole run and export it so every
@@ -123,8 +124,9 @@ Everything lands in `$V1_VERIFY_RUN_DIR` (default
 
 Capture the action and the result: keep the prompt in the summary and judge
 the answer against the invoked skill's own contract (for `v1-menu`: one
-recommendation, one runner-up, explicit skills marked). A `pass` status means
-the runtime loaded the checkout and answered; it does not grade the prose.
+recommendation, one runner-up, explicit skills marked). A `pass` status requires
+the expected skill inventory and a successful terminal answer (Claude), or
+current installed-cache parity and a completed turn with an answer (Codex); it does not grade the prose.
 Read `final_text` before claiming the skill behaved.
 
 ## Cleanup
@@ -133,9 +135,12 @@ Read `final_text` before claiming the skill behaved.
 python3 "$V" cleanup
 ```
 
-Stops any child process this run recorded under `pids/` (by PID, never by
-name; normally none survive), deletes `pids/` and a `scratch/` directory
-if present, and lists the evidence it kept. It never deletes evidence. Proof
+Completed drives retire their `pids/` records. Cleanup signals a remaining
+child only when its kernel process birth identity matches the recorded one;
+legacy or unverifiable records are reported under `unverified` without
+signalling. Captured-drive timeouts stop the child process group and bound
+pipe cleanup. Cleanup deletes `pids/` and a `scratch/` directory if present,
+and lists the evidence it kept. It never deletes evidence. Proof
 survives in `$V1_VERIFY_RUN_DIR`; remove old `.v1tamins/verify/run-*`
 directories by hand once a review is done, since raw streams contain model
 output.
@@ -147,6 +152,9 @@ up across runs.
 
 - `scripts/verify-v1tamins.py` (executable): `new-run`, `doctor`, `claude`,
   `codex`, `route`, `cleanup`. `--help` on any subcommand.
+- The offline helper regressions run with `python3 scripts/test-verify-v1tamins.py`
+  and are included in the static validator. They use local processes and fixture
+  event streams, without launching logged-in runtimes.
 - `scripts/menu-recommendation.schema.json`: structured answer shape for
   `/v1-menu` drives (`recommended_skill`, `runner_up`, `reason`).
 - The repo's own `scripts/verify-installed-plugin.sh` and

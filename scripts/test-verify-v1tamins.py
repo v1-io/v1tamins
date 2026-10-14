@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+"""Offline regressions for the project-local runtime verification helper."""
+from __future__ import annotations
+
+import argparse
+import contextlib
+import importlib.util
+import io
+import json
+import os
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+import unittest
+from pathlib import Path
+from unittest import mock
+
+ROOT = Path(__file__).resolve().parents[1]
+HELPER = ROOT / '.agents/skills/verify-v1tamins/scripts/verify-v1tamins.py'
+spec = importlib.util.spec_from_file_location('verify_v1tamins', HELPER)
+assert spec and spec.loader
+verify = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(verify)
+
+
+class VerifyTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.run = Path(self.tmp.name)
+        self.addCleanup(self.tmp.cleanup)
+
+    def test_completed_capture_retires_pid(self):
+        code, out, _, _ = verify.run_capture(
+            [sys.executable, '-c', 'print("done")'], cwd=ROOT,
+            timeout=5, run_dir=self.run, label='done')
+        self.assertEqual((code, out.strip()), (0, 'done'))
+        self.assertEqual(list((self.run / 'pids').glob('*.json')), [])
+
+    def test_cleanup_does_not_signal_reused_or_unverified_pid(self):
+        child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'])
+        try:
+            verify.record_pid(self.run, child.pid, 'stale')
+            record = self.run / 'pids' / f'{child.pid}.json'
+            entry = json.loads(record.read_text())
+            entry['identity'] = {'start': 'different-process', 'command': 'different-process'}
+            record.write_text(json.dumps(entry))
+            with contextlib.redirect_stdout(io.StringIO()):
+                verify.cmd_cleanup(argparse.Namespace(run_dir=str(self.run)), ROOT)
+            self.assertIsNone(child.poll())
+        finally:
+            child.terminate()
+            child.wait(timeout=5)
+
+    @unittest.skipUnless(sys.platform == 'darwin' or sys.platform.startswith('linux'), 'birth identity unsupported')
+    def test_cleanup_recognizes_recorded_child(self):
+        child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'],
+                                 start_new_session=True)
+        try:
+            identity = verify.process_identity(child.pid)
+            self.assertIsNotNone(identity)
+            verify.record_pid(self.run, child.pid, 'active')
+            with contextlib.redirect_stdout(io.StringIO()):
+                verify.cmd_cleanup(argparse.Namespace(run_dir=str(self.run)), ROOT)
+            self.assertEqual(child.wait(timeout=5), -signal.SIGTERM)
+        finally:
+            if child.poll() is None:
+                child.kill()
+            child.wait(timeout=5)
+
+    def test_route_passthrough(self):
+        forwarded = ['--runtime', 'claude', '--case-id', 'fixture', '--max-cases', '1']
+        for prefix in ([], ['--run-dir', str(self.run)], ['--run-dir=' + str(self.run)]):
+            for separator in ([], ['--']):
+                with self.subTest(prefix=prefix, separator=separator), \
+                        mock.patch.object(sys, 'argv', ['verify', *prefix, 'route', *separator, *forwarded]), \
+                        mock.patch.object(verify, 'cmd_route', return_value=0) as route:
+                    self.assertEqual(verify.main(), 0)
+                self.assertEqual(route.call_args.args[0].runner_args, forwarded)
+
+    def test_route_rejects_unknown_helper_options_outside_route(self):
+        with mock.patch.object(sys, 'argv', ['verify', 'cleanup', '--runtime', 'claude']), \
+                contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            verify.main()
+
+    @unittest.skipUnless(os.name == 'posix', 'process-group fixture requires POSIX')
+    def test_timeout_with_descendant_pipe_is_bounded(self):
+        self.check_timeout_fixture(escape_group=False)
+
+    @unittest.skipUnless(os.name == 'posix', 'process-group fixture requires POSIX')
+    def test_timeout_with_escaped_descendant_pipe_is_bounded(self):
+        self.check_timeout_fixture(escape_group=True)
+
+    @unittest.skipUnless(os.name == 'posix', 'process-group fixture requires POSIX')
+    def test_timeout_kills_term_ignoring_descendant_without_pipes(self):
+        # The descendant closes both captured pipes and ignores TERM. EOF from
+        # its parent must not make cleanup forget the still-running group.
+        pid_file = self.run / 'detached-stdio.pid'
+        ready = self.run / 'ready'
+        survived = self.run / 'survived'
+        descendant = self.run / 'term-ignore.py'
+        descendant.write_text(
+            'import os, signal, time; from pathlib import Path\n'
+            'signal.signal(signal.SIGTERM, signal.SIG_IGN)\n'
+            f'Path({str(pid_file)!r}).write_text(str(os.getpid()))\n'
+            f'Path({str(ready)!r}).write_text("ready")\n'
+            'time.sleep(2)\n'
+            f'Path({str(survived)!r}).write_text("still running")\n'
+            'time.sleep(30)\n')
+        parent = self.run / 'parent.py'
+        parent.write_text(
+            'import subprocess, sys, time; from pathlib import Path\n'
+            f'subprocess.Popen([sys.executable, {str(descendant)!r}], '
+            'stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n'
+            f'while not Path({str(ready)!r}).exists(): time.sleep(0.01)\n'
+            'print("ready", flush=True)\n'
+            'time.sleep(30)\n')
+        try:
+            code, out, _, duration = verify.run_capture(
+                [sys.executable, str(parent)], cwd=ROOT, timeout=1,
+                run_dir=self.run, label='term-ignore')
+            self.assertEqual(code, 124)
+            self.assertEqual(out.strip(), 'ready')
+            self.assertLess(duration, 5)
+            time.sleep(1.5)
+            self.assertFalse(survived.exists(), 'TERM-ignoring descendant survived captured-parent EOF')
+            self.assertEqual(list((self.run / 'pids').glob('*.json')), [])
+        finally:
+            if pid_file.exists():
+                try:
+                    os.kill(int(pid_file.read_text()), signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+
+    def check_timeout_fixture(self, *, escape_group):
+        # The outer process is also bounded so the unfixed helper cannot hang this suite.
+        fixture = self.run / 'descendant.py'
+        pid_file = self.run / 'descendant.pid'
+        fixture.write_text(
+            'import subprocess, sys, time\n'
+            f'p = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"], start_new_session={escape_group!r})\n'
+            f'open({str(pid_file)!r}, "w").write(str(p.pid))\n'
+            'time.sleep(30)\n')
+        caller = (
+            'import importlib.util; from pathlib import Path; '
+            f's=importlib.util.spec_from_file_location("v", {str(HELPER)!r}); '
+            'v=importlib.util.module_from_spec(s); s.loader.exec_module(v); '
+            f'r=v.run_capture([{sys.executable!r}, {str(fixture)!r}], '
+            f'cwd=Path({str(ROOT)!r}),timeout=1,run_dir=Path({str(self.run)!r}),label="timeout"); '
+            'assert r[0] == 124; assert "verify-v1tamins: timeout" in r[2]; print("bounded")')
+        outer = subprocess.Popen([sys.executable, '-c', caller], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, text=True, start_new_session=True)
+        try:
+            try:
+                out, err = outer.communicate(timeout=6)
+            except subprocess.TimeoutExpired:
+                self.fail('capture hangs after killing the direct child while a descendant holds pipes')
+            self.assertEqual(outer.returncode, 0, err)
+            self.assertEqual(out.strip(), 'bounded')
+        finally:
+            try:
+                os.killpg(outer.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            outer.communicate(timeout=5)
+            if pid_file.exists():
+                try:
+                    os.kill(int(pid_file.read_text()), signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+
+    def claude_drive(self, terminal=None, *, extra_skill=False, assistant_text=None):
+        init = {'type': 'system', 'subtype': 'init',
+                'plugins': [{'name': 'v1tamins', 'path': str(ROOT / 'plugins/v1tamins')}],
+                'skills': ['v1tamins:' + name for name in verify.skills_on_disk(ROOT)]}
+        if extra_skill:
+            init['skills'].append('v1tamins:v1-stale')
+        events = [init]
+        if assistant_text:
+            events.append({'type': 'assistant', 'message': {'content': [
+                {'type': 'text', 'text': assistant_text}]}})
+        if terminal is not None:
+            events.append({'type': 'result', **terminal})
+        args = argparse.Namespace(run_dir=str(self.run), allow_writes=False, schema=None,
+                                  max_turns=1, prompt='fixture', timeout=5,
+                                  label='fixture', expect_skill=None)
+        with mock.patch.object(verify.shutil, 'which', return_value='fixture-claude'), \
+                mock.patch.object(verify, 'run_capture', return_value=(
+                    0, '\n'.join(json.dumps(event) for event in events), '', 0.1)), \
+                contextlib.redirect_stdout(io.StringIO()):
+            return verify.cmd_claude(args, ROOT)
+
+    def test_claude_requires_terminal_success(self):
+        self.assertEqual(self.claude_drive(assistant_text='intermediate'), 1)
+        self.assertEqual(self.claude_drive({'subtype': 'error_max_turns', 'is_error': True},
+                                         assistant_text='intermediate'), 1)
+
+    def test_claude_requires_final_answer(self):
+        self.assertEqual(self.claude_drive({'subtype': 'success', 'is_error': False}), 1)
+        self.assertEqual(self.claude_drive({'subtype': 'success', 'is_error': False},
+                                         assistant_text='intermediate'), 1)
+
+    def test_claude_rejects_unexpected_skills(self):
+        self.assertEqual(self.claude_drive({'subtype': 'success', 'is_error': False,
+                                           'result': 'done'}, extra_skill=True), 1)
+
+    def test_claude_accepts_successful_terminal_answer(self):
+        self.assertEqual(self.claude_drive({'subtype': 'success', 'is_error': False,
+                                           'result': 'done'}), 0)
+        self.assertEqual(self.claude_drive({'subtype': 'success', 'is_error': False,
+                                           'structured_output': {'answer': 'done'}}), 0)
+
+    def test_claude_accepts_empty_structured_terminal_answer(self):
+        for output in ({}, []):
+            with self.subTest(output=output):
+                self.assertEqual(self.claude_drive({'subtype': 'success', 'is_error': False,
+                                                   'structured_output': output}), 0)
+
+    def test_codex_checks_current_cache_before_launch(self):
+        args = argparse.Namespace(run_dir=str(self.run), schema=None, prompt='fixture',
+                                  timeout=5, label='fixture')
+        with mock.patch.object(verify.shutil, 'which', return_value='fixture-codex'), \
+                mock.patch.object(verify, 'installed_codex_root', return_value=Path('fixture-cache')), \
+                mock.patch.object(verify, 'verify_installed', return_value={
+                    'verification_status': 'mismatch'}), \
+                mock.patch.object(verify, 'run_capture', return_value=(
+                    0, '{"type":"turn.completed"}\n', '', 0.1)) as launch, \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(verify.cmd_codex(args, ROOT), 1)
+        launch.assert_not_called()
+
+
+if __name__ == '__main__':
+    unittest.main()

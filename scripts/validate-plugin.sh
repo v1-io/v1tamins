@@ -610,6 +610,7 @@ validate_routing_eval_tests() {
   local tests=(
     "$repo_root/scripts/test-skill-routing-live.py"
     "$repo_root/scripts/test-check-skill-routing-fixture.py"
+    "$repo_root/scripts/test-verify-v1tamins.py"
   )
   for test in "${tests[@]}"; do
     if python3 "$test"; then
