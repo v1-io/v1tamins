@@ -112,6 +112,23 @@ printf 'bytecode\n' > "$CANONICAL/skills/v1-phone-a-friend/scripts/__pycache__/p
 
 reset_trees
 
+# Claude Code's root-level .in_use process markers are runtime state, not content.
+mkdir -p "$INSTALLED/.in_use"
+printf '{"pid":12345}\n' > "$INSTALLED/.in_use/12345"
+"$VERIFIER" --canonical "$CANONICAL" --installed "$INSTALLED" --runtime claude > "$TEST_DIR/in-use-ignored.json"
+[ "$(json_field "$TEST_DIR/in-use-ignored.json" verification_status)" = 'match' ]
+
+# A nested .in_use directory is still content.
+mkdir -p "$INSTALLED/skills/v1-phone-a-friend/.in_use"
+printf 'nested\n' > "$INSTALLED/skills/v1-phone-a-friend/.in_use/marker"
+if "$VERIFIER" --canonical "$CANONICAL" --installed "$INSTALLED" --runtime claude > "$TEST_DIR/nested-in-use.json"; then
+  printf 'nested .in_use content unexpectedly matched\n' >&2
+  exit 1
+fi
+[ "$(json_field "$TEST_DIR/nested-in-use.json" verification_status)" = 'stale' ]
+
+reset_trees
+
 printf '%s\n' '# synthetic installed drift' >> "$INSTALLED/skills/v1-phone-a-friend/SKILL.md"
 if "$VERIFIER" --canonical "$CANONICAL" --installed "$INSTALLED" --runtime codex > "$TEST_DIR/stale.json"; then
   printf 'stale verification unexpectedly succeeded\n' >&2

@@ -53,6 +53,9 @@ def status_payload(
 
 def _is_private_or_generated(relative: Path) -> bool:
     parts = relative.parts
+    # Claude Code writes per-process markers to <plugin-root>/.in_use/.
+    if parts[0] == ".in_use":
+        return True
     if any(part == "__pycache__" or part.startswith("v1-_") for part in parts):
         return True
     if relative.suffix in {".pyc", ".pyo"}:
