@@ -138,9 +138,13 @@ python3 "$V" cleanup
 Completed drives retire their `pids/` records. Cleanup signals a remaining
 child only when its kernel process birth identity matches the recorded one;
 legacy or unverifiable records are reported under `unverified` without
-signalling. Cleanup waits for a verified child to exit after TERM, then
-rechecks its identity before escalating to KILL. Survivor and unverified records
-remain in `pids/`, and cleanup exits non-zero. Captured-drive timeouts stop the
+signalling. While the recorded leader is verified, cleanup captures and persists
+its group members' birth identities. It signals those members individually,
+rechecking birth identity and group membership before TERM or KILL, and bounds
+the waits independently of leader exit. Final group enumeration must confirm
+completion; new or unverifiable members are not signalled. Survivor and
+unverified records retain their member identities in `pids/`, and cleanup exits
+non-zero so another cleanup can resume safely. Captured-drive timeouts stop the
 child process group and bound pipe cleanup. Cleanup deletes an empty `pids/`
 and a `scratch/` directory if present, and lists the evidence it kept. It never
 deletes evidence. Proof survives in `$V1_VERIFY_RUN_DIR`; remove old `.v1tamins/verify/run-*`

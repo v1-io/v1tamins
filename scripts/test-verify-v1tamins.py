@@ -98,14 +98,64 @@ class VerifyTests(unittest.TestCase):
                 child.kill()
             child.wait(timeout=5)
 
+    @unittest.skipUnless(sys.platform == 'darwin' or sys.platform.startswith('linux'), 'birth identity unsupported')
+    def test_cleanup_kills_same_group_descendant_after_leader_exits(self):
+        ready = self.run / 'group-ready'
+        pid_file = self.run / 'group-descendant.pid'
+        descendant = self.run / 'cleanup-descendant.py'
+        descendant.write_text(
+            'import os, signal, time; from pathlib import Path\n'
+            'signal.signal(signal.SIGTERM, signal.SIG_IGN)\n'
+            f'Path({str(pid_file)!r}).write_text(str(os.getpid()))\n'
+            f'Path({str(ready)!r}).touch()\n'
+            'time.sleep(30)\n')
+        child = subprocess.Popen([
+            sys.executable, '-c',
+            'import subprocess, sys, time; '
+            f'subprocess.Popen([sys.executable, {str(descendant)!r}], '
+            'stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); '
+            'time.sleep(30)'], start_new_session=True)
+        try:
+            deadline = time.monotonic() + 5
+            while not ready.exists() and time.monotonic() < deadline:
+                time.sleep(0.01)
+            self.assertTrue(ready.exists())
+            descendant_pid = int(pid_file.read_text())
+            descendant_identity = verify.process_identity(descendant_pid)
+            self.assertEqual(os.getpgid(descendant_pid), child.pid)
+            verify.record_pid(self.run, child.pid, 'group-cleanup')
+            output = io.StringIO()
+            started = time.monotonic()
+            with contextlib.redirect_stdout(output):
+                result = verify.cmd_cleanup(argparse.Namespace(run_dir=str(self.run)), ROOT)
+            self.assertLess(time.monotonic() - started, 5)
+            self.assertEqual(child.wait(timeout=0.5), -signal.SIGTERM)
+            self.assertTrue(verify.identity_exited(descendant_pid, descendant_identity),
+                            'TERM-ignoring descendant survived the recorded leader exit')
+            self.assertEqual(result, 0)
+            self.assertEqual(len(json.loads(output.getvalue())['stopped']), 1)
+            self.assertFalse((self.run / 'pids').exists())
+        finally:
+            # Only this fixture owns the process group, and the leader PID
+            # cannot be reused until this parent has reaped it.
+            if pid_file.exists():
+                try:
+                    os.kill(int(pid_file.read_text()), signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            if child.poll() is None:
+                child.kill()
+            child.wait(timeout=5)
+
     def test_cleanup_keeps_survivor_record(self):
         identity = {'start': 'fixture-birth'}
         with mock.patch.object(verify, 'process_identity', return_value=identity):
             record = verify.record_pid(self.run, 123456, 'survivor')
             output = io.StringIO()
-            with mock.patch.object(verify.os, 'getpgid', return_value=123456), \
-                    mock.patch.object(verify.os, 'killpg'), \
-                    mock.patch.object(verify.os, 'kill'), \
+            with mock.patch.object(verify, 'group_member_pids', return_value=[123456]), \
+                    mock.patch.object(verify.os, 'getpgid', return_value=123456), \
+                    mock.patch.object(verify.os, 'killpg') as group_send, \
+                    mock.patch.object(verify.os, 'kill') as send, \
                     contextlib.redirect_stdout(output):
                 result = verify.cmd_cleanup(argparse.Namespace(run_dir=str(self.run)), ROOT)
         self.assertEqual(result, 1)
@@ -113,32 +163,128 @@ class VerifyTests(unittest.TestCase):
         report = json.loads(output.getvalue())
         self.assertEqual(report['stopped'], [])
         self.assertEqual(len(report['survivors']), 1)
+        self.assertEqual(send.call_args_list, [mock.call(123456, signal.SIGTERM), mock.call(123456, signal.SIGKILL)])
+        group_send.assert_not_called()
 
     def test_cleanup_rechecks_identity_before_escalation(self):
         original = {'start': 'original'}
         replacement = {'start': 'replacement'}
-        with mock.patch.object(verify, 'process_identity', return_value=original):
-            verify.record_pid(self.run, 123456, 'reused-during-cleanup')
-        with mock.patch.object(verify, 'process_identity', side_effect=[original, original, replacement, replacement, replacement]), \
-                mock.patch.object(verify.os, 'getpgid', return_value=123456), \
-                mock.patch.object(verify.os, 'killpg') as send, \
-                contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(verify.cmd_cleanup(argparse.Namespace(run_dir=str(self.run)), ROOT), 0)
-        send.assert_called_once_with(123456, signal.SIGTERM)
+        current = {123456: original, 123457: original}
+        def send_signal(pid, sig):
+            if sig == signal.SIGTERM:
+                current[pid] = replacement
+        with mock.patch.object(verify, 'process_identity', side_effect=lambda pid: current[pid]):
+            record = verify.record_pid(self.run, 123456, 'reused-during-cleanup')
+            with mock.patch.object(verify, 'group_member_pids', return_value=[123456, 123457]), \
+                    mock.patch.object(verify.os, 'getpgid', return_value=123456), \
+                    mock.patch.object(verify.os, 'kill', side_effect=send_signal) as send, \
+                    mock.patch.object(verify.os, 'killpg') as group_send, \
+                    contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(verify.cmd_cleanup(argparse.Namespace(run_dir=str(self.run)), ROOT), 1)
+        self.assertEqual(send.call_args_list, [mock.call(123456, signal.SIGTERM), mock.call(123457, signal.SIGTERM)])
+        group_send.assert_not_called()
+        self.assertTrue(record.exists(), 'reused group cannot certify completion')
 
     def test_cleanup_keeps_record_when_birth_identity_becomes_unavailable(self):
         original = {'start': 'original'}
-        with mock.patch.object(verify, 'process_identity', return_value=original):
+        state = [original]
+        def send_signal(pid, sig):
+            if sig == signal.SIGTERM:
+                state[0] = None
+        with mock.patch.object(verify, 'process_identity', side_effect=lambda pid: state[0]):
             record = verify.record_pid(self.run, 123456, 'unverifiable-after-term')
-        with mock.patch.object(verify, 'process_identity', side_effect=[original, original] + [None] * 500), \
-                mock.patch.object(verify.os, 'getpgid', return_value=123456), \
-                mock.patch.object(verify.os, 'killpg') as send, \
-                mock.patch.object(verify.os, 'kill'), \
-                mock.patch.object(verify.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, 'R', '')), \
-                contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(verify.cmd_cleanup(argparse.Namespace(run_dir=str(self.run)), ROOT), 1)
+            with mock.patch.object(verify, 'group_member_pids', return_value=[123456]), \
+                    mock.patch.object(verify.os, 'getpgid', return_value=123456), \
+                    mock.patch.object(verify.os, 'kill', side_effect=send_signal) as send, \
+                    mock.patch.object(verify.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, 'R', '')), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(verify.cmd_cleanup(argparse.Namespace(run_dir=str(self.run)), ROOT), 1)
+        signals = [call for call in send.call_args_list if call.args[1] != 0]
+        self.assertEqual(signals, [mock.call(123456, signal.SIGTERM)])
+        self.assertTrue(record.exists())
+        self.assertEqual(json.loads(record.read_text())['cleanup_group']['members'],
+                         [{'pid': 123456, 'identity': original}])
+
+    def test_cleanup_rejects_snapshot_without_verified_leader(self):
+        identity = {'start': 'fixture-birth'}
+        with mock.patch.object(verify, 'process_identity', return_value=identity):
+            record = verify.record_pid(self.run, 123456, 'incomplete-snapshot')
+            with mock.patch.object(verify, 'group_member_pids', return_value=[]), \
+                    mock.patch.object(verify.os, 'getpgid', return_value=123456), \
+                    mock.patch.object(verify.os, 'kill') as send, \
+                    contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(verify.cmd_cleanup(argparse.Namespace(run_dir=str(self.run)), ROOT), 1)
+        self.assertTrue(record.exists())
+        send.assert_not_called()
+
+    def test_cleanup_keeps_record_when_group_enumeration_fails(self):
+        identity = {'start': 'fixture-birth'}
+        with mock.patch.object(verify, 'process_identity', return_value=identity):
+            record = verify.record_pid(self.run, 123456, 'unreadable-group')
+            for error in (OSError('denied'), subprocess.TimeoutExpired('/bin/ps', 1)):
+                with self.subTest(error=type(error).__name__), \
+                        mock.patch.object(verify, 'group_member_pids', side_effect=error), \
+                        mock.patch.object(verify.os, 'getpgid', return_value=123456), \
+                        mock.patch.object(verify.os, 'kill') as send, \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(verify.cmd_cleanup(argparse.Namespace(run_dir=str(self.run)), ROOT), 1)
+                self.assertTrue(record.exists())
+                send.assert_not_called()
+
+    def test_cleanup_does_not_signal_unknown_late_group_member(self):
+        identity = {'start': 'fixture-birth'}
+        alive = {123456: identity, 123457: {'start': 'new-member', 'exited': True}}
+        def send_signal(pid, sig):
+            if sig == signal.SIGTERM:
+                alive[pid] = {**identity, 'exited': True}
+        with mock.patch.object(verify, 'process_identity', side_effect=lambda pid: alive[pid]):
+            record = verify.record_pid(self.run, 123456, 'late-member')
+            with mock.patch.object(verify, 'group_member_pids', side_effect=[[123456], [123456, 123457]]), \
+                    mock.patch.object(verify.os, 'getpgid', return_value=123456), \
+                    mock.patch.object(verify.os, 'kill', side_effect=send_signal) as send, \
+                    contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(verify.cmd_cleanup(argparse.Namespace(run_dir=str(self.run)), ROOT), 1)
         send.assert_called_once_with(123456, signal.SIGTERM)
         self.assertTrue(record.exists())
+
+    def test_cleanup_probe_wait_shares_one_deadline(self):
+        clock = [0.0]
+        def probe(cmd, **kwargs):
+            clock[0] += kwargs['timeout']
+            raise subprocess.TimeoutExpired(cmd, kwargs['timeout'])
+        with mock.patch.object(verify.sys, 'platform', 'darwin'), \
+                mock.patch.object(verify, 'process_identity', return_value=None), \
+                mock.patch.object(verify.os, 'kill'), \
+                mock.patch.object(verify.time, 'monotonic', side_effect=lambda: clock[0]), \
+                mock.patch.object(verify.subprocess, 'run', side_effect=probe) as run:
+            self.assertFalse(verify.wait_for_members_exit(
+                [{'pid': 123456, 'identity': {'start': 'first'}},
+                 {'pid': 123457, 'identity': {'start': 'second'}}], deadline=0.1))
+        self.assertEqual(run.call_count, 1)
+        self.assertEqual(clock[0], 0.1)
+
+    def test_cleanup_uses_saved_members_after_leader_exit(self):
+        original = {'start': 'original'}
+        dead = {**original, 'exited': True}
+        current = {123456: dead, 123457: original}
+        record_dir = self.run / 'pids'
+        record_dir.mkdir()
+        record = record_dir / '123456.json'
+        verify.write_json(record, {'pid': 123456, 'identity': original, 'cleanup_group': {
+            'pgid': 123456, 'whole_group': True,
+            'members': [{'pid': 123456, 'identity': original}, {'pid': 123457, 'identity': original}]}})
+        def send_signal(pid, sig):
+            current[pid] = dead
+        with mock.patch.object(verify, 'process_identity', side_effect=lambda pid: current[pid]), \
+                mock.patch.object(verify, 'group_member_pids', return_value=[123456, 123457]), \
+                mock.patch.object(verify.os, 'getpgid', return_value=123456), \
+                mock.patch.object(verify.os, 'kill', side_effect=send_signal) as send, \
+                mock.patch.object(verify.os, 'killpg') as group_send, \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(verify.cmd_cleanup(argparse.Namespace(run_dir=str(self.run)), ROOT), 0)
+        send.assert_called_once_with(123457, signal.SIGTERM)
+        group_send.assert_not_called()
+        self.assertFalse(record.exists())
 
     def test_doctor_does_not_probe_unselected_runtime(self):
         for runtime in ('claude', 'codex'):

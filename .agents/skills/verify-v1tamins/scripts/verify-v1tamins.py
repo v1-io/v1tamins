@@ -430,7 +430,7 @@ def cmd_route(args, root: Path) -> int:
         record.unlink(missing_ok=True)
 
 
-def identity_exited(pid: int, identity: dict) -> bool:
+def identity_exited(pid: int, identity: dict, *, deadline: float | None = None) -> bool:
     current = process_identity(pid)
     if current is not None:
         # A zombie or a different birth identity cannot be the running child.
@@ -445,33 +445,146 @@ def identity_exited(pid: int, identity: dict) -> bool:
     # Confirm that state separately; an unreadable identity alone proves nothing.
     if sys.platform == "darwin":
         try:
+            remaining = 1 if deadline is None else min(1, deadline - time.monotonic())
+            if remaining <= 0:
+                return False
             status = subprocess.run(["/bin/ps", "-o", "stat=", "-p", str(pid)],
-                                    capture_output=True, text=True, timeout=1)
+                                    capture_output=True, text=True, timeout=remaining)
             return status.returncode == 0 and status.stdout.strip().startswith("Z")
         except (OSError, subprocess.TimeoutExpired):
             pass
     return False
 
 
-def wait_for_identity_exit(pid: int, identity: dict, timeout: float = 1) -> bool:
-    deadline = time.monotonic() + timeout
-    while not identity_exited(pid, identity):
-        if time.monotonic() >= deadline:
-            return False
-        time.sleep(0.02)
-    return True
+class UnverifiedCleanup(RuntimeError):
+    """A stored process record cannot authorize another signal or success."""
 
 
-def signal_recorded_child(pid: int, identity: dict, sig: int) -> bool:
-    # Recheck at each signal, including escalation: the PID may now belong to
-    # another process. Never use an unverified stored process-group number.
+def cleanup_time_left(deadline: float) -> float:
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise UnverifiedCleanup("cleanup deadline exhausted")
+    return remaining
+
+
+def group_member_pids(pgid: int, *, deadline: float) -> list[int]:
+    # ps provides the same bounded metadata query on Darwin and Linux. Birth
+    # identities come separately from the kernel before any signal is sent.
+    done = subprocess.run(["/bin/ps", "-axo", "pid=,pgid="], capture_output=True,
+                          text=True, timeout=min(1, cleanup_time_left(deadline)))
+    if done.returncode or len(done.stdout) > 1024 * 1024:
+        raise UnverifiedCleanup("process-group enumeration failed")
+    try:
+        rows = [tuple(map(int, line.split())) for line in done.stdout.splitlines() if line.strip()]
+        if any(len(row) != 2 for row in rows):
+            raise ValueError("invalid process row")
+        return [pid for pid, group in rows if group == pgid]
+    except ValueError as exc:
+        raise UnverifiedCleanup("process-group enumeration was unreadable") from exc
+
+
+def cleanup_snapshot(entry: dict, record: Path, deadline: float) -> dict:
+    """Persist group members while its original leader still proves ownership."""
+    if "cleanup_group" in entry:
+        snapshot = entry["cleanup_group"]
+        if not any(member["pid"] == entry["pid"] and member["identity"] == entry["identity"]
+                   for member in snapshot["members"]):
+            raise UnverifiedCleanup("saved snapshot lacks the recorded leader")
+        return snapshot
+    pid, identity = entry["pid"], entry["identity"]
     if process_identity(pid) != identity:
-        return False
-    if os.name == "posix" and os.getpgid(pid) == pid:
-        os.killpg(pid, sig)
-    else:
+        raise UnverifiedCleanup("recorded leader identity unavailable")
+    pgid = os.getpgid(pid)
+    members = []
+    # A non-leader record authorizes only that child, never its shared group.
+    for member_pid in group_member_pids(pgid, deadline=deadline) if pgid == pid else [pid]:
+        cleanup_time_left(deadline)
+        member_identity = process_identity(member_pid)
+        if member_identity is None:
+            raise UnverifiedCleanup("member identity unavailable during snapshot")
+        if member_identity.get("exited"):
+            continue
+        if os.getpgid(member_pid) != pgid or process_identity(member_pid) != member_identity:
+            raise UnverifiedCleanup("member changed during snapshot")
+        members.append({"pid": member_pid, "identity": member_identity})
+    if not any(member["pid"] == pid and member["identity"] == identity for member in members):
+        raise UnverifiedCleanup("snapshot lacks the verified leader")
+    if process_identity(pid) != identity or os.getpgid(pid) != pgid:
+        raise UnverifiedCleanup("leader changed during snapshot")
+    snapshot = {"pgid": pgid, "whole_group": pgid == pid, "members": members}
+    entry["cleanup_group"] = snapshot
+    write_json(record, entry)
+    return snapshot
+
+
+def signal_cleanup_member(member: dict, pgid: int, sig: int, deadline: float) -> None:
+    cleanup_time_left(deadline)
+    pid, identity = member["pid"], member["identity"]
+    current = process_identity(pid)
+    if current != identity:
+        if identity_exited(pid, identity, deadline=deadline):
+            return
+        raise UnverifiedCleanup("member identity unavailable before signal")
+    if os.getpgid(pid) != pgid:
+        raise UnverifiedCleanup("member left the recorded group")
+    # Signal individual birth-verified members, never a persisted group number.
+    if process_identity(pid) != identity:
+        if identity_exited(pid, identity, deadline=deadline):
+            return
+        raise UnverifiedCleanup("member identity changed before signal")
+    try:
         os.kill(pid, sig)
-    return True
+    except ProcessLookupError:
+        if not identity_exited(pid, identity, deadline=deadline):
+            raise UnverifiedCleanup("member exit could not be verified")
+
+
+def wait_for_members_exit(members: list[dict], deadline: float, timeout: float = 1) -> bool:
+    wait_deadline = min(deadline, time.monotonic() + timeout)
+    while True:
+        all_exited = True
+        for member in members:
+            cleanup_time_left(deadline)
+            # A zero-wait final pass still permits bounded zombie-state proof;
+            # it does not wait for a running process to exit.
+            probe_deadline = deadline if timeout == 0 else wait_deadline
+            if not identity_exited(member["pid"], member["identity"], deadline=probe_deadline):
+                all_exited = False
+                if time.monotonic() >= wait_deadline:
+                    return False
+        if all_exited:
+            return True
+        time.sleep(min(0.02, max(0, wait_deadline - time.monotonic())))
+
+
+def cleanup_record(entry: dict, record: Path) -> str:
+    # One budget covers discovery, all member probes, escalation and final
+    # verification. A large/unreadable group cannot multiply one-second probes.
+    deadline = time.monotonic() + 5
+    snapshot = cleanup_snapshot(entry, record, deadline)
+    members, pgid = snapshot["members"], snapshot["pgid"]
+    for sig in (signal.SIGTERM, signal.SIGKILL):
+        for member in members:
+            signal_cleanup_member(member, pgid, sig, deadline)
+        if wait_for_members_exit(members, deadline):
+            break
+    # Leader exit and pipe EOF do not establish group completion. Unknown/new
+    # members cannot inherit signal authority: keep the proof and fail closed.
+    if snapshot["whole_group"]:
+        expected = {member["pid"]: member["identity"] for member in members}
+        for pid in group_member_pids(pgid, deadline=deadline):
+            cleanup_time_left(deadline)
+            if pid not in expected:
+                raise UnverifiedCleanup("group completion has an unknown member")
+            current = process_identity(pid)
+            if current == {**expected[pid], "exited": True}:
+                continue
+            if current is None and identity_exited(pid, expected[pid], deadline=deadline):
+                continue
+            if current != expected[pid]:
+                raise UnverifiedCleanup("group completion has an unverified member")
+            return "survivors"
+    return "stopped" if wait_for_members_exit(members, deadline, timeout=0) else "survivors"
 
 
 def cmd_cleanup(args, root: Path) -> int:
@@ -482,26 +595,15 @@ def cmd_cleanup(args, root: Path) -> int:
         for entry_path in sorted(pids_dir.glob("*.json")):
             entry = json.loads(entry_path.read_text())
             pid, identity = entry.get("pid"), entry.get("identity")
-            if type(pid) is not int or pid <= 1 or not identity or process_identity(pid) != identity:
+            if type(pid) is not int or pid <= 1 or not identity:
                 report["unverified"].append(entry)
                 continue
             try:
-                signal_recorded_child(pid, identity, signal.SIGTERM)
-                if not wait_for_identity_exit(pid, identity):
-                    signal_recorded_child(pid, identity, signal.SIGKILL)
-                if wait_for_identity_exit(pid, identity):
-                    report["stopped"].append(entry)
+                disposition = cleanup_record(entry, entry_path)
+                report[disposition].append(entry)
+                if disposition == "stopped":
                     entry_path.unlink()
-                else:
-                    report["survivors"].append(entry)
-            except ProcessLookupError:
-                # A process can exit between its identity check and signalling.
-                if identity_exited(pid, identity):
-                    report["stopped"].append(entry)
-                    entry_path.unlink()
-                else:
-                    report["survivors"].append(entry)
-            except PermissionError:
+            except (UnverifiedCleanup, OSError, subprocess.TimeoutExpired):
                 report["unverified"].append(entry)
         if not any(pids_dir.iterdir()):
             pids_dir.rmdir()
