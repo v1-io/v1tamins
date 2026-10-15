@@ -83,10 +83,16 @@ def process_identity(pid: int) -> dict | None:
             if libproc.proc_pidinfo(pid, 3, 0, info, len(info)) != len(info):
                 return None
             seconds, microseconds = struct.unpack_from("=QQ", info.raw, 120)
-            return {"start": f"{seconds}:{microseconds}"}
+            identity = {"start": f"{seconds}:{microseconds}"}
+            if struct.unpack_from("=I", info.raw, 4)[0] == 5:  # SZOMB
+                identity["exited"] = True
+            return identity
         if sys.platform.startswith("linux"):
             fields = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()
-            return {"start": fields[19]}
+            identity = {"start": fields[19]}
+            if fields[0] == "Z":
+                identity["exited"] = True
+            return identity
     except (OSError, ValueError, IndexError):
         pass
     # Persisted PIDs cannot be signalled safely without a process birth identity.
@@ -226,34 +232,46 @@ def cmd_doctor(args, root: Path) -> int:
     report: dict = {"run_dir": str(run_dir), "canonical_version": canonical_version(root), "skills_on_disk": len(skills_on_disk(root))}
     problems: list[str] = []
 
-    claude_bin = shutil.which("claude")
-    claude = {"bin": claude_bin, "version": version_of(claude_bin), "auth_ok": False}
-    if claude_bin:
-        auth = subprocess.run([claude_bin, "auth", "status", "--text"], capture_output=True, text=True, timeout=60, env=child_env())
-        claude["auth_ok"] = auth.returncode == 0
-        claude["auth_detail"] = (auth.stdout or auth.stderr).strip().splitlines()[0] if (auth.stdout or auth.stderr).strip() else ""
-    claude["plugin_dir"] = str(root / "plugins" / "v1tamins")
-    report["claude"] = claude
     if args.runtime in ("claude", "both"):
+        claude_bin = shutil.which("claude")
+        claude = {"bin": claude_bin, "version": version_of(claude_bin), "auth_ok": False,
+                  "plugin_dir": str(root / "plugins" / "v1tamins")}
+        if claude_bin:
+            try:
+                auth = subprocess.run([claude_bin, "auth", "status", "--text"], capture_output=True, text=True, timeout=60, env=child_env())
+                claude["auth_ok"] = auth.returncode == 0
+                claude["auth_detail"] = (auth.stdout or auth.stderr).strip().splitlines()[0] if (auth.stdout or auth.stderr).strip() else ""
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                claude["auth_error"] = type(exc).__name__
+                problems.append(f"claude authentication probe failed: {type(exc).__name__}")
+        report["claude"] = claude
         if not claude_bin:
             problems.append("claude binary not on PATH")
-        elif not claude["auth_ok"]:
+        elif not claude["auth_ok"] and "auth_error" not in claude:
             problems.append("claude is not logged in (run: claude auth login)")
 
-    codex_bin = shutil.which("codex")
-    codex = {"bin": codex_bin, "version": version_of(codex_bin), "login_ok": False}
-    if codex_bin:
-        login = subprocess.run([codex_bin, "login", "status"], capture_output=True, text=True, timeout=60, env=child_env())
-        codex["login_ok"] = login.returncode == 0
-        codex["login_detail"] = (login.stdout or login.stderr).strip().splitlines()[0] if (login.stdout or login.stderr).strip() else ""
-    installed = installed_codex_root(root)
-    codex["installed_root"] = str(installed) if installed else None
-    codex["installed_verification"] = verify_installed(root, installed, "codex") if installed else {"verification_status": "missing"}
-    report["codex"] = codex
     if args.runtime in ("codex", "both"):
+        codex_bin = shutil.which("codex")
+        codex = {"bin": codex_bin, "version": version_of(codex_bin), "login_ok": False}
+        if codex_bin:
+            try:
+                login = subprocess.run([codex_bin, "login", "status"], capture_output=True, text=True, timeout=60, env=child_env())
+                codex["login_ok"] = login.returncode == 0
+                codex["login_detail"] = (login.stdout or login.stderr).strip().splitlines()[0] if (login.stdout or login.stderr).strip() else ""
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                codex["login_error"] = type(exc).__name__
+                problems.append(f"codex authentication probe failed: {type(exc).__name__}")
+        codex["installed_root"] = None
+        try:
+            installed = installed_codex_root(root)
+            codex["installed_root"] = str(installed) if installed else None
+            codex["installed_verification"] = verify_installed(root, installed, "codex") if installed else {"verification_status": "missing"}
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            codex["installed_verification"] = {"verification_status": "error", "error": type(exc).__name__}
+        report["codex"] = codex
         if not codex_bin:
             problems.append("codex binary not on PATH")
-        elif not codex["login_ok"]:
+        elif not codex["login_ok"] and "login_error" not in codex:
             problems.append("codex is not logged in (run: codex login)")
         if codex["installed_verification"].get("verification_status") != "match":
             problems.append("installed Codex plugin cache does not match the checkout; Codex would drive a stale build")
@@ -412,36 +430,89 @@ def cmd_route(args, root: Path) -> int:
         record.unlink(missing_ok=True)
 
 
+def identity_exited(pid: int, identity: dict) -> bool:
+    current = process_identity(pid)
+    if current is not None:
+        # A zombie or a different birth identity cannot be the running child.
+        return current != identity
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return True
+    except PermissionError:
+        pass
+    # Darwin's proc_pidinfo can omit zombies before their parent reaps them.
+    # Confirm that state separately; an unreadable identity alone proves nothing.
+    if sys.platform == "darwin":
+        try:
+            status = subprocess.run(["/bin/ps", "-o", "stat=", "-p", str(pid)],
+                                    capture_output=True, text=True, timeout=1)
+            return status.returncode == 0 and status.stdout.strip().startswith("Z")
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    return False
+
+
+def wait_for_identity_exit(pid: int, identity: dict, timeout: float = 1) -> bool:
+    deadline = time.monotonic() + timeout
+    while not identity_exited(pid, identity):
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.02)
+    return True
+
+
+def signal_recorded_child(pid: int, identity: dict, sig: int) -> bool:
+    # Recheck at each signal, including escalation: the PID may now belong to
+    # another process. Never use an unverified stored process-group number.
+    if process_identity(pid) != identity:
+        return False
+    if os.name == "posix" and os.getpgid(pid) == pid:
+        os.killpg(pid, sig)
+    else:
+        os.kill(pid, sig)
+    return True
+
+
 def cmd_cleanup(args, root: Path) -> int:
     run_dir = resolve_run_dir(root, args.run_dir)
-    report = {"run_dir": str(run_dir), "stopped": [], "unverified": [], "removed": [], "evidence_kept": sorted(p.name for p in run_dir.iterdir())}
+    report = {"run_dir": str(run_dir), "stopped": [], "unverified": [], "survivors": [], "removed": [], "evidence_kept": sorted(p.name for p in run_dir.iterdir())}
     pids_dir = run_dir / "pids"
     if pids_dir.is_dir():
         for entry_path in sorted(pids_dir.glob("*.json")):
             entry = json.loads(entry_path.read_text())
-            pid = entry.get("pid")
-            if type(pid) is not int or pid <= 1 or not entry.get("identity") or process_identity(pid) != entry["identity"]:
+            pid, identity = entry.get("pid"), entry.get("identity")
+            if type(pid) is not int or pid <= 1 or not identity or process_identity(pid) != identity:
                 report["unverified"].append(entry)
                 continue
             try:
-                # Do not trust a stored group number; signal the child group
-                # only when the identified child is still its leader.
-                if os.name == "posix" and os.getpgid(pid) == pid:
-                    os.killpg(pid, signal.SIGTERM)
+                signal_recorded_child(pid, identity, signal.SIGTERM)
+                if not wait_for_identity_exit(pid, identity):
+                    signal_recorded_child(pid, identity, signal.SIGKILL)
+                if wait_for_identity_exit(pid, identity):
+                    report["stopped"].append(entry)
+                    entry_path.unlink()
                 else:
-                    os.kill(pid, signal.SIGTERM)
-                report["stopped"].append(entry)
-            except (ProcessLookupError, PermissionError):
+                    report["survivors"].append(entry)
+            except ProcessLookupError:
+                # A process can exit between its identity check and signalling.
+                if identity_exited(pid, identity):
+                    report["stopped"].append(entry)
+                    entry_path.unlink()
+                else:
+                    report["survivors"].append(entry)
+            except PermissionError:
                 report["unverified"].append(entry)
-        shutil.rmtree(pids_dir)
-        report["removed"].append("pids/")
+        if not any(pids_dir.iterdir()):
+            pids_dir.rmdir()
+            report["removed"].append("pids/")
     scratch = run_dir / "scratch"
     if scratch.is_dir():
         shutil.rmtree(scratch)
         report["removed"].append("scratch/")
     report["evidence_kept"] = sorted(p.name for p in run_dir.iterdir())
     emit(report)
-    return 0
+    return 1 if report["survivors"] or report["unverified"] else 0
 
 
 def main() -> int:

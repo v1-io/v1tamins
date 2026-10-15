@@ -69,6 +69,117 @@ class VerifyTests(unittest.TestCase):
                 child.kill()
             child.wait(timeout=5)
 
+    @unittest.skipUnless(sys.platform == 'darwin' or sys.platform.startswith('linux'), 'birth identity unsupported')
+    def test_cleanup_waits_and_kills_term_ignoring_child(self):
+        ready = self.run / 'cleanup-ready'
+        child = subprocess.Popen([
+            sys.executable, '-c',
+            'import signal, time; from pathlib import Path; '
+            'signal.signal(signal.SIGTERM, signal.SIG_IGN); '
+            f'Path({str(ready)!r}).touch(); time.sleep(30)'], start_new_session=True)
+        try:
+            deadline = time.monotonic() + 5
+            while not ready.exists() and time.monotonic() < deadline:
+                time.sleep(0.01)
+            self.assertTrue(ready.exists())
+            verify.record_pid(self.run, child.pid, 'term-ignoring-cleanup')
+            output = io.StringIO()
+            started = time.monotonic()
+            with contextlib.redirect_stdout(output):
+                result = verify.cmd_cleanup(argparse.Namespace(run_dir=str(self.run)), ROOT)
+            self.assertLess(time.monotonic() - started, 4)
+            # Darwin can expose SZOMB just before waitpid can reap it.
+            self.assertEqual(child.wait(timeout=0.5), -signal.SIGKILL)
+            self.assertEqual(result, 0)
+            self.assertEqual(len(json.loads(output.getvalue())['stopped']), 1)
+            self.assertFalse((self.run / 'pids').exists())
+        finally:
+            if child.poll() is None:
+                child.kill()
+            child.wait(timeout=5)
+
+    def test_cleanup_keeps_survivor_record(self):
+        identity = {'start': 'fixture-birth'}
+        with mock.patch.object(verify, 'process_identity', return_value=identity):
+            record = verify.record_pid(self.run, 123456, 'survivor')
+            output = io.StringIO()
+            with mock.patch.object(verify.os, 'getpgid', return_value=123456), \
+                    mock.patch.object(verify.os, 'killpg'), \
+                    mock.patch.object(verify.os, 'kill'), \
+                    contextlib.redirect_stdout(output):
+                result = verify.cmd_cleanup(argparse.Namespace(run_dir=str(self.run)), ROOT)
+        self.assertEqual(result, 1)
+        self.assertTrue(record.exists(), 'surviving child must remain available for later cleanup')
+        report = json.loads(output.getvalue())
+        self.assertEqual(report['stopped'], [])
+        self.assertEqual(len(report['survivors']), 1)
+
+    def test_cleanup_rechecks_identity_before_escalation(self):
+        original = {'start': 'original'}
+        replacement = {'start': 'replacement'}
+        with mock.patch.object(verify, 'process_identity', return_value=original):
+            verify.record_pid(self.run, 123456, 'reused-during-cleanup')
+        with mock.patch.object(verify, 'process_identity', side_effect=[original, original, replacement, replacement, replacement]), \
+                mock.patch.object(verify.os, 'getpgid', return_value=123456), \
+                mock.patch.object(verify.os, 'killpg') as send, \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(verify.cmd_cleanup(argparse.Namespace(run_dir=str(self.run)), ROOT), 0)
+        send.assert_called_once_with(123456, signal.SIGTERM)
+
+    def test_cleanup_keeps_record_when_birth_identity_becomes_unavailable(self):
+        original = {'start': 'original'}
+        with mock.patch.object(verify, 'process_identity', return_value=original):
+            record = verify.record_pid(self.run, 123456, 'unverifiable-after-term')
+        with mock.patch.object(verify, 'process_identity', side_effect=[original, original] + [None] * 500), \
+                mock.patch.object(verify.os, 'getpgid', return_value=123456), \
+                mock.patch.object(verify.os, 'killpg') as send, \
+                mock.patch.object(verify.os, 'kill'), \
+                mock.patch.object(verify.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, 'R', '')), \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(verify.cmd_cleanup(argparse.Namespace(run_dir=str(self.run)), ROOT), 1)
+        send.assert_called_once_with(123456, signal.SIGTERM)
+        self.assertTrue(record.exists())
+
+    def test_doctor_does_not_probe_unselected_runtime(self):
+        for runtime in ('claude', 'codex'):
+            with self.subTest(runtime=runtime):
+                def probe(cmd, **kwargs):
+                    if not cmd[0].endswith(runtime):
+                        raise subprocess.TimeoutExpired(cmd, 60)
+                    return subprocess.CompletedProcess(cmd, 0, 'logged in', '')
+                with mock.patch.object(verify.shutil, 'which', side_effect=lambda name: 'fixture-' + name), \
+                        mock.patch.object(verify, 'version_of', return_value='fixture-version'), \
+                        mock.patch.object(verify.subprocess, 'run', side_effect=probe) as run, \
+                        mock.patch.object(verify, 'installed_codex_root', return_value=Path('fixture-cache')) as installed, \
+                        mock.patch.object(verify, 'verify_installed', return_value={'verification_status': 'match'}) as parity, \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(verify.cmd_doctor(argparse.Namespace(run_dir=str(self.run), runtime=runtime), ROOT), 0)
+                self.assertEqual([call.args[0][0] for call in run.call_args_list], ['fixture-' + runtime])
+                if runtime == 'claude':
+                    installed.assert_not_called()
+                    parity.assert_not_called()
+                report = json.loads((self.run / 'doctor.json').read_text())
+                self.assertTrue(report['drivable'])
+
+    def test_doctor_records_selected_probe_exceptions(self):
+        for runtime, probe_kind in (('claude', 'auth'), ('codex', 'auth'), ('codex', 'cache')):
+            for error in (subprocess.TimeoutExpired('fixture', 60), OSError('fixture unavailable')):
+                with self.subTest(runtime=runtime, probe=probe_kind, error=type(error).__name__):
+                    (self.run / 'doctor.json').unlink(missing_ok=True)
+                    with mock.patch.object(verify.shutil, 'which', side_effect=lambda name: 'fixture-' + name), \
+                            mock.patch.object(verify, 'version_of', return_value='fixture-version'), \
+                            mock.patch.object(verify.subprocess, 'run', side_effect=error if probe_kind == 'auth' else None,
+                                              return_value=subprocess.CompletedProcess([], 0, 'logged in', '')), \
+                            mock.patch.object(verify, 'installed_codex_root', return_value=Path('fixture-cache')), \
+                            mock.patch.object(verify, 'verify_installed', side_effect=error if probe_kind == 'cache' else None,
+                                              return_value={'verification_status': 'match'}), \
+                            contextlib.redirect_stdout(io.StringIO()):
+                        self.assertEqual(verify.cmd_doctor(argparse.Namespace(run_dir=str(self.run), runtime=runtime), ROOT), 1)
+                    report = json.loads((self.run / 'doctor.json').read_text())
+                    self.assertFalse(report['drivable'])
+                    self.assertTrue(report['problems'])
+                    self.assertIn(type(error).__name__, json.dumps(report))
+
     def test_route_passthrough(self):
         forwarded = ['--runtime', 'claude', '--case-id', 'fixture', '--max-cases', '1']
         for prefix in ([], ['--run-dir', str(self.run)], ['--run-dir=' + str(self.run)]):
