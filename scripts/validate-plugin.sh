@@ -262,11 +262,30 @@ validate_version_parity() {
 }
 
 validate_no_legacy_agent_skills() {
-  local tracked_legacy
+  # Project-local skills (for example verify-v1tamins) may live under
+  # .agents/skills. Only mirrors of distributed skills are legacy: a tracked
+  # entry whose name is v1-* or matches a distributed skill's bare name.
+  local tracked_legacy=""
+  local entry name
 
-  tracked_legacy="$(git -C "$repo_root" ls-files -- .agents/skills 2>/dev/null || true)"
+  while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    name="${entry#.agents/skills/}"
+    name="${name%%/*}"
+    case "$name" in
+      v1-*)
+        tracked_legacy+="$entry"$'\n'
+        ;;
+      *)
+        if [ -d "$plugin_skills_dir/v1-$name" ]; then
+          tracked_legacy+="$entry"$'\n'
+        fi
+        ;;
+    esac
+  done < <(git -C "$repo_root" ls-files -- .agents/skills 2>/dev/null || true)
+
   if [ -n "$tracked_legacy" ]; then
-    fail "legacy tracked skill mirror exists under $(relpath "$legacy_agent_skills_dir")"
+    fail "legacy tracked skill mirror exists under $(relpath "$legacy_agent_skills_dir"): $(printf '%s' "$tracked_legacy" | tr '\n' ' ')"
   else
     ok "legacy tracked .agents/skills mirror absent"
   fi
@@ -591,6 +610,7 @@ validate_routing_eval_tests() {
   local tests=(
     "$repo_root/scripts/test-skill-routing-live.py"
     "$repo_root/scripts/test-check-skill-routing-fixture.py"
+    "$repo_root/scripts/test-verify-v1tamins.py"
   )
   for test in "${tests[@]}"; do
     if python3 "$test"; then

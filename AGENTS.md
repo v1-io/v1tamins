@@ -24,7 +24,10 @@ When extracting a private project lesson into v1tamins, keep the reusable workfl
 ```
 v1tamins/
 ├── .agents/
-│   └── plugins/marketplace.json  # Codex marketplace manifest
+│   ├── plugins/marketplace.json  # Codex marketplace manifest
+│   └── skills/verify-v1tamins/   # Project-local verify skill (not distributed)
+├── .claude/
+│   └── skills/verify-v1tamins    # Symlink so Claude Code sees the same skill
 ├── .claude-plugin/
 │   └── marketplace.json          # Claude Code marketplace manifest
 ├── plugins/
@@ -163,6 +166,16 @@ Work is tracked in GitHub Issues on this public repository, not Linear. See
 
 Use the canonical triage vocabulary and its GitHub label mapping. See
 `docs/agents/triage-labels.md`.
+
+### Verification skill
+
+`verify-v1tamins` under `.agents/skills/` (linked from `.claude/skills/`) is a
+project-local skill, not a distributed one. It drives headless Claude Code and
+Codex against the checkout, keeps evidence under the ignored
+`.v1tamins/verify/`, and carries a feature map in `features/`. Use it to prove
+a skill loads, routes, or answers after a change; use
+`scripts/validate-plugin.sh` for static checks. Only tracked `.agents/skills`
+entries that mirror a distributed skill count as legacy mirrors.
 
 ### Domain docs
 

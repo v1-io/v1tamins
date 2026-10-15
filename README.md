@@ -321,6 +321,8 @@ codex plugin marketplace add EveryInc/compound-engineering-plugin
 ```text
 v1tamins/
 ├── .agents/plugins/                 # Codex marketplace manifest
+├── .agents/skills/verify-v1tamins/  # Project-local verify skill (not distributed)
+├── .claude/skills/                  # Symlink to the same verify skill for Claude Code
 ├── .claude-plugin/                  # Claude Code marketplace manifest
 ├── plugins/v1tamins/                # Shared plugin package
 │   ├── .claude-plugin/              # Claude Code plugin manifest

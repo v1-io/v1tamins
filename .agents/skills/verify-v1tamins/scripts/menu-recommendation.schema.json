@@ -1,0 +1,10 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "recommended_skill": { "type": "string" },
+    "runner_up": { "type": ["string", "null"] },
+    "reason": { "type": "string" }
+  },
+  "required": ["recommended_skill", "runner_up", "reason"]
+}
