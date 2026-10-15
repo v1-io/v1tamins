@@ -47,7 +47,7 @@ For a multi-agent review across peer runtimes, use `v1-review-board`. To respond
 
 ## The Two Bars
 
-Both bars run by default on code changes. Steps 1-5 below establish context and cover the **merge-risk** bar. Step 6 applies the **structural** bar. For a pure docs/config PR, run the merge-risk bar adapted (correctness, completeness vs intent, broken links/refs, cross-doc consistency) and skip the structural bar.
+Both bars run by default on code changes. Steps 1-5 below establish context and cover the **merge-risk** bar. Step 6 applies the **structural** bar. For a pure docs/config PR, run the merge-risk bar adapted (correctness, completeness vs intent, broken links/refs, cross-doc consistency) and mark the structural bar not applicable.
 
 If the user's request is explicitly and only about structure ("maintainability audit", "architecture review"), lead with the structural bar but still sanity-check merge risk. If it is explicitly and only about merge risk ("review for bugs before merge"), lead with merge risk and apply structure as a secondary lens.
 
@@ -55,28 +55,48 @@ If the user's request is explicitly and only about structure ("maintainability a
 
 ### 1. Resolve Target
 
-Determine whether the target is a PR or the current branch.
+Record the repository, requested scope, base and head commit SHAs, and the
+merge-base used for the comparison. Keep those revisions fixed during the audit.
 
-For a PR argument:
+For a PR, read its requirements and revision metadata first:
 ```bash
-gh pr view <PR> --json title,body,author,baseRefName,headRefName,commits,files,labels,additions,deletions
-gh pr view <PR> --comments
-gh pr diff <PR> --name-only
-gh pr diff <PR>
+gh pr view <PR> --json url,title,body,author,baseRefName,baseRefOid,headRefName,headRefOid,labels
 ```
 
-For the current branch:
+Resolve the base repository from the PR URL and the head from `headRefOid`,
+including fork PRs. Obtain the pinned commit objects through the matching
+repository remote or approved provider interface. Compare the merge-base of
+those commits with the pinned head. Read source from that head, for example
+`git show <head-sha>:<path>`. Use an isolated checkout when execution needs it;
+preserve the user's current branch and uncommitted work. Local files and tests
+are evidence only when they match the reviewed snapshot. If only a live provider
+diff is available, read revision metadata before and after retrieval and accept
+it only if both base and head still match. Defer existing review discussion to
+step 7.
+
+For the current branch, establish local state:
 ```bash
 git status --short
 git branch --show-current
-BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
-BASE_BRANCH=${BASE_BRANCH:-main}
-git diff --name-only origin/$BASE_BRANCH...HEAD
-git diff origin/$BASE_BRANCH...HEAD
-git log --oneline origin/$BASE_BRANCH..HEAD
+git rev-parse HEAD
+git symbolic-ref --short refs/remotes/origin/HEAD
 ```
 
-If the default branch is not available locally, fetch it before reviewing. Never use destructive git commands.
+Use the requested base, otherwise resolve the repository's default branch from
+its remote or provider metadata. Fetch missing refs from the verified repository
+when permitted. If the base cannot be resolved, report the missing comparison
+instead of assuming `main`. By default a branch review covers committed changes;
+state that staged, unstaged, and untracked changes are excluded. Include them
+only when requested, recording their diff/content snapshot separately from the
+commit SHAs. For a requested file subset, record that narrower scope explicitly.
+
+Build a compact changed-path inventory from the pinned comparison. Mark each
+path reviewed, skipped with reason, or unavailable; account for renamed,
+deleted, binary, and generated files as applicable. Recover truncated diffs or
+missing context before declaring coverage complete. If required evidence remains
+unavailable, name the affected paths/contracts and mark the affected bar
+incomplete. “No findings” describes the inspected evidence only. Never use
+destructive git commands to obtain coverage.
 
 ### 2. Establish Stated Intent
 
@@ -146,7 +166,23 @@ After the passes, do one adversarial pass:
 
 For code changes, apply the structural maintainability bar. **Load [references/structural-review.md](references/structural-review.md)** and use it as a lens: does the change leave the codebase simpler to change, or add avoidable concepts, branches, files, casts, wrappers, and ownership leaks? It carries the deep-module / code-judo rubric, the >1000-line file blocker, "define errors out of existence", the structural finding shape, and the structural approval bar. Skip for pure docs/config PRs.
 
-### 7. Finding Gates
+### 7. Reconcile Existing Reviews
+
+Finish both independent passes and record candidate findings before reading
+other reviewers' conclusions. Then, for a PR, read existing review bodies,
+inline review conversations, and relevant human/bot discussion through the
+repository's approved interface. Paginate to cover that discussion even when
+the independent audit found nothing. Requirements in the PR body may be read
+earlier; reviewer conclusions are deferred where practical. If prior feedback
+was already supplied, disclose that the pass was not independent.
+
+Check each relevant external finding against the pinned source. Incorporate and
+attribute valid findings, deduplicate overlap, and discard findings already
+fixed at that revision. Repetition or reviewer agreement does not increase
+confidence without evidence. If discussion cannot be read, report that
+reconciliation is incomplete without discarding the independent findings.
+
+### 8. Finding Gates And Verdicts
 
 Severity: **Critical** (likely production bug, security, data loss, broken core flow, unsafe migration, or a structural regression that will force a costly rewrite) · **High** (serious edge case, regression, missing required behavior, or file-size/spaghetti explosion) · **Medium** (maintainability/test/UX gap that can cause future bugs) · **Low/Nit** (minor, clearly actionable, low-noise only).
 
@@ -164,18 +200,45 @@ Confidence: N/5.
 
 Structural findings use the shape in `references/structural-review.md`. If no issues are found, say so clearly and mention residual risk or unverified areas.
 
-### 8. Fix-First Mode
+Give each finding a stable ID and identify its bar and whether it blocks merge
+or is a nonblocking improvement. Blocking findings need concrete impact;
+security/correctness failures take precedence over optional restructuring.
+Apply the structural approval bar to demonstrated structural regressions.
+
+Report a separate verdict for each bar:
+
+- **Acceptable:** applicable coverage is complete and no blocking finding remains.
+- **Blocked:** cite the IDs of established blocking findings. Still disclose any
+  incomplete coverage; a known blocker does not imply a complete audit.
+- **Incomplete:** no blocker is established, but missing revision, source, or
+  verification evidence prevents a supported decision. Name what is missing.
+- **Not applicable:** only when that bar is skipped under The Two Bars; explain why.
+
+Keep discussion-reconciliation coverage separate from the two verdicts. Missing
+discussion leaves the overall PR review incomplete even if both independent
+bars are acceptable. Never present incomplete coverage as unconditional approval.
+
+### 9. Fix-First Mode
 
 Only when the user explicitly asks to fix findings. Classify: **AUTO-FIX** (mechanical, local, low-risk, no product judgment) vs **ASK** (behavior change, architecture choice, migration, public API change, security-sensitive, broad refactor, or uncertain). Apply AUTO-FIX items with `Edit`, then report `[AUTO-FIXED] file_path:line_number - Problem -> fix applied`. Batch ASK items in one concise question. Do not commit, push, or create PRs from this skill.
 
 If tests are already failing, invoke or recommend `v1-fix-tests`. If the issue is missing coverage, invoke or recommend `v1-write-tests` after the user approves adding tests.
 
-### 9. Output
+After fixes, review the resulting snapshot and update finding dispositions and
+both verdicts. Record the new revision or local diff/content snapshot; findings
+from the earlier version do not establish that the fixes are correct.
+
+### 10. Output
 
 ```markdown
 ## Findings
 
 <severity-ordered findings across both bars, or "No findings.">
+
+## Verdicts
+
+Merge risk: <Acceptable / Blocked (finding IDs) / Incomplete (missing evidence)>
+Structural maintainability: <Acceptable / Blocked (finding IDs) / Incomplete / Not applicable (reason)>
 
 ## Open Questions
 
@@ -186,13 +249,14 @@ If tests are already failing, invoke or recommend `v1-fix-tests`. If the issue i
 Intent: ...
 Delivered: ...
 Drift/missing work: ...
+Reviewed snapshot: <repository; base/head/merge-base SHAs; included local changes or file subset>
+Coverage: <reviewed paths; skipped/unavailable paths and reasons>
+Review discussion: <reconciled / incomplete with reason / not applicable>
 
 ## Verification
 
 Tests/checks reviewed or run:
 - ...
-
-PR risk score: N/5
 
 Residual risk:
 - ...
@@ -200,29 +264,26 @@ Residual risk:
 
 Keep the final summary short. Findings are the product.
 
-### 10. Posting To GitHub
+### 11. Posting To GitHub
 
 When posting is requested:
 
-1. If any Critical or High findings remain, request changes.
-2. Otherwise post a comment review.
-3. Post only high-confidence findings. Do not post speculative notes.
+1. Re-read PR base/head metadata and compare with the reviewed snapshot. If
+   either changed, refresh the affected diff, source, findings, and verdicts
+   before posting. For included local changes, recheck their recorded content.
+   If the new snapshot cannot be verified, report the review as stale and stop
+   before posting findings against it.
+2. Request changes for high-confidence blocking findings. If coverage is
+   incomplete without a confirmed blocker, post a comment naming the gaps;
+   missing evidence alone is not a defect. Otherwise post a comment review.
+3. Post only high-confidence findings, with the reviewed revisions and coverage
+   limits. Do not post speculative notes or imply approval from an incomplete review.
 4. Prefer one consolidated review body over many noisy comments unless line-level comments are specifically useful.
 
 ```bash
 gh pr review <PR> --request-changes -b "$(cat /tmp/review.md)"
 gh pr review <PR> --comment -b "$(cat /tmp/review.md)"
 ```
-
-## PR Risk Score (reported once in Verification)
-
-- **5/5**: Trivial change, well-tested, no risk
-- **4/5**: Standard change, good coverage, minor concerns
-- **3/5**: Non-trivial change, needs attention in specific areas
-- **2/5**: Significant concerns, missing tests, risky patterns
-- **1/5**: Likely bugs, security issues, or major problems
-
-Reduce score for: migrations, auth/permissions, concurrency, broad refactors, missing tests.
 
 ## Anti-Patterns
 
