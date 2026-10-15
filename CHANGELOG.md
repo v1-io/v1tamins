@@ -1,5 +1,15 @@
 # v1tamins
 
+## 0.14.3
+
+### Patch Changes
+
+- 249012d: Bind deep reviews to the intended revisions and report incomplete coverage. Audit independently before reconciling existing review discussion, and replace the numeric risk score with separate merge-risk and structural verdicts.
+
+  Keep unpublished local-fix verdicts separate from remote PR-head verdicts, and align both finding templates with their ID, bar, disposition, and confidence requirements.
+
+- b6386bb: Improve v1-skilling-it guidance for diagnosing skipped actions, ordering gates and reference loads, preserving completion contracts, and interpreting structural evidence without universal size thresholds.
+
 ## 0.14.2
 
 ### Patch Changes
