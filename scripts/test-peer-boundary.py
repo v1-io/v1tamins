@@ -228,6 +228,46 @@ class ProbeAndPathTests(unittest.TestCase):
                 patch.object(peer_launch, "run_probe", return_value=failed_help):
             self.assertIsNone(peer_launch.help_surface("agy", "subscription_native", 1))
 
+    @unittest.skipUnless(os.name == "posix", "process-group fixture requires POSIX")
+    def test_probe_timeout_kills_term_ignoring_child_with_detached_stdio(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            pid_path = root / "child.pid"
+            ready = root / "ready"
+            survived = root / "survived"
+            child = root / "child.py"
+            child.write_text(
+                "import os, signal, time; from pathlib import Path\n"
+                "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+                f"Path({str(pid_path)!r}).write_text(str(os.getpid()))\n"
+                f"Path({str(ready)!r}).touch()\n"
+                "time.sleep(1.5)\n"
+                f"Path({str(survived)!r}).touch()\n"
+                "time.sleep(30)\n"
+            )
+            parent = root / "parent.py"
+            parent.write_text(
+                "import subprocess, sys, time; from pathlib import Path\n"
+                f"subprocess.Popen([sys.executable, {str(child)!r}], "
+                "stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n"
+                f"while not Path({str(ready)!r}).exists(): time.sleep(0.01)\n"
+                "print('ready', flush=True)\n"
+                "time.sleep(30)\n"
+            )
+            started = time.monotonic()
+            try:
+                result = peer_adapters.run_probe(
+                    [sys.executable, str(parent)], dict(os.environ), 1,
+                )
+                self.assertTrue(result.timed_out)
+                self.assertIsNone(result.returncode)
+                self.assertEqual(result.stdout.strip(), "ready")
+                self.assertLess(time.monotonic() - started, 3)
+                time.sleep(1)
+                self.assertFalse(survived.exists(), "TERM-ignoring descendant survived pipe EOF")
+            finally:
+                self._kill_pid_file(pid_path)
+
     def test_probe_timeout_terminates_descendants(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)

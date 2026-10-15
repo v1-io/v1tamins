@@ -135,6 +135,10 @@ def run_probe(
                 pass
             stdout = partial_stdout
             stderr = partial_stderr
+        finally:
+            # Pipe EOF only proves the parent closed its output. A descendant
+            # may ignore TERM with redirected stdio, so finish group cleanup.
+            _signal_probe_group(process, getattr(signal, "SIGKILL", signal.SIGTERM))
         return CommandResult(
             None,
             _text(stdout) or partial_stdout,
