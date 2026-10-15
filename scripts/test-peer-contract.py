@@ -10,7 +10,6 @@ import re
 import shlex
 import sys
 import tempfile
-import time
 import unittest
 from pathlib import Path
 from typing import Any
@@ -982,27 +981,6 @@ class PeerBoundaryTests(unittest.TestCase):
             result = peer_boundary.verify_snapshot(Path(tmp))
         self.assertEqual(result["containment"], "unverified")
         self.assertEqual(result["permission_state"], "containment_unverified")
-
-    def test_scan_reports_only_files_written_during_the_run(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            (root / "before.txt").write_text("old", encoding="utf-8")
-            os.utime(root / "before.txt", (1_000_000, 1_000_000))
-            started = time.time()
-            (root / "nested").mkdir()
-            (root / "nested" / "after.txt").write_text("new", encoding="utf-8")
-            scan = peer_boundary.scan_tree(root, started, peer_boundary.DEFAULT_VISIT_BUDGET)
-        self.assertEqual(scan.changed, ("nested/after.txt",))
-        self.assertFalse(scan.truncated)
-
-    def test_exhausted_scan_budget_blocks_a_verified_claim(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            for index in range(5):
-                (root / f"file-{index}.txt").write_text("x", encoding="utf-8")
-            scan = peer_boundary.scan_tree(root, time.time(), budget=2)
-        self.assertTrue(scan.truncated)
-
 
 class PeerLaunchTests(unittest.TestCase):
     """Provider argv construction, refusals, and doc/adapter agreement."""

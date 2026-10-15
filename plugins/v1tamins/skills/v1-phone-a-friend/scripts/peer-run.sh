@@ -97,8 +97,29 @@ done
 [ -n "$RUNDIR" ] || die "--dir is required"
 [ -n "$SLUG" ] || die "--slug is required"
 case "$SLUG" in
+  ''|.|..) die "slug must be a non-dot run name" ;;
   *[!A-Za-z0-9._-]*) die "slug must contain only letters, numbers, dot, underscore, and hyphen" ;;
 esac
+
+# Resolve the run directory and slug together before any command can read or
+# write sentinels. Existing symlinks are allowed only when they remain inside
+# the caller's run directory; an escaping target is a path error for every
+# subcommand, including observation and teardown.
+if ! python3 - "$RUNDIR" "$SLUG" <<'PY'
+from pathlib import Path
+import sys
+
+try:
+    run_dir = Path(sys.argv[1]).resolve(strict=False)
+    peer_dir = (run_dir / sys.argv[2]).resolve(strict=False)
+    peer_dir.relative_to(run_dir)
+except (OSError, RuntimeError, ValueError) as exc:
+    print(f"peer-run: slug path escapes run directory: {exc}", file=sys.stderr)
+    raise SystemExit(2)
+PY
+then
+  exit 2
+fi
 
 case "$cmd" in
   launch)
@@ -246,6 +267,13 @@ case "$cmd" in
   launch)
     [ -x "$INNER" ] || die "missing executable peer-run-inner.sh"
     [ -x "$WATCHDOG" ] || die "missing executable peer-run-watchdog.sh"
+    # Reject overlapping roots before creating, truncating or stopping anything.
+    if [ -n "$BOUNDARY_REPO" ] || [ -n "$BOUNDARY_PROVIDER" ]; then
+      [ -n "$BOUNDARY_REPO" ] || die "--boundary-provider needs --boundary-repo"
+      [ -n "$BOUNDARY_PROVIDER" ] || die "--boundary-repo needs --boundary-provider"
+      python3 -B "$BOUNDARY_HELPER" check-layout --run-dir "$peerdir" --repo "$BOUNDARY_REPO" \
+        || die "invalid read-only boundary layout"
+    fi
     mkdir -p "$peerdir" || die "cannot create run directory"
     # Reusing a slug must not leave a prior watchdog/peer to kill the new run.
     if [ -f "$pidfile" ] || [ -f "$watchdogfile" ] || [ -f "$childpidfile" ]; then
@@ -258,12 +286,9 @@ case "$cmd" in
     printf '%s\n' "$deadline_epoch" > "$deadlinefile"
     rm -f "$peerdir/boundary.snapshot.json"
 
-    # Record the read-only boundary before anything can write. A snapshot that
-    # cannot be taken must not become a silent "nothing changed" later.
-    if [ -n "$BOUNDARY_REPO" ] || [ -n "$BOUNDARY_PROVIDER" ]; then
-      [ -n "$BOUNDARY_REPO" ] || die "--boundary-provider needs --boundary-repo"
-      [ -n "$BOUNDARY_PROVIDER" ] || die "--boundary-repo needs --boundary-provider"
-      python3 "$BOUNDARY_HELPER" snapshot \
+    # Record the snapshot after old peers stop and runner sentinels are reset.
+    if [ -n "$BOUNDARY_REPO" ]; then
+      python3 -B "$BOUNDARY_HELPER" snapshot \
         --run-dir "$peerdir" --repo "$BOUNDARY_REPO" --provider "$BOUNDARY_PROVIDER" \
         >/dev/null || die "cannot record the read-only boundary"
     fi
@@ -352,7 +377,7 @@ EOF
     # once the run is terminal rather than on every poll.
     boundary="null"
     if [ -f "$peerdir/boundary.snapshot.json" ] && [ "$state" != "running" ]; then
-      boundary="$(python3 "$BOUNDARY_HELPER" verify --run-dir "$peerdir" 2>/dev/null)"
+      boundary="$(python3 -B "$BOUNDARY_HELPER" verify --run-dir "$peerdir" 2>/dev/null)"
       case "$boundary" in
         \{*) ;;
         *) boundary='{"schema":"v1-peer-boundary/v1","containment":"unverified","permission_state":"containment_unverified"}' ;;
