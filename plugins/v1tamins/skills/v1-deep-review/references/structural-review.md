@@ -42,11 +42,14 @@ Do not settle for "maybe rename this" when the issue is structural, or for a cle
 ## Structural Finding Shape
 
 ```markdown
-[Severity] file_path:line_number - Short title
+[ID] [Severity] file_path:line_number - Short title
+Bar: Structural maintainability
+Disposition: Blocking | Nonblocking improvement
 Structural problem: What concept, branch, boundary, file, or abstraction got worse.
 Change cost: What future change or reader task becomes harder.
 Rewrite path: The smaller ownership/model/module/flow to use instead.
 Proof: Test, diff check, or behavior-preservation command that should pass after the rewrite.
+Confidence: N/5.
 ```
 
 Prioritize: (1) structural regressions, (2) missed dramatic-simplification / code-judo, (3) spaghetti/branching growth, (4) boundary/abstraction/type-contract problems, (5) file-size/decomposition, (6) modularity, (7) legibility. Prefer a few high-conviction comments over a long list of nits.
