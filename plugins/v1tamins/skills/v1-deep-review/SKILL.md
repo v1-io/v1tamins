@@ -190,7 +190,9 @@ Confidence gates: 4-5/5 include in main findings; 3/5 include only with explicit
 
 Merge-risk findings use this shape:
 ```markdown
-[Severity] file_path:line_number - Short title
+[ID] [Severity] file_path:line_number - Short title
+Bar: Merge risk
+Disposition: Blocking | Nonblocking improvement
 Problem: What is wrong and when it fails.
 Impact: Why it matters.
 Fix: Concrete change to make.
@@ -224,11 +226,17 @@ Only when the user explicitly asks to fix findings. Classify: **AUTO-FIX** (mech
 
 If tests are already failing, invoke or recommend `v1-fix-tests`. If the issue is missing coverage, invoke or recommend `v1-write-tests` after the user approves adding tests.
 
-After fixes, review the resulting snapshot and update finding dispositions and
-both verdicts. Record the new revision or local diff/content snapshot; findings
-from the earlier version do not establish that the fixes are correct.
+After fixes, review the resulting snapshot and record its revision or local
+diff/content snapshot. Report updated local finding dispositions and both local
+verdicts separately from the pinned PR-head verdicts. A fix present only in the
+working tree does not clear a finding on the remote head. Update the PR-head
+verdicts only after the fixes exist at a verified remote head and the affected
+source and checks have been reviewed there. Do not commit or push from this skill.
 
 ### 10. Output
+
+Label verdicts by snapshot. When reporting both PR-head and local-fix results,
+use separate verdict blocks; the local block is explicitly unpublished.
 
 ```markdown
 ## Findings
@@ -237,6 +245,7 @@ from the earlier version do not establish that the fixes are correct.
 
 ## Verdicts
 
+Snapshot: <PR head SHA / committed branch SHA / local content snapshot (unpublished)>
 Merge risk: <Acceptable / Blocked (finding IDs) / Incomplete (missing evidence)>
 Structural maintainability: <Acceptable / Blocked (finding IDs) / Incomplete / Not applicable (reason)>
 
@@ -273,6 +282,9 @@ When posting is requested:
    before posting. For included local changes, recheck their recorded content.
    If the new snapshot cannot be verified, report the review as stale and stop
    before posting findings against it.
+   Publish only findings and verdicts for that verified PR head. If local fixes
+   are absent from it, retain the remote findings and verdicts; describe local
+   progress separately as unpublished, without substituting its verdicts.
 2. Request changes for high-confidence blocking findings. If coverage is
    incomplete without a confirmed blocker, post a comment naming the gaps;
    missing evidence alone is not a defect. Otherwise post a comment review.
