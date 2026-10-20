@@ -20,6 +20,7 @@ Checks:
   - plugin-distributed skills use the v1- prefix
   - plugin skills do not reference known v1tamins skills by legacy bare names
   - root SKILL.md local links and required bundled asset references resolve
+  - tracked active guidance and scripts reject personal dependencies, undeclared named skill routes, and operator home paths
   - distributed helper snippets avoid checkout-only executable paths and host-specific plugin cache paths
   - package.json and both runtime plugin manifest versions stay in lockstep
   - each SKILL.md stays within the 500-line budget (disclose detail to references/)
@@ -688,6 +689,16 @@ main() {
   validate_skill_references
   validate_skill_assets
   validate_portable_host_paths
+  if python3 "$repo_root/scripts/check-shared-portability.py" "$repo_root"; then
+    ok "shared instruction portability"
+  else
+    fail "shared instruction portability failed"
+  fi
+  if python3 "$repo_root/scripts/test-check-shared-portability.py"; then
+    ok "shared instruction portability regressions"
+  else
+    fail "shared instruction portability regressions failed"
+  fi
   validate_routing_eval_tests
   validate_peer_contract_tests
 

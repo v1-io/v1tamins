@@ -42,7 +42,7 @@ Linear instead and reference it here only by an opaque identifier.
 **PRs as a request surface: no.**
 
 Set this to `yes` only if external contributor PRs should enter the triage
-queue. The `triage` skill reads this flag.
+queue. Use the GitHub issue workflow above to record and classify requests.
 
 ## When a skill says "publish to the issue tracker"
 
