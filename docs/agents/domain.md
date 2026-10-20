@@ -9,8 +9,8 @@ This is a single-context repository.
 3. Use the vocabulary defined in `CONTEXT.md`.
 
 If one of these files does not exist, proceed silently. Do not flag its absence
-and do not propose creating it upfront. The `domain-modeling` skill creates
-these lazily, when a term or a decision actually gets resolved.
+and do not propose creating it upfront. Create or update these documents only
+when a concrete term or decision is resolved.
 
 ## Use the glossary's vocabulary
 

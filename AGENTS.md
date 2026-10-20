@@ -147,6 +147,15 @@ README images must have meaningful alt text. Keep an adjacent
 prompt, tool, reference inputs, and revision guidance. Update the image, README,
 and generation record together.
 
+Shared instructions must use packaged skills or documented public dependencies,
+not an operator's personal skill routes or concrete home directory. The static
+validator checks tracked active guidance and runtime scripts for named skill
+routes, known personal dependencies, and operator home paths. Its public companion allowance lives in
+`scripts/check-shared-portability.py`; document a dependency's installation and
+availability behavior before adding it there. Changelogs, ADRs, and eval
+fixtures are historical or test evidence and stay outside this check. This
+bounded check does not replace reviewing commands and prose for portability.
+
 Before publishing shared skills or instructions, run a privacy and portability scan over the changed files. Review hits for private URLs, absolute paths, secrets, tokens, customer names, project-specific facts, and OS-specific commands that should be generalized.
 
 ## Architecture Notes
