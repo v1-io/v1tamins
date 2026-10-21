@@ -1,6 +1,6 @@
 interface:
   display_name: "What Next"
-  short_description: "Read the current thread and propose the single best next thing to work on."
+  short_description: "Use current evidence to recommend the next step in the thread or project."
   default_prompt: "Use $v1-what-next to tell me what we should work on next."
 
 policy:
