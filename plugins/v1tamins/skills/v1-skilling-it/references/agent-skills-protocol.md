@@ -137,9 +137,9 @@ Canonical Source. These are repository rules, not Agent Skills requirements.
   shared `SKILL.md` consumed by both runtime manifests.
 - **[v1tamins]** Don't add a per-skill settings file or a second
   runtime-specific skill body.
-- **[v1tamins]** Update the trigger inventory and routing JSONL whenever
-  description, invocation posture, OpenAI metadata, or routing-relevant body
-  guidance changes.
+- **[v1tamins]** Verify affected invocation and routing behavior proportionately
+  when description, invocation posture, OpenAI metadata, or routing-relevant
+  guidance changes, using the repository's current verification workflow.
 - **[v1tamins]** Review `v1-menu` whenever a skill is added, renamed, removed,
   or changes invocation posture.
 - **[v1tamins]** Add a Changeset for a distributable change; don't hand-edit

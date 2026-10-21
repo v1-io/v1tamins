@@ -11,7 +11,7 @@ Thumbs.db
 # Backups
 *.backup
 
-# Local eval artifacts
+# Local runtime artifacts
 .v1tamins/
 .antigravitycli/
 
@@ -37,9 +37,8 @@ plugins/v1tamins/skills/v1-_*
 # Local-only repo guidance (kept on disk, not distributed)
 .github/copilot-instructions.md
 
-# Planning docs stay local; agent guidance and ADRs are tracked
+# Planning docs stay local; agent guidance and assets are tracked
 docs/*
 !docs/agents/
-!docs/adr/
 !docs/assets/
 !docs/assets/**

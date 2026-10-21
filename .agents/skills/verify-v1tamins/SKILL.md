@@ -1,168 +1,97 @@
 ---
 name: verify-v1tamins
-description: Launch the v1tamins plugin in headless Claude Code and Codex, invoke or route a v1-* skill the way a user would, and keep proof on disk. Use to prove a skill loads, routes, or answers after a change.
+description: Verify v1tamins plugin loading, skill invocation, routing, or behavior in Claude Code or Codex after a change. Use for a focused live smoke check.
 ---
 
 # Verify v1tamins
 
-v1tamins is a plugin, not a server. Its user surface is a runtime session:
-a user types a request or `/v1-<skill>` in Claude Code or Codex and the runtime
-selects, loads, and follows one `SKILL.md` from `plugins/v1tamins/skills/`.
-Static checks (`scripts/validate-plugin.sh`) prove the package parses. This
-skill proves the real runtimes load and use it. Read
-[features/README.md](features/README.md) before driving a feature.
+Run a small, manual check of the changed skill in a real runtime. This is a
+project-local workflow, not part of the distributed plugin. Use the existing
+runtime and its supported commands; no custom harness or fixture suite is
+required.
 
-All commands below run from the checkout root. `$V` is the helper:
+## Choose the check
 
-```bash
-V=.agents/skills/verify-v1tamins/scripts/verify-v1tamins.py
-```
+Read the changed skill and its required references. Select the affected runtime
+and one representative scenario from the user's task. Before launching, record
+what observable result would pass and which action boundaries must hold.
 
-## Launch
+| Change | Check |
+| --- | --- |
+| Plugin packaging | Runtime discovers the intended plugin and skill. |
+| Skill name or invocation policy | Explicit invocation loads the named skill; explicit-only skills remain unavailable for implicit invocation. |
+| Description or routing | A natural request selects the intended skill; one plausible near miss does not select it. |
+| Workflow instructions | The answer or artifact satisfies the changed behavior; test a failure or stop boundary when affected. |
 
-There is no long-lived process. Each drive is one headless turn that exits:
+Run `scripts/validate-plugin.sh --verbose` first. It checks package consistency;
+it does not replace the selected live check. Pure documentation changes need
+only link and content review unless they change runtime instructions.
 
-- **Claude Code**: `claude -p --plugin-dir plugins/v1tamins ...` loads the
-  checkout as plugin `v1tamins@inline`, which shadows any installed
-  `v1tamins@v1tamins`. It is ready when the stream-json `system/init` event
-  lists `v1tamins` with `path` equal to the checkout's `plugins/v1tamins`.
-- **Codex**: `codex exec --cd <checkout> --sandbox read-only --ephemeral --json`
-  has no plugin-dir flag. It drives the **installed** cache
-  `$HOME/.codex/plugins/cache/v1tamins/v1tamins/<version>`, so Doctor must
-  prove that cache equals the checkout first. Each Codex drive rechecks parity
-  before launching and records the result in its summary. Ready when the stream emits
-  `thread.started`.
+## Establish the source
 
-Create one evidence directory for the whole run and export it so every
-command shares it:
+Record the checkout revision, uncommitted changes, runtime version, and the
+actual plugin source used for the session.
 
-```bash
-export V1_VERIFY_RUN_DIR="$(python3 "$V" new-run)"
-```
+- **Claude Code:** use `--plugin-dir` with the absolute checkout plugin path.
+  Confirm from runtime diagnostics that this path was loaded; do not infer it
+  from the answer or the plugin name alone.
+- **Codex:** inspect the runtime's plugin listing to find the installed source.
+  Compare that source's skill files and plugin metadata with the checkout using
+  ordinary file comparison. A matching version number alone is insufficient.
+  If it is stale or cannot be located, report checkout verification as blocked;
+  do not overwrite installed caches to make the check pass.
 
-The helper strips API-key variables so both runtimes use the local login, never
-API billing. Both commands exit on their own; there is nothing to tear down
-except what [Cleanup](#cleanup) lists.
+Reading a checkout `SKILL.md` explicitly can test its instructions, but it
+bypasses plugin discovery and implicit routing. Label that result as a direct
+instruction check, not verification of the installed plugin.
 
-## Doctor
+## Launch and drive
 
-One read-only check that says whether this machine is worth driving:
+Check the installed CLI's help before choosing flags. Use a fresh session and
+an existing authorized login. Do not change credentials or enable API billing.
+Keep tool permissions limited to the scenario; disable external connectors and
+writes for read-only checks. A read-only filesystem setting alone does not
+restrict external tools. Tests that require writes belong in a disposable
+project with only the requested actions enabled.
 
-```bash
-python3 "$V" doctor
-```
-
-It reports, and exits non-zero if any requested runtime fails: `claude` on
-PATH and `claude auth status` logged in; `codex` on PATH and `codex login
-status` logged in; the installed Codex cache `verification_status: match`
-against the checkout (via `scripts/verify-installed-plugin.sh`); the skill
-count on disk. Use `--runtime claude` or `--runtime codex` to check one side.
-Run it first whenever a drive looks wrong. The static validator needs a UTF-8
-locale; from an agent shell with `LANG` unset, prefix it with
-`LC_ALL=en_US.UTF-8` or every frontmatter check fails. A stale Codex cache means Codex
-results describe the old build: update the plugin in Codex before trusting
-them.
-
-## Drive
-
-Prompts are the user's own words. Stable handles are skill names
-(`v1-<name>`), the `/v1-<name>` slash form, and routing fixture `case_id`
-values from `plugins/v1tamins/evals/skill-routing.jsonl`.
-
-- **Explicit invocation, Claude**:
-
-  ```bash
-  python3 "$V" claude --label menu --expect-skill v1-menu \
-    '/v1-menu which v1 skill fits: "review this branch for merge risk before I open the PR". Name one skill and the runner-up.'
-  ```
-
-  Add `--schema <file>` to force a JSON answer (`--json-schema`), which turns
-  the answer into fields instead of prose. The helper disallows Bash, Edit,
-  Write, NotebookEdit, WebFetch, and WebSearch unless `--allow-writes` is set,
-  so a drive can never mutate the checkout.
-
-- **Explicit invocation, Codex**:
-
-  ```bash
-  python3 "$V" codex --label menu \
-    '/v1-menu which v1 skill fits: "review this branch for merge risk before I open the PR". Name one skill and the runner-up.'
-  ```
-
-  Add `--schema <file>` for `--output-schema`. Codex runs read-only and
-  ephemeral; no session is persisted.
-
-- **Implicit routing** (does the runtime pick the right skill from a natural
-  request): delegate to the repo's live routing runner, which writes under
-  the run directory:
-
-  ```bash
-  python3 "$V" route --runtime claude --case-id v1-deep-review-mergerisk-positive --max-cases 1
-  ```
-
-  Any `scripts/run-skill-routing-live-eval.py` argument passes through.
-
-Neither runtime emits a "skill loaded" event for a `/v1-*` prompt in headless
-mode: the body is expanded into the turn before the model answers. Proof of
-loading is therefore the init skill list (Claude) or installed-cache parity
-(Codex) plus an answer that follows the skill's own contract.
-
-## Evidence
-
-Everything lands in `$V1_VERIFY_RUN_DIR` (default
-`.v1tamins/verify/run-<utc-stamp>/`, gitignored):
-
-- `doctor.json`: the Doctor report.
-- `<label>.claude.raw.jsonl` and `<label>.codex.raw.jsonl`: the full event
-  stream, including the init plugin and skill listing. This is the proof the
-  runtime loaded the checkout.
-- `<label>.<runtime>.summary.json`: the command (schema redacted), exit code,
-  duration, plugin entry, `skills_loaded` versus on-disk, `tool_uses` or
-  `tool_calls`, `final_text`, `structured_output`, and `status`.
-- `<label>.<runtime>.stderr.txt`: runtime warnings.
-- `routing/run-*/results.jsonl` and `summary.txt`: live routing results, one
-  JSON line per case with `selected_skill`, `evidence_kind`, and `status`.
-
-Capture the action and the result: keep the prompt in the summary and judge
-the answer against the invoked skill's own contract (for `v1-menu`: one
-recommendation, one runner-up, explicit skills marked). A `pass` status requires
-the expected skill inventory and a successful terminal answer (Claude), or
-current installed-cache parity and a completed turn with an answer (Codex); it does not grade the prose.
-Read `final_text` before claiming the skill behaved.
-
-## Cleanup
+For a read-only Claude check, this is a starting command from the checkout root:
 
 ```bash
-python3 "$V" cleanup
+claude -p --plugin-dir "$PWD/plugins/v1tamins" \
+  --setting-sources '' --strict-mcp-config --mcp-config '{"mcpServers":{}}' \
+  --tools 'Read,Glob,Grep,Skill' --permission-mode dontAsk \
+  --no-session-persistence --output-format stream-json --verbose \
+  '/v1tamins:v1-menu Which skill fits reviewing a branch for merge risk? Recommend one skill and a runner-up.' < /dev/null
 ```
 
-Completed drives retire their `pids/` records. Cleanup signals a remaining
-child only when its kernel process birth identity matches the recorded one;
-legacy or unverifiable records are reported under `unverified` without
-signalling. While the recorded leader is verified, cleanup captures and persists
-its group members' birth identities. It signals those members individually,
-rechecking birth identity and group membership before TERM or KILL, and bounds
-the waits independently of leader exit. Final group enumeration must confirm
-completion; new or unverifiable members are not signalled. Survivor and
-unverified records retain their member identities in `pids/`, and cleanup exits
-non-zero so another cleanup can resume safely. Captured-drive timeouts stop the
-child process group and bound pipe cleanup. Cleanup deletes an empty `pids/`
-and a `scratch/` directory if present, and lists the evidence it kept. It never
-deletes evidence. Proof survives in `$V1_VERIFY_RUN_DIR`; remove old `.v1tamins/verify/run-*`
-directories by hand once a review is done, since raw streams contain model
-output.
+Close stdin for one-shot CLI checks so a launcher script or surrounding input
+cannot enter the model prompt. When launching through a subprocess API, use
+its null-input option as well.
 
-Run cleanup after every failed attempt as well, so recorded PIDs do not pile
-up across runs.
+Confirm the namespaced skill name in the runtime's listing; use the listed
+name if it differs. For an implicit-routing check, omit the skill name and
+submit the natural task alone. Do not tell the runtime which skill you expect.
+For Codex, use a fresh session with the verified installed plugin, or
+`codex exec --sandbox read-only --ephemeral --json` after checking the configured
+connectors and approval policy for the scenario.
 
-## Helpers
+Run one scenario at a time with a bounded foreground execution tool. Use a
+120-second limit for the menu smoke check; stop and report a timeout rather
+than starting another copy. Stop only the session this check created. Do not
+launch background watchdogs or leave verification processes running.
 
-- `scripts/verify-v1tamins.py` (executable): `new-run`, `doctor`, `claude`,
-  `codex`, `route`, `cleanup`. `--help` on any subcommand.
-- The offline helper regressions run with `python3 scripts/test-verify-v1tamins.py`
-  and are included in the static validator. They use local processes and fixture
-  event streams, without launching logged-in runtimes.
-- `scripts/menu-recommendation.schema.json`: structured answer shape for
-  `/v1-menu` drives (`recommended_skill`, `runner_up`, `reason`).
-- The repo's own `scripts/verify-installed-plugin.sh` and
-  `scripts/run-skill-routing-live-eval.py` do the parity and routing work;
-  this skill only points them at one evidence directory.
+## Inspect and report
+
+Keep prompts, runtime output, and a short result under a unique ignored
+`.v1tamins/verify/` run directory. Keep raw transcripts local and inspect them
+for sensitive content before sharing any excerpt.
+
+Inspect the runtime evidence and resulting answer or artifact. A skill name in
+an answer is not proof it loaded; a successful exit is not proof it behaved.
+If loading or routing is not observable, report that check as inconclusive.
+
+Report the runtime and source tested, scenario, expected versus observed
+behavior, evidence location, and one result per check: **pass**, **fail**, or
+**inconclusive**. Missing login, stale installation, timeout, and unavailable
+loading evidence are inconclusive with the specific blocker. Do not install,
+publish, or broaden permissions just to turn a blocked check into a pass.

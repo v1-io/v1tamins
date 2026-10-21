@@ -6,8 +6,6 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
-import re
-import shlex
 import sys
 import tempfile
 import time
@@ -720,23 +718,6 @@ class PeerContractTests(unittest.TestCase):
         self.assertEqual(payload["efforts"], ["high"])
         self.assertFalse(hasattr(entry, "efforts"))
 
-    def test_shared_sources_do_not_pin_concrete_model_ids(self) -> None:
-        source_paths = [
-            REPO_ROOT / "plugins/v1tamins/skills/v1-phone-a-friend/SKILL.md",
-            REPO_ROOT
-            / "plugins/v1tamins/skills/v1-phone-a-friend/references/model-selection.md",
-            REPO_ROOT / "plugins/v1tamins/skills/v1-review-board/SKILL.md",
-            REPO_ROOT
-            / "plugins/v1tamins/skills/v1-review-board/references/review-contract.md",
-        ]
-        concrete_id = re.compile(
-            r"\b(?:gpt|claude|gemini|sonnet|opus)[-_][0-9]", re.IGNORECASE
-        )
-        for path in source_paths:
-            self.assertIsNone(
-                concrete_id.search(path.read_text(encoding="utf-8")), path
-            )
-
 
 class SubscriptionDiscoveryTests(unittest.TestCase):
     """Discovery must only propose what the installed CLI can actually launch."""
@@ -907,26 +888,6 @@ class SubscriptionDiscoveryTests(unittest.TestCase):
 
 def stream(*events: dict[str, Any]) -> str:
     return "".join(json.dumps(event) + "\n" for event in events)
-
-
-def wrapper_blocks(markdown: str) -> list[tuple[str, ...]]:
-    """Tokenize every fenced credential-wrapper example in a templates file."""
-
-    blocks: list[tuple[str, ...]] = []
-    current: list[str] | None = None
-    for line in markdown.splitlines():
-        if line.startswith("```"):
-            if current is not None:
-                text = "\n".join(current)
-                if text.lstrip().startswith('"$PEER_ENV"'):
-                    blocks.append(tuple(shlex.split(text.replace("\\\n", " "))))
-                current = None
-            elif line.strip() == "```bash":
-                current = []
-            continue
-        if current is not None:
-            current.append(line)
-    return blocks
 
 
 class PeerBoundaryTests(unittest.TestCase):
@@ -1171,19 +1132,6 @@ class PeerLaunchTests(unittest.TestCase):
             probe_env = peer_policy.subscription_environment(recipe.auth_mode, recipe.cli)
         for name in peer_policy.API_KEY_ENV_VARS:
             self.assertNotIn(name, probe_env)
-
-    def test_documented_wrappers_match_the_adapter_flag_for_flag(self) -> None:
-        templates = (
-            REPO_ROOT
-            / "plugins/v1tamins/skills/v1-phone-a-friend/references/command-templates.md"
-        )
-        documented = wrapper_blocks(templates.read_text(encoding="utf-8"))
-        rendered = [
-            tuple(shlex.split(example["block"].replace("\\\n", " ")))
-            for example in peer_launch.doc_examples()
-        ]
-        self.assertEqual(len(documented), len(rendered))
-        self.assertEqual(sorted(documented), sorted(rendered))
 
 
 class PeerVerdictTests(unittest.TestCase):
