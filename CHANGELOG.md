@@ -1,5 +1,13 @@
 # v1tamins
 
+## 0.14.5
+
+### Patch Changes
+
+- 19df70e: Remove packaged routing eval assets and repository-only evaluation and verification tooling. Keep all shipped skills and runtime helpers, with static packaging checks and offline helper tests.
+
+  Keep a focused project-local verification skill and a current project glossary. Align skill-authoring guidance with the reduced verification workflow.
+
 ## 0.14.4
 
 ### Patch Changes
