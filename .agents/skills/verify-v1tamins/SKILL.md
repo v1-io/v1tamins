@@ -61,8 +61,12 @@ claude -p --plugin-dir "$PWD/plugins/v1tamins" \
   --setting-sources '' --strict-mcp-config --mcp-config '{"mcpServers":{}}' \
   --tools 'Read,Glob,Grep,Skill' --permission-mode dontAsk \
   --no-session-persistence --output-format stream-json --verbose \
-  '/v1tamins:v1-menu Which skill fits reviewing a branch for merge risk? Recommend one skill and a runner-up.'
+  '/v1tamins:v1-menu Which skill fits reviewing a branch for merge risk? Recommend one skill and a runner-up.' < /dev/null
 ```
+
+Close stdin for one-shot CLI checks so a launcher script or surrounding input
+cannot enter the model prompt. When launching through a subprocess API, use
+its null-input option as well.
 
 Confirm the namespaced skill name in the runtime's listing; use the listed
 name if it differs. For an implicit-routing check, omit the skill name and
