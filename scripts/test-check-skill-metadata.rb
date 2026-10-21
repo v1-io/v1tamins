@@ -81,8 +81,38 @@ READ_ONLY_BODIES.each do |label, body|
   end
 end
 
+# Exercise actual policy failures against an otherwise valid two-skill catalog.
+policy_cases = [
+  ["implicit", true, false, [], true],
+  ["explicit_only", false, true, ["peer_launch"], true],
+  ["explicit_only", true, true, ["peer_launch"], false],
+  ["explicit_only", false, false, [], false],
+  ["selective_implicit", true, false, ["external_write"], true],
+  ["selective_implicit", false, false, ["external_write"], false],
+  ["implicit", true, false, ["git_remote"], false]
+]
+policy_cases.each do |posture, implicit, disabled, effects, expected|
+  Dir.mktmpdir do |skills_dir|
+    marker = disabled ? " **(explicit)**" : ""
+    write_skill(skills_dir, "v1-menu", "`/v1-fixture`#{marker}")
+    write_skill(skills_dir, "v1-fixture", "Fixture workflow.")
+    skill = File.join(skills_dir, "v1-fixture", "SKILL.md")
+    File.write(skill, File.read(skill).sub("name: v1-fixture", "name: v1-fixture\ndisable-model-invocation: #{disabled}"))
+    File.write(File.join(skills_dir, "v1-fixture", "agents", "openai.yaml"), <<~YAML)
+      policy:
+        invocation_posture: #{posture}
+        allow_implicit_invocation: #{implicit}
+        side_effects: #{effects.inspect}
+    YAML
+    output, status = Open3.capture2e("ruby", CHECKER, skills_dir, skills_dir, "false")
+    if status.success? != expected
+      failures << "policy #{[posture, implicit, disabled, effects].inspect}: #{output}"
+    end
+  end
+end
+
 if failures.empty?
-  puts "ok: #{MUTATION_BODIES.size + READ_ONLY_BODIES.size} mutation-detection cases"
+  puts "ok: #{MUTATION_BODIES.size + READ_ONLY_BODIES.size} mutation-detection cases and #{policy_cases.size} invocation-policy cases"
   exit 0
 end
 

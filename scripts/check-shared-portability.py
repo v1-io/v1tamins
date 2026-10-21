@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Reject personal dependencies and operator paths in shared instructions/code.
 
-History (CHANGELOG, ADRs, eval fixtures) is deliberately outside this scope.
+Historical changelog entries are deliberately outside this scope.
 This is a bounded regression guard, not a complete dependency/privacy audit.
 """
 import re

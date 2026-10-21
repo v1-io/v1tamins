@@ -11,7 +11,17 @@ jobs:
         with:
           node-version: 20
       - run: npm ci --no-audit --no-fund
-      - run: scripts/validate-plugin.sh
+      - name: Check plugin packaging
+        run: scripts/validate-plugin.sh
+      - name: Test invocation policy and portability checks
+        run: |
+          ruby scripts/test-check-skill-metadata.rb
+          python3 scripts/test-check-shared-portability.py
+      - name: Test shipped executable helpers offline
+        run: |
+          python3 scripts/test-peer-contract.py
+          bash scripts/test-peer-run.sh
+          python3 scripts/test-artifact-converters.py
       - name: Require a changeset for plugin content changes
         if: github.event_name == 'pull_request'
         env:

@@ -112,7 +112,7 @@ manifests.
 ```mermaid
 flowchart LR
   Author[Contributors edit one canonical skill] --> Source[plugins/v1tamins/skills]
-  Source --> Validate[Static validation and routing evals]
+  Source --> Validate[Static packaging checks]
   Validate --> Package[One plugin package]
   Package --> Claude[Claude Code manifest]
   Package --> Codex[Codex manifest]
@@ -288,11 +288,6 @@ the selected skill before allowing a consequential action.
 > update an external tracker unless the repository has a configured tracker and
 > the user explicitly requests that hand-off.
 
-Live routing evals are optional because they can call a locally authenticated
-runtime and create ignored transcripts under `.v1tamins/live-routing/`. Missing
-runtime access is inconclusive, not a static validation failure. Do not commit
-raw transcripts.
-
 ## Recommended companion: compound-engineering
 
 Some workflows can compose with [Every's compound-engineering
@@ -321,23 +316,14 @@ codex plugin marketplace add EveryInc/compound-engineering-plugin
 ```text
 v1tamins/
 ├── .agents/plugins/                 # Codex marketplace manifest
-├── .agents/skills/verify-v1tamins/  # Project-local verify skill (not distributed)
-├── .claude/skills/                  # Symlink to the same verify skill for Claude Code
 ├── .claude-plugin/                  # Claude Code marketplace manifest
 ├── plugins/v1tamins/                # Shared plugin package
 │   ├── .claude-plugin/              # Claude Code plugin manifest
 │   ├── .codex-plugin/               # Codex plugin manifest
-│   ├── evals/                       # Routing contracts and behavior fixtures
 │   └── skills/v1-*/                 # Canonical distributed skill sources
-├── scripts/                         # Static validators and optional eval tools
-├── CONTEXT.md                       # Repository vocabulary
+├── scripts/                         # Packaging checks and offline helper tests
 └── AGENTS.md                        # Contribution and agent rules
 ```
-
-The old tracked `.agents/skills/<name>/` mirror is no longer part of the
-distribution. Direct-checkout consumers should use
-`plugins/v1tamins/skills/v1-<name>/`. Existing plugin consumers already using
-`/v1-*` names do not need a migration.
 
 ## Contributing
 
@@ -353,17 +339,15 @@ For a new or changed skill:
    `agents/openai.yaml` metadata. Keep the frontmatter description focused on
    the core purpose and distinct natural triggers; target 180 characters or
    fewer.
-4. Update the [trigger inventory](plugins/v1tamins/evals/trigger-inventory.md),
-   [routing fixture](plugins/v1tamins/evals/skill-routing.jsonl), and
-   [`v1-menu`](plugins/v1tamins/skills/v1-menu/SKILL.md) when routing or the
-   catalog changes. Update this README’s skill count, catalog, and useful entry
-   points whenever a skill is added. Review the hero image for a useful visual
-   addition; regenerate it when the new capability merits one.
-5. Add a changeset with `npx changeset` for distributed skill changes. Do not
-   hand-edit package or manifest versions.
-6. Run the validator and test the skill in a real project.
-7. Run a privacy and portability scan over the changed files.
-8. Open a pull request.
+4. Update [`v1-menu`](plugins/v1tamins/skills/v1-menu/SKILL.md) when a skill
+   is added, renamed, removed, or changes invocation posture. Keep the README
+   skill count, catalog, and entry points aligned with the catalog.
+5. Add a changeset with `npx changeset` for distributed package changes.
+   Changesets owns package and manifest version updates.
+6. Run the packaging check below. Verify changed skill behavior proportionately
+   in a real project and run affected offline tests for executable changes.
+7. Review the diff for privacy, portability, and broken references, then open
+   a pull request.
 
 The full authoring workflow is in
 [`/v1-skilling-it`](plugins/v1tamins/skills/v1-skilling-it/SKILL.md). GitHub
@@ -383,36 +367,24 @@ Run the repository-native static check:
 scripts/validate-plugin.sh --verbose
 ```
 
-It validates both marketplace manifests, both plugin manifests, skill
-frontmatter, required Codex metadata, routing coverage, local skill links,
-portable helper paths, three-way version parity, and the absence of the old
-tracked skill mirror.
+It checks marketplace and plugin manifests, package paths, skill frontmatter,
+Codex metadata, invocation policies, menu coverage, bundled assets, local skill
+links, portability, and version agreement. It does not call a model or prove
+runtime behavior.
 
-For routing-sensitive changes, an optional bounded live smoke check is
-available:
-
-```bash
-scripts/run-skill-routing-live-eval.py --runtime codex --max-cases 3
-```
-
-See the [routing eval guide](plugins/v1tamins/evals/README.md) for evidence
-classes, Claude Code examples, and behavior-eval commands.
-
-To compare an installed plugin with this Canonical Source without changing
-caches or credentials, run:
+Offline tests cover invocation-policy and portability checks, plus shipped
+helpers for peer discovery, process supervision, credential filtering, and
+artifact conversion. Run the affected commands when changing those components:
 
 ```bash
-scripts/verify-installed-plugin.sh \
-  --canonical <canonical-plugin-root> \
-  --installed <installed-plugin-root> \
-  --runtime codex
+ruby scripts/test-check-skill-metadata.rb
+python3 scripts/test-check-shared-portability.py
+python3 scripts/test-peer-contract.py
+bash scripts/test-peer-run.sh
+python3 scripts/test-artifact-converters.py
 ```
 
-The result reports `match`, `stale`, `missing`, or `ambiguous`. Repeat with
-`--runtime claude` for a Claude Code installation.
-
-`scripts/sync-skill-hosts.sh` is a legacy compatibility wrapper. New
-documentation and automation should call `scripts/validate-plugin.sh`.
+CI runs packaging checks and offline tests in separate steps.
 
 ## Releases and generated artifacts
 
@@ -422,9 +394,8 @@ updates `package.json` and `CHANGELOG.md`, then keeps the Claude Code and Codex
 plugin manifest versions in lockstep. The package is private to npm tooling;
 the workflow does not publish it to a package registry.
 
-Generated evidence from live routing and behavior evals stays under ignored
-`.v1tamins/` directories. Share a summary or selected normalized result in a
-PR, not raw transcripts.
+Local runtime artifacts under `.v1tamins/` remain ignored. Keep raw
+transcripts and credentials out of contributions.
 
 Generated README images have an adjacent `.imagegen.md` record. Update the
 image, its README use, and the generation record together.
@@ -434,7 +405,7 @@ image, its README use, and the generation record together.
 - [Claude Code](https://claude.ai/code) and/or [Codex](https://openai.com/codex/)
 - Node.js and npm for changesets and CI parity
 - Ruby for YAML and skill-frontmatter validation; no gems are required
-- Python 3 for routing fixtures and helper checks
+- Python 3 for portability checks and helper tests
 - `jq` for JSON manifest validation
 
 ## License

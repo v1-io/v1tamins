@@ -25,8 +25,8 @@ class PortabilityTests(unittest.TestCase):
         if tracked:
             subprocess.run(["git", "-C", str(self.root), "add", path], check=True)
 
-    def test_original_contributor_routes_fail(self):
-        self.write("docs/agents/domain.md", "The `domain-modeling` skill creates docs.\n")
+    def test_undeclared_contributor_routes_fail(self):
+        self.write("docs/agents/contributing.md", "The `domain-modeling` skill creates docs.\n")
         self.write("docs/agents/issue-tracker.md", "The `triage` skill reads this flag.\n")
         self.assertEqual(len(portability.check(self.root)), 2)
 
@@ -48,7 +48,6 @@ class PortabilityTests(unittest.TestCase):
     def test_history_and_untracked_notes_are_preserved(self):
         original = "The `domain-modeling` skill was used.\n"
         self.write("CHANGELOG.md", original)
-        self.write("docs/adr/0001-history.md", original)
         self.write("docs/agents/local-notes.md", original, tracked=False)
         self.assertEqual(portability.check(self.root), [])
         self.assertEqual((self.root / "CHANGELOG.md").read_text(), original)

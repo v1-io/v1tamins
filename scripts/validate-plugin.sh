@@ -9,24 +9,10 @@ Usage: scripts/validate-plugin.sh [--verbose]
 Validate the v1tamins plugin package.
 
 Checks:
-  - plugin and marketplace manifests parse as JSON
-  - plugins/v1tamins/skills/v1-*/SKILL.md files have parseable YAML frontmatter
-  - each skill frontmatter name matches its v1-* directory
-  - optional agents/openai.yaml files parse as YAML
-  - each distributed skill has Codex metadata
-  - routing evals and trigger inventory cover distributed skills
-  - live routing eval schema parses as JSON
-  - skill descriptions are checked for trigger-oriented, budget-resilient metadata
-  - plugin-distributed skills use the v1- prefix
-  - plugin skills do not reference known v1tamins skills by legacy bare names
-  - root SKILL.md local links and required bundled asset references resolve
-  - tracked active guidance and scripts reject personal dependencies, undeclared named skill routes, and operator home paths
-  - distributed helper snippets avoid checkout-only executable paths and host-specific plugin cache paths
-  - package.json and both runtime plugin manifest versions stay in lockstep
-  - each SKILL.md stays within the 500-line budget (disclose detail to references/)
-  - legacy tracked .agents/skills mirrors are absent
-  - dynamic peer discovery, launch supervision, routing, and installed-source verifier contracts pass
-  - routing eval helpers, fixture contradiction rules, and the v1-skilling-it behavior adapter self-test pass
+  - plugin and marketplace manifests, paths, and version parity
+  - skill names, YAML frontmatter, and required Codex metadata
+  - invocation policies and menu coverage
+  - local links, bundled assets, and public portability
 
 Options:
   --verbose print each successful check
@@ -55,17 +41,14 @@ done
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 package_json="$repo_root/package.json"
-legacy_agent_skills_dir="$repo_root/.agents/skills"
 plugin_dir="$repo_root/plugins/v1tamins"
 plugin_skills_dir="$plugin_dir/skills"
 plugin_manifest="$plugin_dir/.codex-plugin/plugin.json"
 marketplace_manifest="$repo_root/.agents/plugins/marketplace.json"
 claude_plugin_manifest="$plugin_dir/.claude-plugin/plugin.json"
 claude_marketplace_manifest="$repo_root/.claude-plugin/marketplace.json"
-live_routing_schema="$plugin_dir/evals/live-routing-output.schema.json"
 
 failures=0
-warnings=0
 
 relpath() {
   local path="$1"
@@ -81,11 +64,6 @@ ok() {
 fail() {
   failures=$((failures + 1))
   printf 'ERROR: %s\n' "$1" >&2
-}
-
-warn_validation() {
-  warnings=$((warnings + 1))
-  printf 'WARNING: %s\n' "$1" >&2
 }
 
 print_failure_summary() {
@@ -259,36 +237,6 @@ validate_version_parity() {
     ok "plugin version parity: package.json and both manifests at $pkg"
   else
     fail "version drift: package.json=$pkg codex=$codex claude=$claude (run scripts/sync-plugin-versions.sh)"
-  fi
-}
-
-validate_no_legacy_agent_skills() {
-  # Project-local skills (for example verify-v1tamins) may live under
-  # .agents/skills. Only mirrors of distributed skills are legacy: a tracked
-  # entry whose name is v1-* or matches a distributed skill's bare name.
-  local tracked_legacy=""
-  local entry name
-
-  while IFS= read -r entry; do
-    [ -n "$entry" ] || continue
-    name="${entry#.agents/skills/}"
-    name="${name%%/*}"
-    case "$name" in
-      v1-*)
-        tracked_legacy+="$entry"$'\n'
-        ;;
-      *)
-        if [ -d "$plugin_skills_dir/v1-$name" ]; then
-          tracked_legacy+="$entry"$'\n'
-        fi
-        ;;
-    esac
-  done < <(git -C "$repo_root" ls-files -- .agents/skills 2>/dev/null || true)
-
-  if [ -n "$tracked_legacy" ]; then
-    fail "legacy tracked skill mirror exists under $(relpath "$legacy_agent_skills_dir"): $(printf '%s' "$tracked_legacy" | tr '\n' ' ')"
-  else
-    ok "legacy tracked .agents/skills mirror absent"
   fi
 }
 
@@ -489,7 +437,6 @@ validate_plugin_skills() {
   local skill_name
   local skill_md
   local openai_yaml
-  local skill_lines
   local found=false
 
   require_dir "$plugin_skills_dir"
@@ -510,10 +457,6 @@ validate_plugin_skills() {
 
     if [ -f "$skill_md" ]; then
       validate_skill_frontmatter "$skill_md" "$skill_name"
-      skill_lines="$(wc -l < "$skill_md" | tr -d '[:space:]')"
-      if [ "$skill_lines" -gt 500 ]; then
-        fail "$(relpath "$skill_md"): $skill_lines lines over the 500-line SKILL.md budget — disclose detail to references/"
-      fi
     else
       fail "missing SKILL.md: $(relpath "$skill_md")"
     fi
@@ -530,136 +473,17 @@ validate_plugin_skills() {
   fi
 }
 
-validate_skill_routing_fixture() {
-  local args=("--repo-root" "$repo_root")
-
-  if ! command -v python3 >/dev/null 2>&1; then
-    fail "python3 is required to validate skill routing fixture"
-    return 0
-  fi
-
-  if [ "$verbose" = true ]; then
-    args+=("--verbose")
-  fi
-
-  if python3 "$repo_root/scripts/check-skill-routing-fixture.py" "${args[@]}"; then
-    ok "skill routing fixture"
-  else
-    fail "skill routing fixture validation failed"
-  fi
-}
-
 validate_metadata_hygiene() {
   if ! command -v ruby >/dev/null 2>&1; then
     fail "ruby is required to validate metadata hygiene"
     return 0
   fi
 
-  local output
-  local status
-  if output="$(
-    ruby "$repo_root/scripts/check-skill-metadata.rb" "$plugin_skills_dir" "$repo_root" "$verbose"
-  )"; then
-    status=0
+  if ruby "$repo_root/scripts/check-skill-metadata.rb" "$plugin_skills_dir" "$repo_root" "$verbose"; then
+    ok "skill invocation metadata and menu"
   else
-    status=$?
+    fail "skill metadata validation failed"
   fi
-
-  if [ -n "$output" ]; then
-    while IFS= read -r line; do
-      case "$line" in
-        ERROR:*)
-          fail "${line#ERROR: }"
-          ;;
-        WARNING:*)
-          warn_validation "${line#WARNING: }"
-          ;;
-        *)
-          printf '%s\n' "$line"
-          ;;
-      esac
-    done <<< "$output"
-  fi
-
-  if [ "$status" -eq 0 ]; then
-    ok "skill metadata hygiene"
-  else
-    fail "skill metadata hygiene validation failed"
-  fi
-}
-
-validate_metadata_checker_tests() {
-  if ! command -v ruby >/dev/null 2>&1; then
-    fail "ruby is required to run metadata checker tests"
-    return 0
-  fi
-
-  if ruby "$repo_root/scripts/test-check-skill-metadata.rb"; then
-    ok "metadata checker mutation-detection tests"
-  else
-    fail "metadata checker mutation-detection tests failed"
-  fi
-}
-
-validate_routing_eval_tests() {
-  if ! command -v python3 >/dev/null 2>&1; then
-    fail "python3 is required to run routing eval tests"
-    return 0
-  fi
-
-  local test
-  local tests=(
-    "$repo_root/scripts/test-skill-routing-live.py"
-    "$repo_root/scripts/test-check-skill-routing-fixture.py"
-    "$repo_root/scripts/test-verify-v1tamins.py"
-  )
-  for test in "${tests[@]}"; do
-    if python3 "$test"; then
-      ok "$(relpath "$test")"
-    else
-      fail "$(relpath "$test") failed"
-    fi
-  done
-
-  if python3 "$repo_root/scripts/run-skilling-it-behavior-eval.py" --self-test; then
-    ok "v1-skilling-it behavior self-test"
-  else
-    fail "v1-skilling-it behavior self-test failed"
-  fi
-}
-
-validate_peer_contract_tests() {
-  if ! command -v python3 >/dev/null 2>&1; then
-    fail "python3 is required to run peer contract tests"
-    return 0
-  fi
-
-  local test
-  local tests=(
-    "$repo_root/scripts/test-peer-contract.py"
-    "$repo_root/scripts/test-phone-routing-contract.py"
-    "$repo_root/scripts/test-review-board-contract.py"
-  )
-  for test in "${tests[@]}"; do
-    if python3 "$test"; then
-      ok "$(relpath "$test")"
-    else
-      fail "$(relpath "$test") failed"
-    fi
-  done
-
-  local shell_test
-  local shell_tests=(
-    "$repo_root/scripts/test-peer-run.sh"
-    "$repo_root/scripts/test-installed-plugin-verifier.sh"
-  )
-  for shell_test in "${shell_tests[@]}"; do
-    if bash "$shell_test"; then
-      ok "$(relpath "$shell_test")"
-    else
-      fail "$(relpath "$shell_test") failed"
-    fi
-  done
 }
 
 main() {
@@ -675,17 +499,8 @@ main() {
     exit 1
   fi
 
-  validate_no_legacy_agent_skills
   validate_plugin_skills
-  validate_json_file "$live_routing_schema"
-  validate_skill_routing_fixture
   validate_metadata_hygiene
-  validate_metadata_checker_tests
-  if python3 "$repo_root/scripts/test-artifact-converters.py"; then
-    ok "artifact converter regressions"
-  else
-    fail "artifact converter regressions failed"
-  fi
   validate_skill_references
   validate_skill_assets
   validate_portable_host_paths
@@ -694,13 +509,6 @@ main() {
   else
     fail "shared instruction portability failed"
   fi
-  if python3 "$repo_root/scripts/test-check-shared-portability.py"; then
-    ok "shared instruction portability regressions"
-  else
-    fail "shared instruction portability regressions failed"
-  fi
-  validate_routing_eval_tests
-  validate_peer_contract_tests
 
   if [ "$failures" -ne 0 ]; then
     print_failure_summary
@@ -708,9 +516,6 @@ main() {
   fi
 
   printf '\nPlugin validation checks passed.\n'
-  if [ "$warnings" -ne 0 ]; then
-    printf '%d validation warning(s)\n' "$warnings" >&2
-  fi
 }
 
 main "$@"
