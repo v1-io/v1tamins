@@ -316,12 +316,15 @@ codex plugin marketplace add EveryInc/compound-engineering-plugin
 ```text
 v1tamins/
 ├── .agents/plugins/                 # Codex marketplace manifest
+├── .agents/skills/verify-v1tamins/    # Focused local verification workflow
+├── .claude/skills/                   # Link to the same verification skill
 ├── .claude-plugin/                  # Claude Code marketplace manifest
 ├── plugins/v1tamins/                # Shared plugin package
 │   ├── .claude-plugin/              # Claude Code plugin manifest
 │   ├── .codex-plugin/               # Codex plugin manifest
 │   └── skills/v1-*/                 # Canonical distributed skill sources
 ├── scripts/                         # Packaging checks and offline helper tests
+├── GLOSSARY.md                      # Project terminology
 └── AGENTS.md                        # Contribution and agent rules
 ```
 
@@ -385,6 +388,14 @@ python3 scripts/test-artifact-converters.py
 ```
 
 CI runs packaging checks and offline tests in separate steps.
+
+For changed plugin loading, invocation, routing, or skill behavior, use the
+project-local [verify-v1tamins](.agents/skills/verify-v1tamins/SKILL.md) skill.
+It guides a focused manual runtime check and keeps evidence under ignored
+`.v1tamins/verify/`. It has no custom runner or mandatory eval fixtures.
+
+[The glossary](GLOSSARY.md) defines project terms, including the distinction
+between packaging checks and live verification.
 
 ## Releases and generated artifacts
 

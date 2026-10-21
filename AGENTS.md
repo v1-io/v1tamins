@@ -3,6 +3,9 @@
 v1tamins distributes reusable AI development skills as one plugin for Claude
 Code and Codex. It ships skill text, routing metadata, and executable helpers.
 
+Use [GLOSSARY.md](GLOSSARY.md) for project terminology. Update definitions when
+a concept changes; keep implementation rules in this file.
+
 ## Source and distribution
 
 - The Canonical Source is `plugins/v1tamins/skills/v1-<name>/`: one skill
@@ -29,8 +32,7 @@ public companion allowance.
 
 ## Skill metadata
 
-A trigger is user language that selects a skill. Keep the frontmatter
-`description` focused on the core purpose and distinct natural triggers;
+Keep the frontmatter `description` focused on the core purpose and distinct natural triggers;
 target 180 characters or fewer. Put methods and edge cases in the body or a
 linked reference. The frontmatter `name` must match the `v1-*` directory.
 
@@ -59,8 +61,9 @@ open a parent workflow. There is no supported `agent-only` posture.
 4. Run `scripts/validate-plugin.sh --verbose` for static packaging checks.
    Run affected offline tests for executable helper or checker changes; the
    commands are in `.github/workflows/validate.yml`.
-5. Verify changed skill behavior proportionately in a real project. Static
-   checks establish packaging consistency, not runtime selection or behavior.
+5. For changed plugin loading, invocation, routing, or skill behavior, use
+   [verify-v1tamins](.agents/skills/verify-v1tamins/SKILL.md) for a focused live
+   check. Static checks establish packaging consistency, not runtime behavior.
 6. Review the changed files for privacy, portability, and broken references.
 
 Keep README and these instructions aligned. `CLAUDE.md` imports this file.
