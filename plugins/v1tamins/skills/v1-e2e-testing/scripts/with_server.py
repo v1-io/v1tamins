@@ -36,9 +36,10 @@ def port_is_open(port):
         return False
 
 
-def wait_for_server(process, port, timeout):
+def wait_for_server(process, port, timeout, check_interrupted):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
+        check_interrupted()
         status = process.poll()
         if status is not None:
             raise RuntimeError(f"Server command exited with status {status} before port {port} was ready")
@@ -48,7 +49,7 @@ def wait_for_server(process, port, timeout):
     raise RuntimeError(f"Server failed to start on port {port} within {timeout}s")
 
 
-def stop_server(process):
+def stop_process_group(process):
     """Stop the command's entire group, including children of a shell wrapper."""
     try:
         os.killpg(process.pid, signal.SIGTERM)
@@ -121,10 +122,29 @@ def main():
         servers.append({"cmd": cmd, "port": port})
 
     server_processes = []
+    command_process = None
+    interrupted_signal = None
+
+    def handle_signal(signum, frame):
+        nonlocal interrupted_signal
+        # Defer interruption until a launched process is recorded for cleanup.
+        if interrupted_signal is None:
+            interrupted_signal = signum
+
+    def check_interrupted():
+        if interrupted_signal is not None:
+            raise KeyboardInterrupt
+
+    previous_handlers = {}
+    for signum in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+        previous_handlers[signum] = signal.signal(signum, handle_signal)
+
+    exit_status = 1
 
     try:
         # Start all servers
         for i, server in enumerate(servers):
+            check_interrupted()
             if port_is_open(server["port"]):
                 raise RuntimeError(f"Port {server['port']} already has a listener; server was not launched")
             print(f"Starting server {i+1}/{len(servers)}: {server['cmd']}")
@@ -144,29 +164,42 @@ def main():
 
             # Wait for this server to be ready
             print(f"Waiting for server on port {server['port']}...")
-            wait_for_server(process, server["port"], args.timeout)
+            wait_for_server(process, server["port"], args.timeout, check_interrupted)
 
             print(f"Server ready on port {server['port']}")
 
         print(f"\nAll {len(servers)} server(s) ready")
 
         # Run the command
+        check_interrupted()
         print(f"Running: {' '.join(args.command)}\n")
-        result = subprocess.run(args.command)
-        return result.returncode
+        command_process = subprocess.Popen(args.command, start_new_session=True)
+        while True:
+            check_interrupted()
+            try:
+                exit_status = command_process.wait(timeout=0.1)
+                break
+            except subprocess.TimeoutExpired:
+                pass
 
     except (OSError, RuntimeError) as error:
         print(f"Error: {error}", file=sys.stderr)
-        return 1
     except KeyboardInterrupt:
-        return 130
+        exit_status = 130
 
     finally:
-        # Clean up all servers
-        print(f"\nStopping {len(server_processes)} server(s)...")
-        for i, process in reversed(list(enumerate(server_processes))):
-            stop_server(process)
-            print(f"Server {i+1} stopped")
+        try:
+            if command_process is not None:
+                stop_process_group(command_process)
+            print(f"\nStopping {len(server_processes)} server(s)...")
+            for i, process in reversed(list(enumerate(server_processes))):
+                stop_process_group(process)
+                print(f"Server {i+1} stopped")
+        finally:
+            for signum, handler in previous_handlers.items():
+                signal.signal(signum, handler)
+
+    return 128 + interrupted_signal if interrupted_signal is not None else exit_status
 
 
 if __name__ == "__main__":

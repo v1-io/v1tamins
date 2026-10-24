@@ -993,6 +993,58 @@ class PeerBoundaryTests(unittest.TestCase):
             self.assertFalse(result["repo_changes"]["changed"], result)
             self.assertEqual(result["permission_state"], "readonly_verified")
 
+    def test_undecodable_git_path_output_is_unobserved(self) -> None:
+        original_run = subprocess.run
+
+        def emit_invalid_utf8(_argv: Any, **kwargs: Any) -> Any:
+            return original_run(
+                [sys.executable, "-c", "import sys; sys.stdout.buffer.write(bytes([255]))"],
+                **kwargs,
+            )
+
+        with mock.patch.object(peer_boundary.subprocess, "run", emit_invalid_utf8):
+            self.assertIsNone(peer_boundary.git_output(Path("."), ["ls-files", "-z"]))
+
+    def test_raw_byte_untracked_path_cannot_report_a_clean_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = root / "repo"
+            repo.mkdir()
+            home = root / "home"
+            (home / ".claude").mkdir(parents=True)
+            subprocess.run(["git", "-C", str(repo), "init", "--quiet"], check=True)
+            target = os.fsencode(repo) + b"/file-\xff.txt"
+            try:
+                with open(target, "wb") as handle:
+                    handle.write(b"user work")
+            except OSError as error:
+                if sys.platform == "darwin" and error.errno == 92:
+                    self.skipTest("filesystem rejects non-UTF-8 filenames; Ubuntu CI exercises this case")
+                raise
+            run_dir = root / "run"
+            peer_boundary.take_snapshot(run_dir, repo, "claude", home)
+            with open(target, "wb") as handle:
+                handle.write(b"peer overwrote user work")
+            result = peer_boundary.verify_snapshot(run_dir)
+            self.assertEqual(result["permission_state"], "containment_unverified", result)
+            self.assertIn("repository_content_unobserved", result["containment_gaps"])
+
+    def test_unencodable_symlink_target_is_unobserved(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = root / "repo"
+            repo.mkdir()
+            home = root / "home"
+            (home / ".claude").mkdir(parents=True)
+            subprocess.run(["git", "-C", str(repo), "init", "--quiet"], check=True)
+            (repo / "link").symlink_to("synthetic-target")
+            run_dir = root / "run"
+            with mock.patch.object(Path, "readlink", return_value=Path("target-\udcff")):
+                peer_boundary.take_snapshot(run_dir, repo, "claude", home)
+                result = peer_boundary.verify_snapshot(run_dir)
+            self.assertEqual(result["permission_state"], "containment_unverified", result)
+            self.assertIn("repository_content_unobserved", result["containment_gaps"])
+
     def test_index_change_with_same_status_and_worktree_is_a_violation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / "repo"

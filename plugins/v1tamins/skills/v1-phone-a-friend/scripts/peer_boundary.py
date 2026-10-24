@@ -89,7 +89,7 @@ class TreeScan:
 
 
 def digest(value: str) -> str:
-    return hashlib.sha256(value.encode("utf-8", errors="replace")).hexdigest()
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 def git_output(repo: Path, args: list[str]) -> str | None:
@@ -100,10 +100,12 @@ def git_output(repo: Path, args: list[str]) -> str | None:
             capture_output=True,
             stdin=subprocess.DEVNULL,
             text=True,
-            errors="replace",
+            encoding="utf-8",
             timeout=30,
         )
-    except (subprocess.TimeoutExpired, OSError):
+    except (subprocess.TimeoutExpired, OSError, UnicodeError):
+        # Replacing pathname bytes can turn an existing file into a different,
+        # missing path. An unsupported encoding is an observation gap.
         return None
     if completed.returncode != 0:
         return None
@@ -156,7 +158,7 @@ def repo_state(repo: Path, run_dir: Path) -> dict[str, Any]:
                 continue
         except FileNotFoundError:
             mode, value = 0, "missing"
-        except (OSError, RuntimeError):
+        except (OSError, RuntimeError, UnicodeError):
             content_readable = False
             continue
         content.update(json.dumps([relative, mode, value]).encode("utf-8"))

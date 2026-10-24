@@ -9,12 +9,12 @@ Exact paths and commands for the sources this skill scouts. All paths use `~/`. 
 
 ## Source A: Merged PRs (GitHub)
 
-Repo: the repo of the current working directory (`gh` resolves it). Default base branch is `main`; override via `.agents/goldpan.config.yaml` (key: `pr_base_branch`).
+Repo: the repo of the current working directory (`gh` resolves it). Use the `pr_base_branch` resolved by the entrypoint from the request or project guidance (default `main`); apply its legacy migration rule before selecting defaults.
 
 For signal scoring (which sections, phrases, and diff patterns actually matter for *this* team), see the project's `.agents/goldpan-signals.md`. If absent, run calibration (see [calibration.md](calibration.md)) or fall back to the universal signals embedded in [scoring.md](scoring.md).
 
 ```bash
-BASE_BRANCH="main"   # override from .agents/goldpan.config.yaml if present
+BASE_BRANCH="<resolved pr_base_branch>"   # main when no override
 
 gh pr list --state merged --base "$BASE_BRANCH" \
   --search "merged:>=<since_date>" \
@@ -112,7 +112,7 @@ Skeleton output is one logical event per `---` block. Read it like a transcript 
 
 - Short user turns near the end: `that worked`, `it's fixed`, `working now`, `lgtm`, `ship it`
 - Final assistant turn containing a PR URL → correlate with Source A
-- Final assistant turn referencing the project's `docs/solutions/` path → already documented; demote candidate
+- Final assistant turn referencing a path under the resolved `solutions_path` → already documented; demote candidate
 - A `## Root Cause`-style section in an assistant message → strong knowledge
 - Errors-mode output that converges on one error class → "what didn't work" material
 
@@ -125,10 +125,10 @@ Skeleton output is one logical event per `---` block. Read it like a transcript 
 
 ## Existing solutions docs (for de-dup)
 
-Default path: `docs/solutions/` (matches `/ce-compound`'s default). Override via `.agents/goldpan.config.yaml` (key: `solutions_path`) — useful when the project keeps solutions in a vault outside the repo and symlinks them in, or routes them to a non-default location.
+Use the `solutions_path` resolved by the entrypoint from the request or project guidance (default `docs/solutions/`, matching `/ce-compound`). Preserve non-default locations and symlinks. Apply the entrypoint's legacy migration rule before selecting defaults; do not create a separate settings file.
 
 ```bash
-SOLUTIONS_PATH="docs/solutions"   # override from goldpan.config.yaml if present
+SOLUTIONS_PATH="<resolved solutions_path>"   # docs/solutions when no override
 
 grep -ril "<keyword>" "$SOLUTIONS_PATH"/ | head -10
 grep -rE "^(component|tags|module): .*<keyword>" "$SOLUTIONS_PATH"/ | head

@@ -45,25 +45,7 @@ Typical invocations:
 
 ## Workflow
 
-### Step 1: Check Prerequisites
-
-Run these checks before proceeding. Stop and report if any fail.
-
-```bash
-# Check Python playwright
-python3 -c "import playwright" 2>/dev/null || pip install playwright
-
-# Check playwright browsers
-python3 -c "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); p.chromium.launch(headless=True).close(); p.stop()" 2>/dev/null || python3 -m playwright install chromium
-
-# Check pyav and pillow (auto-installed by video_to_gif.py on first run)
-python3 -c "import av; from PIL import Image" 2>/dev/null || echo "Dependencies will be auto-installed on first conversion."
-
-# Check gifsicle (optional but recommended)
-which gifsicle >/dev/null 2>&1 || echo "WARNING: gifsicle not found. Install with: brew install gifsicle"
-```
-
-### Step 2: Analyze Context
+### Step 1: Analyze Context
 
 Determine what to demonstrate. Read the recent git diff to identify changed files:
 
@@ -76,7 +58,7 @@ git diff --name-only HEAD~1..HEAD 2>/dev/null || git diff --name-only --cached
 1. **User provided a URL** -> Use that URL directly
 2. **Changed files include frontend code** (`.tsx`, `.jsx`, `.vue`, `.html`, `.css`, templates) -> Infer the route/page affected, construct localhost URL
 3. **Changed files are backend only** (`.py`, `.rb`, `.go`, API routes with no views) -> Tell the user: "This change has no visual component. Skipping proof-of-work." and exit
-4. **Changed files are config/infra** -> Same as above, exit with message
+4. **Changed files are config/infra, documentation, or otherwise have no visible output** -> Same as above, exit with message
 5. **Cannot determine URL** -> Ask the user for the URL
 
 When inferring the URL, look for:
@@ -94,6 +76,41 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ROUTE
 
 If the server is not running (connection refused), tell the user:
 > "Dev server is not running on localhost:3000. Start it and run the `v1-prove-work` skill again."
+
+### Step 2: Select Environment and Check Prerequisites
+
+Do this only after Step 1 establishes a reachable visual target. Backend-only
+and configuration-only changes exit before any environment or package setup.
+Reuse a suitable project-local Python virtual environment if one exists;
+otherwise create the default below. Use its Python for dependency checks,
+package installation, Playwright browser setup, recording, and GIF conversion.
+Environment setup is part of the requested recording workflow; follow the
+user's existing scope and local policy without a redundant approval loop.
+
+```bash
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+# Set this to the existing project-local environment when reusing one.
+VENV_DIR="$REPO_ROOT/.venv/prove-work"
+if [ ! -x "$VENV_DIR/bin/python" ]; then
+  python3 -m venv "$VENV_DIR" || exit 1
+fi
+PYTHON="$VENV_DIR/bin/python"
+if ! "$PYTHON" -c "import playwright; import av; from PIL import Image" 2>/dev/null; then
+  "$PYTHON" -m pip install playwright av pillow || exit 1
+fi
+if ! "$PYTHON" -c "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); p.chromium.launch(headless=True).close(); p.stop()" 2>/dev/null; then
+  "$PYTHON" -m playwright install chromium || exit 1
+fi
+
+# gifsicle is optional; conversion works without it.
+command -v gifsicle >/dev/null 2>&1 || echo "WARNING: gifsicle not found; optional optimization will be skipped."
+printf '%s\n' "$PYTHON"
+```
+
+Record the emitted absolute Python path. Replace `<selected-python>` below
+with that exact path in every fresh shell. If setup fails, report the failure
+before recording. The converter reports missing dependencies and exits; it
+does not install packages or change the active Python environment.
 
 ### Step 3: Generate Interaction Script
 
@@ -116,8 +133,9 @@ Read [references/recording-patterns.md](references/recording-patterns.md) for th
 
 ```bash
 RUN_DIR="<recorded-run-directory>"
+PYTHON="<selected-python>"
 # Run the interaction script
-python3 "$RUN_DIR/interact.py" "$RUN_DIR"
+"$PYTHON" "$RUN_DIR/interact.py" "$RUN_DIR"
 ```
 
 If the script fails, read the error output. Common issues:
@@ -134,6 +152,7 @@ select Bash first; cache glob handling depends on it.
 
 ```bash
 RUN_DIR="<recorded-run-directory>"
+PYTHON="<selected-python>"
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 RESOLVER=""
 for candidate in \
@@ -151,7 +170,7 @@ if [ -z "${RESOLVER:-}" ]; then
 fi
 SKILL_DIR="$("$RESOLVER" v1-prove-work scripts/video_to_gif.py)"
 
-python3 "$SKILL_DIR/scripts/video_to_gif.py" \
+"$PYTHON" "$SKILL_DIR/scripts/video_to_gif.py" \
   --input "$RUN_DIR" \
   --output "$RUN_DIR/demo.gif" \
   --max-size-mb 10
@@ -183,8 +202,9 @@ gh pr view --json number --jq .number 2>/dev/null
 
 ```bash
 RUN_DIR="<recorded-run-directory>"
+PYTHON="<selected-python>"
 # Reuse the $SKILL_DIR resolved in Step 5 (re-run that resolver block first if this is a fresh shell).
-python3 "$SKILL_DIR/scripts/video_to_gif.py" \
+"$PYTHON" "$SKILL_DIR/scripts/video_to_gif.py" \
   --input "$RUN_DIR" \
   --output "$RUN_DIR/demo.gif" \
   --max-size-mb 10 \

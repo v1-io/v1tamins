@@ -25,8 +25,10 @@ Optional arguments after the file path:
    For a bare invocation, infer it only when exactly one Markdown file is clearly
    in scope in the conversation. Otherwise ask which file to convert; do not
    select the newest file or scan for an arbitrary candidate.
-2. Use a project-local environment by default. Create it when absent, then run
-   the conversion script from the skill root:
+2. Confirm the selected file exists and is readable before environment setup.
+   Reuse a suitable project-local Python virtual environment when available,
+   or create the default below. Run dependency checks, installation, and
+   conversion with that same interpreter from the skill root:
 
 Run this shell block with Bash. If your tool defaults to zsh or another shell,
 select Bash first; cache glob handling depends on it.
@@ -50,15 +52,20 @@ fi
 SKILL_ROOT="$("$RESOLVER" v1-md2docs scripts/md2docs.py)"
 
 VENV_DIR="$REPO_ROOT/.venv/md2docs"
+# Set VENV_DIR to the existing project-local environment when reusing one.
 if [ ! -x "$VENV_DIR/bin/python" ]; then
-  python3 -m venv "$VENV_DIR"
+  python3 -m venv "$VENV_DIR" || exit 1
 fi
-"$VENV_DIR/bin/python" "$SKILL_ROOT/scripts/md2docs.py" <file_path> [--title "Title"] [--no-open]
+PYTHON="$VENV_DIR/bin/python"
+"$PYTHON" "$SKILL_ROOT/scripts/md2docs.py" <file_path> [--title "Title"] [--no-open]
 ```
 
    If dependencies are missing, install the reported packages into that same
-   environment with `"$VENV_DIR/bin/python" -m pip install markdown google-auth
+   environment with `"$PYTHON" -m pip install markdown google-auth
    google-auth-oauthlib google-api-python-client`, then rerun the conversion.
+   Record its absolute Python path and restore `PYTHON` to that exact path
+   before installation or conversion in a fresh shell; rerun the resolver
+   block as well to restore `SKILL_ROOT`.
    Do not install into the system interpreter or bypass an externally managed
    environment. If environment creation or installation fails, report it before
    attempting authentication or document creation.
@@ -92,7 +99,8 @@ Each developer authenticates with their own Google account. Docs are created in 
 - Unordered and ordered lists with proper nesting
 - [Links](https://example.com) as clickable hyperlinks
 - Horizontal rules
-- Mermaid diagrams rendered as embedded images when `mmdc` or `npx` is available
+- Mermaid diagrams rendered as embedded images when an installed `mmdc` succeeds;
+  otherwise the diagram source remains a visible code block
 
 ## Environment Variables
 
@@ -107,5 +115,9 @@ dependencies and exits before authentication; it never installs packages:
 - `google-auth-oauthlib`
 - `google-api-python-client`
 
-Optional for Mermaid diagram rendering:
-- `mmdc` or `npx` with `@mermaid-js/mermaid-cli`
+Mermaid image rendering is separate from the Python prerequisites. It uses
+only an already installed `mmdc` executable from `@mermaid-js/mermaid-cli` on
+`PATH`. The converter never invokes `npx` or fetches a Node package. If `mmdc`
+is absent or rendering fails, it preserves the diagram as a visible code block.
+Installing an optional renderer is a separate setup choice; it is not required
+to create the document.

@@ -20,7 +20,7 @@ MIN_FRAME_MS = 20
 
 
 def ensure_dependencies():
-    """Install required pip packages if missing."""
+    """Report missing packages without changing the active Python environment."""
     missing = []
     try:
         import av  # noqa: F401
@@ -32,10 +32,12 @@ def ensure_dependencies():
         missing.append("pillow")
 
     if missing:
-        print(f"Installing: {', '.join(missing)}...")
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "--quiet"] + missing
-        )
+        print(f"ERROR: Missing dependencies: {', '.join(missing)}", file=sys.stderr)
+        print("Create or reuse an isolated environment and install dependencies there:", file=sys.stderr)
+        print("  python3 -m venv .venv/prove-work", file=sys.stderr)
+        print("  .venv/prove-work/bin/python -m pip install av pillow", file=sys.stderr)
+        print("Then run this script with that environment's Python.", file=sys.stderr)
+        sys.exit(1)
 
 
 def check_gifsicle():
@@ -313,20 +315,18 @@ def main():
     if not 0 < args.max_size_mb < float("inf"):
         parser.error("--max-size-mb must be positive and finite")
 
-    # Ensure deps
-    ensure_dependencies()
-
-    # Check gifsicle
-    if not check_gifsicle():
-        print("WARNING: gifsicle not found. GIF optimization will be skipped.", file=sys.stderr)
-        print("Install with: brew install gifsicle", file=sys.stderr)
-
-    # Find input
+    # Validate input before dependencies or any output or upload setup.
     webm_path = find_webm(args.input)
     if not webm_path:
         print(f"ERROR: No .webm file found at: {args.input}", file=sys.stderr)
         sys.exit(1)
     print(f"Input: {webm_path}")
+
+    ensure_dependencies()
+
+    if not check_gifsicle():
+        print("WARNING: gifsicle not found. GIF optimization will be skipped.", file=sys.stderr)
+        print("Install with: brew install gifsicle", file=sys.stderr)
 
     # Set output
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)

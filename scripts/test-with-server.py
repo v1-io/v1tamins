@@ -71,6 +71,86 @@ class ServerTests(unittest.TestCase):
             time.sleep(0.05)
         self.fail(f"server descendant still accepts connections on {port}")
 
+    def assert_process_stopped(self, pid):
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            result = subprocess.run(["ps", "-p", str(pid), "-o", "stat="], capture_output=True, text=True)
+            if not result.stdout.strip() or result.stdout.strip().startswith("Z"):
+                return
+            time.sleep(0.05)
+        self.fail(f"owned process {pid} is still running")
+
+    def check_cancellation(self, signum, process_group):
+        command_script = self.directory / "long-command.py"
+        command_pid = self.directory / "command.pid"
+        child_pid = self.directory / "command-child.pid"
+        child_code = ("import os, pathlib, time; "
+                      f"pathlib.Path({str(child_pid)!r}).write_text(str(os.getpid())); time.sleep(60)")
+        command_script.write_text(
+            "import os, pathlib, subprocess, sys, time\n"
+            f"pathlib.Path({str(command_pid)!r}).write_text(str(os.getpid()))\n"
+            f"subprocess.Popen([sys.executable, '-c', {child_code!r}])\n"
+            f"pathlib.Path({str(self.command_marker)!r}).touch()\n"
+            "time.sleep(60)\n"
+        )
+        port = self.free_port()
+        argv = [sys.executable, str(HELPER), "--server", self.server_command(port),
+                "--port", str(port), "--", sys.executable, str(command_script)]
+        unrelated_listener = socket.socket()
+        unrelated_listener.bind(("127.0.0.1", 0))
+        unrelated_listener.listen()
+        wrapper = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   text=True, stdin=subprocess.DEVNULL, start_new_session=True)
+        try:
+            deadline = time.monotonic() + 5
+            while not (self.command_marker.exists() and child_pid.exists()):
+                if wrapper.poll() is not None or time.monotonic() >= deadline:
+                    self.fail("test command did not start before cancellation")
+                time.sleep(0.02)
+            owned_pids = [int(path.read_text()) for path in
+                          (self.directory / "server.pid", command_pid, child_pid)]
+            if process_group:
+                os.killpg(wrapper.pid, signum)
+            else:
+                wrapper.send_signal(signum)
+            wrapper.wait(timeout=8)
+            self.assert_port_closed(port)
+            for pid in owned_pids:
+                self.assert_process_stopped(pid)
+            self.assertEqual(wrapper.returncode, 128 + signum)
+            with socket.create_connection(unrelated_listener.getsockname(), timeout=1):
+                pass
+        finally:
+            unrelated_listener.close()
+            if wrapper.poll() is None:
+                os.killpg(wrapper.pid, signal.SIGKILL)
+                wrapper.wait()
+            # Also clean the old implementation's escaped fixture processes on red.
+            for pidfile in self.directory.glob("*.pid"):
+                try:
+                    os.kill(int(pidfile.read_text()), signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            wrapper.communicate(timeout=5)
+
+    def test_sigterm_to_wrapper_group_stops_owned_processes(self):
+        self.check_cancellation(signal.SIGTERM, process_group=True)
+
+    def test_sighup_to_wrapper_group_stops_owned_processes(self):
+        self.check_cancellation(signal.SIGHUP, process_group=True)
+
+    def test_sigterm_to_wrapper_alone_stops_owned_processes(self):
+        self.check_cancellation(signal.SIGTERM, process_group=False)
+
+    def test_sighup_to_wrapper_alone_stops_owned_processes(self):
+        self.check_cancellation(signal.SIGHUP, process_group=False)
+
+    def test_sigint_to_wrapper_group_stops_owned_processes(self):
+        self.check_cancellation(signal.SIGINT, process_group=True)
+
+    def test_sigint_to_wrapper_alone_stops_owned_processes(self):
+        self.check_cancellation(signal.SIGINT, process_group=False)
+
     def test_command_status_is_preserved_and_shell_descendants_are_stopped(self):
         port = self.free_port()
         result = self.run_helper([(self.server_command(port), port)], self.command(23))

@@ -150,9 +150,11 @@ already-dirty or untracked files cannot hide behind unchanged status labels.
 Symlink targets are fingerprinted without reading their destinations. Ignored
 files are enumerated but never read; their presence outside declared scratch
 reports `repository_ignored_files_unobserved` and `containment_unverified`.
-Unreadable content or unsupported entries also prevent verification. These are
-before/after observations of declared surfaces, not proof against a transient
-write that was reverted or a write outside those surfaces. Provider-state
+Unreadable content, non-UTF-8 Git path output or symlink targets, and unsupported
+entries also prevent verification. Path encodings are never replaced to make a
+fingerprint. These are before/after observations of declared surfaces, not
+proof against a transient write that was reverted or a write outside those
+surfaces. Provider-state
 reporting uses modification times and retains that observation limit.
 
 `$HOME` is never redirected by default: a subscription peer keeps its login

@@ -290,7 +290,9 @@ Requires Python 3 and POSIX process groups (macOS/Linux). Server commands must
 stay in the foreground. The helper rejects a port that already has a listener,
 fails when a server command exits before readiness, and stops each launched
 process group, including shell-wrapper descendants, on completion or startup
-failure. It returns the test command's exit status; setup errors return nonzero.
+failure. SIGINT, SIGTERM, and SIGHUP also stop the owned server and test command
+groups, with exit status `128 + signal number`. SIGKILL cannot trigger cleanup.
+It returns the test command's exit status normally; setup errors return nonzero.
 TCP readiness only means the port accepts connections. Keep the application
 assertions in the test; an open port does not prove that the intended page or
 API is healthy. Use an already-running server directly when that is intended.

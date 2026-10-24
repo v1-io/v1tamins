@@ -49,6 +49,33 @@ class DependencyTests(unittest.TestCase):
             self.assertNotIn("Installing:", result.stdout)
             self.assertFalse((Path(directory) / ".md2docs").exists())
 
+    def test_video_input_and_missing_dependencies_fail_without_installing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            isolated = root / "venv"
+            venv.EnvBuilder(with_pip=False, symlinks=True).create(isolated)
+            source = root / "source.webm"
+            source.write_bytes(b"synthetic input")
+            before = set(isolated.rglob("*"))
+            for input_path, error in ((root / "missing.webm", "No .webm file found"),
+                                      (source, "Missing dependencies")):
+                with self.subTest(input_path=input_path.name):
+                    result = subprocess.run(
+                        [str(isolated / "bin" / "python"), VIDEO.__file__,
+                         "--input", str(input_path), "--output", str(root / "output" / "demo.gif"),
+                         "--upload", "--repo", "example/example"],
+                        env={"PATH": os.defpath, "HOME": directory,
+                             "PYTHONNOUSERSITE": "1", "PYTHONDONTWRITEBYTECODE": "1"},
+                        capture_output=True, text=True,
+                    )
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(error, result.stderr)
+                    self.assertNotIn("Installing:", result.stdout)
+                    self.assertFalse((root / "output").exists())
+                    self.assertFalse((root / ".cache").exists())
+                    self.assertFalse((root / ".config").exists())
+                    self.assertEqual(set(isolated.rglob("*")), before)
+
 
 class ResearchTests(unittest.TestCase):
     def test_bibliography_entries_do_not_count_as_body_citations(self):
@@ -63,6 +90,40 @@ class ResearchTests(unittest.TestCase):
 
 
 class DiagramTests(unittest.TestCase):
+    def test_document_without_mermaid_does_not_resolve_or_run_renderer(self):
+        source = "# Document\nNo diagram.\n"
+        with patch("shutil.which") as which, patch.object(DOC.subprocess, "run") as run:
+            self.assertEqual(DOC.render_mermaid_blocks(source), (source, []))
+        which.assert_not_called()
+        run.assert_not_called()
+
+    def test_absent_renderer_keeps_code_even_when_npx_is_available(self):
+        source = "```mermaid\ngraph TD; A-->B\n```"
+        with patch("shutil.which", side_effect=lambda name: "/bin/npx" if name == "npx" else None), \
+             patch.object(DOC.subprocess, "run") as run:
+            self.assertEqual(DOC.render_mermaid_blocks(source), (source, []))
+        run.assert_not_called()
+
+    def test_available_or_failed_renderer_never_falls_back_to_npx(self):
+        source = "```mermaid\ngraph TD; A-->B\n```"
+        for succeeds in (True, False):
+            with self.subTest(succeeds=succeeds):
+                def renderer(argv, **kwargs):
+                    self.assertEqual(argv[0], "/bin/mmdc")
+                    if succeeds:
+                        Path(argv[argv.index("-o") + 1]).write_bytes(b"image")
+                    return CompletedProcess(argv, 0 if succeeds else 1)
+
+                with patch("shutil.which", side_effect=lambda name: f"/bin/{name}") as which, \
+                     patch.object(DOC.subprocess, "run", side_effect=renderer) as run:
+                    text, images = DOC.render_mermaid_blocks(source)
+                self.assertEqual(which.call_args_list, [unittest.mock.call("mmdc")])
+                self.assertEqual(run.call_count, 1)
+                self.assertEqual(len(images), int(succeeds))
+                if not succeeds:
+                    self.assertIn("graph TD; A-->B", text)
+                    self.assertIn("```", text)
+
     def render(self, source, renderer):
         with patch("shutil.which", side_effect=lambda name: "mmdc" if name == "mmdc" else None):
             with patch.object(DOC.subprocess, "run", side_effect=renderer):
