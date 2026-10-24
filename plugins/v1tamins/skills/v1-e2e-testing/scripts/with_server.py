@@ -2,6 +2,10 @@
 """
 Start one or more servers, wait for them to be ready, run a command, then clean up.
 
+Requires POSIX process groups (macOS/Linux). Each server command must stay in
+the foreground; readiness means a local TCP connection succeeds, not that the
+application's HTTP/API behavior is correct. Existing listeners are rejected.
+
 Usage:
     # Single server
     python scripts/with_server.py --server "npm run dev" --port 5173 -- python automation.py
@@ -19,18 +23,48 @@ import socket
 import time
 import sys
 import argparse
+import os
+import signal
 
 
-def is_server_ready(port, timeout=30):
-    """Wait for server to be ready by polling the port."""
-    start_time = time.time()
-    while time.time() - start_time < timeout:
+def port_is_open(port):
+    """Check only TCP availability; callers must verify application readiness."""
+    try:
+        with socket.create_connection(("localhost", port), timeout=0.2):
+            return True
+    except OSError:
+        return False
+
+
+def wait_for_server(process, port, timeout):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        status = process.poll()
+        if status is not None:
+            raise RuntimeError(f"Server command exited with status {status} before port {port} was ready")
+        if port_is_open(port) and process.poll() is None:
+            return
+        time.sleep(0.1)
+    raise RuntimeError(f"Server failed to start on port {port} within {timeout}s")
+
+
+def stop_server(process):
+    """Stop the command's entire group, including children of a shell wrapper."""
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        pass
+    finally:
+        # The shell may have exited while a descendant is still running.
         try:
-            with socket.create_connection(("localhost", port), timeout=1):
-                return True
-        except (socket.error, ConnectionRefusedError):
-            time.sleep(0.5)
-    return False
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        process.wait()
 
 
 def main():
@@ -62,6 +96,13 @@ def main():
 
     args = parser.parse_args()
 
+    if os.name != "posix":
+        parser.error("Server descendant cleanup requires POSIX process groups (macOS/Linux)")
+    if args.timeout <= 0:
+        parser.error("--timeout must be positive")
+    if any(port < 1 or port > 65535 for port in args.ports):
+        parser.error("--port must be between 1 and 65535")
+
     # Remove the '--' separator if present
     if args.command and args.command[0] == "--":
         args.command = args.command[1:]
@@ -84,6 +125,8 @@ def main():
     try:
         # Start all servers
         for i, server in enumerate(servers):
+            if port_is_open(server["port"]):
+                raise RuntimeError(f"Port {server['port']} already has a listener; server was not launched")
             print(f"Starting server {i+1}/{len(servers)}: {server['cmd']}")
 
             # Use shell=True to support commands with cd and &&.
@@ -95,15 +138,13 @@ def main():
                 shell=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
+                start_new_session=True,
             )
             server_processes.append(process)
 
             # Wait for this server to be ready
             print(f"Waiting for server on port {server['port']}...")
-            if not is_server_ready(server["port"], timeout=args.timeout):
-                raise RuntimeError(
-                    f"Server failed to start on port {server['port']} within {args.timeout}s"
-                )
+            wait_for_server(process, server["port"], args.timeout)
 
             print(f"Server ready on port {server['port']}")
 
@@ -112,20 +153,21 @@ def main():
         # Run the command
         print(f"Running: {' '.join(args.command)}\n")
         result = subprocess.run(args.command)
-        sys.exit(result.returncode)
+        return result.returncode
+
+    except (OSError, RuntimeError) as error:
+        print(f"Error: {error}", file=sys.stderr)
+        return 1
+    except KeyboardInterrupt:
+        return 130
 
     finally:
         # Clean up all servers
         print(f"\nStopping {len(server_processes)} server(s)...")
-        for i, process in enumerate(server_processes):
-            try:
-                process.terminate()
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait()
+        for i, process in reversed(list(enumerate(server_processes))):
+            stop_server(process)
             print(f"Server {i+1} stopped")
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

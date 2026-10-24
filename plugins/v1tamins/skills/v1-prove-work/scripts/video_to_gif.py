@@ -121,8 +121,7 @@ def enforce_size_limit(webm_path, output_path, max_size_bytes, fps=10, max_width
     2. Reduce colors to 64
     3. Reduce fps to 8
     4. Reduce width to 640
-    5. Truncate to first 10 seconds of frames
-    6. Fail with error
+    5. Fail with error; preserve the full recording's duration in every attempt
     """
     has_gifsicle = check_gifsicle()
     raw_path = output_path.with_suffix(".raw.gif")
@@ -131,29 +130,22 @@ def enforce_size_limit(webm_path, output_path, max_size_bytes, fps=10, max_width
     reduced_width = min(max_width, 640)
     reduced_colors = min(colors, 64)
     strategies = [
-        {"fps": fps, "max_width": max_width, "colors": colors, "truncate": None},
-        {"fps": fps, "max_width": max_width, "colors": reduced_colors, "truncate": None},
-        {"fps": reduced_fps, "max_width": max_width, "colors": reduced_colors, "truncate": None},
-        {"fps": reduced_fps, "max_width": reduced_width, "colors": reduced_colors, "truncate": None},
-        {"fps": reduced_fps, "max_width": reduced_width, "colors": reduced_colors,
-         "truncate": 10},
+        {"fps": fps, "max_width": max_width, "colors": colors},
+        {"fps": fps, "max_width": max_width, "colors": reduced_colors},
+        {"fps": reduced_fps, "max_width": max_width, "colors": reduced_colors},
+        {"fps": reduced_fps, "max_width": reduced_width, "colors": reduced_colors},
     ]
     # Low requested settings can make adjacent reduction steps identical.
     strategies = [s for i, s in enumerate(strategies) if s not in strategies[:i]]
 
     for i, s in enumerate(strategies):
         label = f"attempt {i + 1}/{len(strategies)}: {s['fps']}fps, {s['max_width']}px, {s['colors']} colors"
-        if s["truncate"]:
-            label += f", truncated to first {s['truncate']}s"
         print(f"  {label}...")
 
         frames, duration_ms = decode_webm(webm_path, target_fps=s["fps"], max_width=s["max_width"])
         if not frames:
             print("ERROR: No frames extracted from video.", file=sys.stderr)
             sys.exit(1)
-
-        if s["truncate"]:
-            frames = frames[: max(1, s["truncate"] * 1000 // duration_ms)]
 
         save_gif(frames, raw_path, duration_ms=duration_ms, colors=s["colors"])
 

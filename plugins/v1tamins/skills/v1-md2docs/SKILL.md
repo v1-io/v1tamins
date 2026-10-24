@@ -22,7 +22,14 @@ Optional arguments after the file path:
 ## Workflow
 
 1. Resolve the markdown file path from the user input.
-2. Run the conversion script from the skill root:
+   For a bare invocation, infer it only when exactly one Markdown file is clearly
+   in scope in the conversation. Otherwise ask which file to convert; do not
+   select the newest file or scan for an arbitrary candidate.
+2. Use a project-local environment by default. Create it when absent, then run
+   the conversion script from the skill root:
+
+Run this shell block with Bash. If your tool defaults to zsh or another shell,
+select Bash first; cache glob handling depends on it.
 
 ```bash
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
@@ -42,10 +49,22 @@ if [ -z "${RESOLVER:-}" ]; then
 fi
 SKILL_ROOT="$("$RESOLVER" v1-md2docs scripts/md2docs.py)"
 
-python3 "$SKILL_ROOT/scripts/md2docs.py" <file_path> [--title "Title"] [--no-open]
+VENV_DIR="$REPO_ROOT/.venv/md2docs"
+if [ ! -x "$VENV_DIR/bin/python" ]; then
+  python3 -m venv "$VENV_DIR"
+fi
+"$VENV_DIR/bin/python" "$SKILL_ROOT/scripts/md2docs.py" <file_path> [--title "Title"] [--no-open]
 ```
 
-3. Report the Google Doc URL back to the user.
+   If dependencies are missing, install the reported packages into that same
+   environment with `"$VENV_DIR/bin/python" -m pip install markdown google-auth
+   google-auth-oauthlib google-api-python-client`, then rerun the conversion.
+   Do not install into the system interpreter or bypass an externally managed
+   environment. If environment creation or installation fails, report it before
+   attempting authentication or document creation.
+3. Report the returned Google Doc URL after successful conversion. Do not
+   repeat a document-creation request after an uncertain upload; reconcile the
+   destination before another attempt.
 
 ## First-Time Setup
 
@@ -81,7 +100,8 @@ Each developer authenticates with their own Google account. Docs are created in 
 
 ## Dependencies
 
-The script auto-installs these pip packages on first run if missing:
+Install these packages in the isolated environment. The script reports missing
+dependencies and exits before authentication; it never installs packages:
 - `markdown`
 - `google-auth`
 - `google-auth-oauthlib`

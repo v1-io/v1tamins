@@ -97,19 +97,27 @@ If the server is not running (connection refused), tell the user:
 
 ### Step 3: Generate Interaction Script
 
-Write a Python Playwright script to `/tmp/prove-work/interact.py` that demonstrates the feature.
+Create one directory for this run and keep its exact path through the following
+steps. Write a Python Playwright script to `$RUN_DIR/interact.py` that
+demonstrates the feature. Do not reuse or clear another run's directory.
+
+```bash
+RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/v1-proof-run.XXXXXX")"
+printf '%s\n' "$RUN_DIR"
+```
+
+Record the emitted absolute path. Shell variables do not persist across tool
+calls. Replace `<recorded-run-directory>` below with that exact path in each
+fresh shell; never create another directory for a later step.
 
 Read [references/recording-patterns.md](references/recording-patterns.md) for the script template, interaction patterns, and timing guidelines. Use the template from that file as the starting point -- fill in the interaction section based on context analysis.
 
 ### Step 4: Execute Recording
 
 ```bash
-mkdir -p /tmp/prove-work
-# Clean old recordings
-rm -f /tmp/prove-work/*.webm /tmp/prove-work/*.gif
-
+RUN_DIR="<recorded-run-directory>"
 # Run the interaction script
-python3 /tmp/prove-work/interact.py
+python3 "$RUN_DIR/interact.py" "$RUN_DIR"
 ```
 
 If the script fails, read the error output. Common issues:
@@ -121,7 +129,11 @@ If the script fails, read the error output. Common issues:
 
 Run the conversion script:
 
+Run this shell block with Bash. If your tool defaults to zsh or another shell,
+select Bash first; cache glob handling depends on it.
+
 ```bash
+RUN_DIR="<recorded-run-directory>"
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 RESOLVER=""
 for candidate in \
@@ -140,8 +152,8 @@ fi
 SKILL_DIR="$("$RESOLVER" v1-prove-work scripts/video_to_gif.py)"
 
 python3 "$SKILL_DIR/scripts/video_to_gif.py" \
-  --input /tmp/prove-work/ \
-  --output /tmp/prove-work/demo.gif \
+  --input "$RUN_DIR" \
+  --output "$RUN_DIR/demo.gif" \
   --max-size-mb 10
 ```
 
@@ -151,6 +163,11 @@ The script:
 3. Quantizes and assembles into GIF via Pillow
 4. Optimizes with gifsicle (if available)
 5. Progressively reduces quality if over 10MB
+
+Every size-reduction attempt preserves the complete recording. If it cannot
+fit, report the failure and make a shorter recording of the complete action
+and its result. Inspect the GIF's important states and final feedback before
+calling it proof; successful encoding alone does not establish the behavior.
 
 ### Step 6: Upload and Embed
 
@@ -165,10 +182,11 @@ gh pr view --json number --jq .number 2>/dev/null
 **If a PR exists**, upload and embed:
 
 ```bash
+RUN_DIR="<recorded-run-directory>"
 # Reuse the $SKILL_DIR resolved in Step 5 (re-run that resolver block first if this is a fresh shell).
 python3 "$SKILL_DIR/scripts/video_to_gif.py" \
-  --input /tmp/prove-work/ \
-  --output /tmp/prove-work/demo.gif \
+  --input "$RUN_DIR" \
+  --output "$RUN_DIR/demo.gif" \
   --max-size-mb 10 \
   --upload \
   --pr PR_NUMBER
@@ -177,7 +195,7 @@ python3 "$SKILL_DIR/scripts/video_to_gif.py" \
 **If no PR exists**, save locally and report:
 
 ```
-GIF saved to: /tmp/prove-work/demo.gif
+GIF saved to: <actual-run-directory>/demo.gif
 No open PR found for this branch. Run the `v1-prove-work` skill again with `--pr NUMBER` after creating a PR, or use `--no-upload` to keep the GIF local.
 ```
 
@@ -188,7 +206,7 @@ After completion, report:
 ```
 Proof of work recorded!
 
-  GIF: /tmp/prove-work/demo.gif (X.X MB)
+  GIF: <actual-run-directory>/demo.gif (X.X MB)
   URL: https://github.com/owner/repo/releases/download/media-assets/demo-pr42-20260224-143022.gif
   PR:  #42 -- ## Demo section updated
 
@@ -204,7 +222,7 @@ Input:  /v1-prove-work
 Diff:   app/pages/settings.tsx, app/api/settings.ts
 Output:
   Proof of work recorded!
-    GIF: /tmp/prove-work/demo.gif (1.8 MB)
+    GIF: <actual-run-directory>/demo.gif (1.8 MB)
     URL: https://github.com/acme/app/releases/download/media-assets/demo-pr12-20260224-091500.gif
     PR:  #12 -- ## Demo section updated
     Recorded: Navigated to /settings, filled display name, clicked Save, showed success toast
@@ -216,7 +234,7 @@ Output:
 Input:  /v1-prove-work http://localhost:5173/dashboard --pr 27
 Output:
   Proof of work recorded!
-    GIF: /tmp/prove-work/demo.gif (2.4 MB)
+    GIF: <actual-run-directory>/demo.gif (2.4 MB)
     URL: https://github.com/acme/app/releases/download/media-assets/demo-pr27-20260224-143000.gif
     PR:  #27 -- ## Demo section updated
     Recorded: Navigated to /dashboard, scrolled through widgets, toggled dark mode
@@ -235,7 +253,7 @@ Output: This change has no visual component. Skipping proof-of-work.
 ```
 Input:  /v1-prove-work --no-upload
 Output:
-  GIF saved to: /tmp/prove-work/demo.gif (1.1 MB)
+  GIF saved to: <actual-run-directory>/demo.gif (1.1 MB)
 ```
 
 ## Error Handling

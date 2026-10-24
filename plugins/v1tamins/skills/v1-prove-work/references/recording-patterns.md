@@ -84,12 +84,15 @@ Standard structure for interaction scripts:
 ```python
 """Prove-work interaction script -- auto-generated"""
 from playwright.sync_api import expect, sync_playwright
+import sys
 import time
+
+recording_dir = sys.argv[1]  # The unique RUN_DIR created by this run.
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
     context = browser.new_context(
-        record_video_dir="/tmp/prove-work/",
+        record_video_dir=recording_dir,
         record_video_size={"width": 1280, "height": 720},
         viewport={"width": 1280, "height": 720},
     )

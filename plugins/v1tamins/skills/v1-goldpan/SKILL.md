@@ -74,6 +74,9 @@ Calibration is one-time. Re-run after major team or codebase changes (new author
 
 ### Phase 1: Resolve window and dispatch scouts
 
+Read [companion.md](references/companion.md) before scouting to establish the
+separate dependency, installation boundary, and missing-component behavior.
+
 1. Resolve the window into:
    - `since_date` — `YYYY-MM-DD` (today minus N days)
    - `mtime_days` — integer N for `find -mtime -N`
@@ -96,7 +99,7 @@ Tooling:
 BASE_BRANCH="main"   # override from .agents/goldpan.config.yaml if present
 gh pr list --state merged --base "$BASE_BRANCH" \
   --search "merged:>=<since_date>" \
-  --json number,title,mergedAt,author,body,files \
+  --json number,title,mergedAt,author,body,files,headRefName \
   --limit 200
 
 # 2. Drop anti-signals (per scoring.md and project signals file) before any further reads.
@@ -295,7 +298,9 @@ Use these primitives from [Every's compound-engineering plugin](https://github.c
 
 The resolver finds these scripts by basename across compound-engineering layouts; set `CE_SKILLS_DIR` to override.
 
-If those scripts are absent (compound-engineering plugin uninstalled), the wrapper exits with a clear error naming the missing script. Install the compound-engineering plugin rather than re-implementing — see [v1tamins README → Recommended companion](../../../../README.md#recommended-companion-compound-engineering) for install commands.
+If the required scripts or workflow are unavailable, report the exact missing
+component. Install or update the companion only when authorized; do not
+reimplement it or mark an unexecuted queue item complete.
 
 ## Anti-Patterns
 

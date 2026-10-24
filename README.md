@@ -12,7 +12,7 @@
 **Small, reusable skills for healthier AI-assisted development.**
 
 v1tamins is an open-source plugin for [Claude Code](https://claude.ai/code) and
-[Codex](https://openai.com/codex/). It packages 41 focused skills for planning,
+[Codex](https://openai.com/codex/). It packages 42 focused skills for planning,
 debugging, reviewing, shipping, research, documentation, and product work. Use
 one skill for a specific job or combine several into a repeatable workflow.
 
@@ -132,11 +132,11 @@ The important parts are:
    the body or references.
 3. **An explicit invocation posture.** Each skill declares `implicit`,
    `selective_implicit`, or `explicit_only` in `agents/openai.yaml`.
-4. **Reviewable routing evidence.** The trigger inventory and JSONL routing
-   fixture record when each skill should trigger, should not trigger, or needs
-   an action gate.
+4. **Focused live verification.** Fresh runtime checks observe discovery,
+   selection, resource loading, and affected behavior. Keep unobserved host
+   behavior separate from static packaging results.
 5. **Static delivery checks.** The validator checks manifests, metadata,
-   routing coverage, links inside skills, version parity, and distribution
+   menu coverage, links throughout skill Markdown, version parity, and distribution
    boundaries before a change ships.
 
 ## Find the right skill
@@ -158,6 +158,7 @@ These common entry points cover much of the day-to-day work:
 | Write naturally from notes or improve an existing draft | [`/v1-skin-suit`](plugins/v1tamins/skills/v1-skin-suit/SKILL.md) |
 | Research a complex question | [`/v1-deep-research`](plugins/v1tamins/skills/v1-deep-research/SKILL.md) |
 | Create or audit an Agent Skill | [`/v1-skilling-it`](plugins/v1tamins/skills/v1-skilling-it/SKILL.md) |
+| Design or review a skill plugin's architecture and shared contracts | [`/v1-bigxtha-plugin`](plugins/v1tamins/skills/v1-bigxtha-plugin/SKILL.md) |
 
 ### Workflows that compose
 
@@ -259,6 +260,7 @@ that matches the job.
 | [`/v1-menu`](plugins/v1tamins/skills/v1-menu/SKILL.md) | You need the explicit index and help choosing a skill. |
 | [`/v1-phone-a-friend`](plugins/v1tamins/skills/v1-phone-a-friend/SKILL.md) | Work needs an independent model or runtime opinion. |
 | [`/v1-skilling-it`](plugins/v1tamins/skills/v1-skilling-it/SKILL.md) | An Agent Skill needs creation, editing, audit, validation, or a Canonical Source decision. |
+| [`/v1-bigxtha-plugin`](plugins/v1tamins/skills/v1-bigxtha-plugin/SKILL.md) | A skill plugin needs capability boundaries, shared-resource ownership, handoff review, or cross-skill change analysis. |
 | [`/v1-prompt-engineering`](plugins/v1tamins/skills/v1-prompt-engineering/SKILL.md) | A prompt, system prompt, hook, or sub-agent brief needs improvement. |
 
 </details>
@@ -299,17 +301,9 @@ plugin](https://github.com/EveryInc/compound-engineering-plugin):
 - `/v1-pr` can use a compound-engineering review workflow when the user asks
   for that extra pass.
 
-Install it alongside v1tamins if you want those integrations:
-
-```text
-# Claude Code
-/plugin marketplace add EveryInc/compound-engineering-plugin
-/plugin install compound-engineering@compound-engineering-plugin
-
-# Codex
-codex plugin marketplace add EveryInc/compound-engineering-plugin
-# then install compound-engineering in the Codex plugin UI
-```
+The packaged [companion guide](plugins/v1tamins/skills/v1-goldpan/references/companion.md)
+owns installation instructions and missing-dependency behavior. Installation is
+a separate action; source authoring or an audit does not install a companion.
 
 ## Repository map
 
@@ -353,7 +347,11 @@ For a new or changed skill:
    a pull request.
 
 The full authoring workflow is in
-[`/v1-skilling-it`](plugins/v1tamins/skills/v1-skilling-it/SKILL.md). GitHub
+[`/v1-skilling-it`](plugins/v1tamins/skills/v1-skilling-it/SKILL.md).
+Use [`/v1-bigxtha-plugin`](plugins/v1tamins/skills/v1-bigxtha-plugin/SKILL.md)
+when the question spans plugin capabilities, shared resources, or handoffs.
+It passes bounded skill edits to the authoring owner and retains responsibility
+for the plugin result. GitHub
 Issues are the public [issue tracker](docs/agents/issue-tracker.md).
 
 ## Validation
@@ -372,8 +370,11 @@ scripts/validate-plugin.sh --verbose
 
 It checks marketplace and plugin manifests, package paths, skill frontmatter,
 Codex metadata, invocation policies, menu coverage, bundled assets, local skill
-links, portability, and version agreement. It does not call a model or prove
-runtime behavior.
+links, portability, and version agreement. Local Markdown links are checked
+from the containing file throughout each skill folder, including references;
+required resources must stay inside the plugin after symlink resolution.
+The check has no repository-root fallback. It does not parse every possible
+Markdown form, call a model, or prove runtime reachability or behavior.
 
 Offline tests cover invocation-policy and portability checks, plus shipped
 helpers for peer discovery, process supervision, credential filtering, and
@@ -381,10 +382,12 @@ artifact conversion. Run the affected commands when changing those components:
 
 ```bash
 ruby scripts/test-check-skill-metadata.rb
+ruby scripts/test-check-skill-assets.rb
 python3 scripts/test-check-shared-portability.py
 python3 scripts/test-peer-contract.py
 bash scripts/test-peer-run.sh
 python3 scripts/test-artifact-converters.py
+python3 scripts/test-with-server.py
 ```
 
 CI runs packaging checks and offline tests in separate steps.

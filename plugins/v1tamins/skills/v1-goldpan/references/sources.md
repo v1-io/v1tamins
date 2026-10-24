@@ -18,7 +18,7 @@ BASE_BRANCH="main"   # override from .agents/goldpan.config.yaml if present
 
 gh pr list --state merged --base "$BASE_BRANCH" \
   --search "merged:>=<since_date>" \
-  --json number,title,mergedAt,author,body,files \
+  --json number,title,mergedAt,author,body,files,headRefName \
   --limit 200
 
 # For shortlisted PRs only — fetches commits + diff

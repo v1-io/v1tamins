@@ -4,11 +4,14 @@
 from contextlib import redirect_stderr, redirect_stdout
 import importlib.util
 import io
+import os
 from pathlib import Path
+import subprocess
 from subprocess import CompletedProcess
 import sys
 import tempfile
 import unittest
+import venv
 from unittest.mock import patch
 
 sys.dont_write_bytecode = True
@@ -25,6 +28,38 @@ def load(name, path):
 
 DOC = load("md2docs", "plugins/v1tamins/skills/v1-md2docs/scripts/md2docs.py")
 VIDEO = load("video_to_gif", "plugins/v1tamins/skills/v1-prove-work/scripts/video_to_gif.py")
+RESEARCH = load("validate_report", "plugins/v1tamins/skills/v1-deep-research/scripts/validate_report.py")
+
+
+class DependencyTests(unittest.TestCase):
+    def test_missing_document_dependencies_fail_without_installing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            isolated = Path(directory) / "venv"
+            venv.EnvBuilder(with_pip=False, symlinks=True).create(isolated)
+            source = Path(directory) / "source.md"
+            source.write_text("# Synthetic document\n")
+            result = subprocess.run(
+                [str(isolated / "bin" / "python"), DOC.__file__, str(source), "--no-open"],
+                env={"PATH": os.defpath, "HOME": directory, "PYTHONNOUSERSITE": "1"},
+                capture_output=True, text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Missing dependencies", result.stderr)
+            self.assertIn("-m venv", result.stderr)
+            self.assertNotIn("Installing:", result.stdout)
+            self.assertFalse((Path(directory) / ".md2docs").exists())
+
+
+class ResearchTests(unittest.TestCase):
+    def test_bibliography_entries_do_not_count_as_body_citations(self):
+        issues = RESEARCH._check_citations(
+            "## Findings\nSupported [1].\n## Bibliography\n"
+            "[1] https://example.com/used\n[2] https://example.com/unused\n"
+        )
+        self.assertTrue(any("[2] never cited" in issue for issue in issues))
+        self.assertEqual(RESEARCH._check_citations(
+            "## Findings\nSupported [1].\n## Bibliography\n[1] https://example.com/used\n"
+        ), [])
 
 
 class DiagramTests(unittest.TestCase):
@@ -128,9 +163,9 @@ class VideoTests(unittest.TestCase):
                  patch.object(VIDEO, "save_gif", side_effect=save) as encode:
                 with self.assertRaises(SystemExit):
                     quiet(VIDEO.enforce_size_limit, Path("input.webm"), output, 1, fps=5, max_width=320, colors=32)
-            self.assertEqual(decode.call_count, 2)
+            self.assertEqual(decode.call_count, 1)
             self.assertTrue(all(c.kwargs == {"target_fps": 5, "max_width": 320} for c in decode.call_args_list))
-            self.assertEqual(len(encode.call_args.args[0]), 50)
+            self.assertEqual(len(encode.call_args.args[0]), 100)
 
     def test_cli_passes_settings_and_rejects_invalid_input_before_dependencies(self):
         with tempfile.TemporaryDirectory() as directory:

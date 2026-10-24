@@ -21,7 +21,7 @@ SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
 
 def ensure_dependencies():
-    """Install required packages if missing."""
+    """Report missing packages without changing the active Python environment."""
     missing = []
     try:
         import markdown  # noqa: F401
@@ -35,10 +35,13 @@ def ensure_dependencies():
         missing.extend(["google-auth", "google-auth-oauthlib", "google-api-python-client"])
 
     if missing:
-        print(f"Installing: {', '.join(missing)}...")
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "--quiet"] + missing
-        )
+        print(f"ERROR: Missing dependencies: {', '.join(missing)}", file=sys.stderr)
+        print("Create an isolated environment and install the dependencies there:", file=sys.stderr)
+        print("  python3 -m venv .venv/md2docs", file=sys.stderr)
+        print("  .venv/md2docs/bin/python -m pip install markdown google-auth "
+              "google-auth-oauthlib google-api-python-client", file=sys.stderr)
+        print("Then run this script with .venv/md2docs/bin/python.", file=sys.stderr)
+        sys.exit(1)
 
 
 def find_client_secret():

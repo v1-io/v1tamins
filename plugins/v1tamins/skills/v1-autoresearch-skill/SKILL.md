@@ -100,11 +100,13 @@ Cycles: {max_cycles} | Time limit: {time_limit}min
 timestamp	cycle	change	metric_before	metric_after	verdict
 ```
 
-### 1.5 Tag Baseline
+### 1.5 Record the Baseline Revision
 
 ```bash
-git tag -f autoresearch-baseline
+git rev-parse HEAD
 ```
+
+Keep this SHA with the baseline result for the debrief. Preserve existing tags.
 
 ### 1.6 Read Strategy Reference
 
@@ -150,11 +152,15 @@ Bad changes (never do these):
 ### 2.3 Commit Before Verification
 
 ```bash
-git add -A
-git commit -m "autoresearch cycle {N}: {brief description of change}"
+git add -- <asset-path>
+git commit -m "autoresearch cycle {N}: {brief description of change}" -- <asset-path>
 ```
 
-This commit happens BEFORE we know if the change helps. This is intentional -- it makes reverts clean.
+Stage and commit only this cycle's changed asset files. Keep the results log
+and unrelated changes outside the commit. Before committing or reverting,
+check that the diff and `HEAD` still belong to this cycle; stop on concurrent
+changes. This commit happens before measurement so a discarded experiment can
+be reverted without reverting its measurement log.
 
 ### 2.4 Measure and Decide
 
@@ -184,11 +190,14 @@ Stop the loop if ANY of these are true:
 
 ## Phase 3: Debrief
 
-### 3.1 Tag Final State
+### 3.1 Record the Final Revision
 
 ```bash
-git tag -f autoresearch-final
+git rev-parse HEAD
 ```
+
+Include the baseline and final SHAs in the summary. Do not replace a tag from
+another run.
 
 ### 3.2 Display Summary
 

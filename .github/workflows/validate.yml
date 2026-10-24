@@ -16,12 +16,14 @@ jobs:
       - name: Test invocation policy and portability checks
         run: |
           ruby scripts/test-check-skill-metadata.rb
+          ruby scripts/test-check-skill-assets.rb
           python3 scripts/test-check-shared-portability.py
       - name: Test shipped executable helpers offline
         run: |
           python3 scripts/test-peer-contract.py
           bash scripts/test-peer-run.sh
           python3 scripts/test-artifact-converters.py
+          python3 scripts/test-with-server.py
       - name: Require a changeset for plugin content changes
         if: github.event_name == 'pull_request'
         env:

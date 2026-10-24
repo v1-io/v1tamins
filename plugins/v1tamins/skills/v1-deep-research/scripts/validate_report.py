@@ -69,11 +69,11 @@ def _check_citations(content: str) -> list[str]:
     """Check citation consistency between body and bibliography."""
     errors = []
 
-    # Find all inline citations [N]
-    inline_citations = set(int(n) for n in re.findall(r"\[(\d+)\]", content))
-
     # Find bibliography entries [N]
     bib_match = re.search(r"## Bibliography\s*\n(.*?)(?=\n## |\Z)", content, re.DOTALL)
+    # A bibliography label is not evidence that the body cited that source.
+    body = content[:bib_match.start()] + content[bib_match.end():] if bib_match else content
+    inline_citations = set(int(n) for n in re.findall(r"\[(\d+)\]", body))
     if not bib_match:
         if inline_citations:
             errors.append(
