@@ -84,12 +84,15 @@ Standard structure for interaction scripts:
 ```python
 """Prove-work interaction script -- auto-generated"""
 from playwright.sync_api import expect, sync_playwright
+import sys
 import time
+
+recording_dir = sys.argv[1]  # The unique RUN_DIR created by this run.
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
     context = browser.new_context(
-        record_video_dir="/tmp/prove-work/",
+        record_video_dir=recording_dir,
         record_video_size={"width": 1280, "height": 720},
         viewport={"width": 1280, "height": 720},
     )
@@ -113,8 +116,12 @@ with sync_playwright() as p:
 
 ### Playwright install check
 
-Before running interaction scripts, verify Playwright browsers are installed:
+Use the isolated Python selected in Step 2 of `SKILL.md`. In a fresh shell,
+restore its exact recorded path before checking the browser or recording:
 
 ```bash
-python3 -c "from playwright.sync_api import sync_playwright; sync_playwright().start().chromium.launch(headless=True).close()" 2>/dev/null || python3 -m playwright install chromium
+PYTHON="<selected-python>"
+"$PYTHON" -c "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); p.chromium.launch(headless=True).close(); p.stop()"
 ```
+
+If the check fails, return to the prerequisite setup with that same environment.

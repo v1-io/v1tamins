@@ -14,6 +14,12 @@ Typical invocations:
 
 Or describe what you need: "Write a landing page headline for our AI code review tool that targets senior engineers."
 
+For every draft or rewrite, preserve source facts, uncertainty, conditions, and
+commitments. Use only supplied or verified evidence for numbers, outcomes,
+testimonials, and performance claims. A testable claim still needs evidence;
+do not invent specifics to make copy sound credible. Label a hypothetical
+example or use a clear placeholder when evidence is missing.
+
 ## When to Use
 
 1. **Improve existing copy** -- they paste text and want it stickier
@@ -149,9 +155,10 @@ Apply the framework as an internal lens. Do not necessarily output the full scor
 
 ```
 BEFORE: Our platform leverages AI to optimize developer workflows and increase productivity.
-AFTER:  Ship your PR in 10 minutes, not 2 hours. AI catches the bugs before your reviewer does.
-WHY:    Concrete (specific time, specific action), Unexpected (AI as faster reviewer),
-        Credible (testable claim), Emotional (WIIFY -- get your time back)
+AFTER:  Get an AI review of your code before you send the PR to a teammate.
+WHY:    Concrete (a familiar action and reader), Simple (one job),
+        Emotional (help before handoff). Verify this capability before use;
+        add a measured time saving only when source evidence supports it.
 ```
 
 ## Reference Files

@@ -8,6 +8,10 @@ Build reliable, fast E2E test suites that catch regressions and enable confident
 
 ## Quick Start
 
+The server helper requires POSIX process groups (macOS/Linux). Run the shell
+blocks with Bash; if your tool defaults to zsh or another shell, select Bash
+before executing them. Cache glob handling depends on that shell.
+
 **Test a local web application:**
 
 ```bash
@@ -281,6 +285,17 @@ test('checkout flow', async ({ page }) => {
 ## Scripts Reference
 
 **`scripts/with_server.py`** - Server lifecycle management
+
+Requires Python 3 and POSIX process groups (macOS/Linux). Server commands must
+stay in the foreground. The helper rejects a port that already has a listener,
+fails when a server command exits before readiness, and stops each launched
+process group, including shell-wrapper descendants, on completion or startup
+failure. SIGINT, SIGTERM, and SIGHUP also stop the owned server and test command
+groups, with exit status `128 + signal number`. SIGKILL cannot trigger cleanup.
+It returns the test command's exit status normally; setup errors return nonzero.
+TCP readiness only means the port accepts connections. Keep the application
+assertions in the test; an open port does not prove that the intended page or
+API is healthy. Use an already-running server directly when that is intended.
 
 ```bash
 # Single server (resolve SKILL_ROOT as shown in Quick Start)

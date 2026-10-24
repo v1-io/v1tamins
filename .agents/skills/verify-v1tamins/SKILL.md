@@ -54,6 +54,11 @@ writes for read-only checks. A read-only filesystem setting alone does not
 restrict external tools. Tests that require writes belong in a disposable
 project with only the requested actions enabled.
 
+When a disposable scenario runs outside the checkout, grant read access to the
+checkout plugin directory with `--add-dir <absolute-plugin-path>`. `--plugin-dir`
+loads the entry point but does not by itself permit reads of its references
+from another working directory. Confirm those reads in the transcript.
+
 For a read-only Claude check, this is a starting command from the checkout root:
 
 ```bash

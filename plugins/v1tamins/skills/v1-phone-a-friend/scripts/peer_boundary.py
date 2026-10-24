@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import stat
 import subprocess
 import sys
 import time
@@ -88,7 +89,7 @@ class TreeScan:
 
 
 def digest(value: str) -> str:
-    return hashlib.sha256(value.encode("utf-8", errors="replace")).hexdigest()
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 def git_output(repo: Path, args: list[str]) -> str | None:
@@ -99,26 +100,77 @@ def git_output(repo: Path, args: list[str]) -> str | None:
             capture_output=True,
             stdin=subprocess.DEVNULL,
             text=True,
-            errors="replace",
+            encoding="utf-8",
             timeout=30,
         )
-    except (subprocess.TimeoutExpired, OSError):
+    except (subprocess.TimeoutExpired, OSError, UnicodeError):
+        # Replacing pathname bytes can turn an existing file into a different,
+        # missing path. An unsupported encoding is an observation gap.
         return None
     if completed.returncode != 0:
         return None
     return completed.stdout
 
 
-def repo_state(repo: Path) -> dict[str, Any]:
-    """Working-tree state that a read-only seat must leave untouched."""
+def repo_state(repo: Path, run_dir: Path) -> dict[str, Any]:
+    """Fingerprint tracked/nonignored source and index without following links.
 
-    status = git_output(repo, ["status", "--porcelain", "-uall"])
+    Ignored files are enumerated, never read. Their presence is an observation
+    gap rather than evidence that the whole checkout stayed unchanged.
+    """
+
+    pathspec = ["--", "."]
+    try:
+        scratch = run_dir.resolve().relative_to(repo.resolve())
+    except ValueError:
+        scratch = None
+    if scratch is not None:
+        pathspec.append(f":(top,exclude,literal){scratch.as_posix()}")
+    status = git_output(repo, ["status", "--porcelain", "-uall", *pathspec])
     head = git_output(repo, ["rev-parse", "HEAD"])
+    index = git_output(repo, ["ls-files", "--stage", "-z", *pathspec])
+    paths = git_output(
+        repo, ["ls-files", "--cached", "--others", "--exclude-standard", "-z", *pathspec]
+    )
+    ignored = git_output(
+        repo, ["ls-files", "--others", "--ignored", "--exclude-standard", "-z", *pathspec]
+    )
+    content = hashlib.sha256()
+    content_readable = paths is not None and scratch != Path(".")
+    repository_root = repo.resolve()
+    for relative in sorted(set((paths or "").split("\0")) - {""}):
+        path = repo / relative
+        try:
+            if path.parent.resolve() != repository_root / Path(relative).parent:
+                content_readable = False
+                continue
+            mode = path.lstat().st_mode
+            if stat.S_ISLNK(mode):
+                value = digest(path.readlink().as_posix())
+            elif stat.S_ISREG(mode):
+                file_digest = hashlib.sha256()
+                with path.open("rb") as handle:
+                    for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                        file_digest.update(chunk)
+                value = file_digest.hexdigest()
+            else:
+                content_readable = False
+                continue
+        except FileNotFoundError:
+            mode, value = 0, "missing"
+        except (OSError, RuntimeError, UnicodeError):
+            content_readable = False
+            continue
+        content.update(json.dumps([relative, mode, value]).encode("utf-8"))
     return {
         "path": str(repo),
         "readable": status is not None,
         "status_digest": digest(status) if status is not None else None,
         "head": head.strip() if head else None,
+        "index_digest": digest(index) if index is not None else None,
+        "content_digest": content.hexdigest() if content_readable else None,
+        "scope": "tracked_and_nonignored_untracked",
+        "ignored_files_unobserved": ignored is None or bool(ignored),
     }
 
 
@@ -187,7 +239,7 @@ def take_snapshot(
         "schema": SCHEMA,
         "provider": provider,
         "started_at": time.time(),
-        "repo": repo_state(repo),
+        "repo": repo_state(repo, run_dir),
         "run_dir": str(run_dir),
         "state_isolation": spec.state_isolation if spec else "none",
         "state_roots": [str(path) for path in state_roots(provider, home)],
@@ -229,11 +281,21 @@ def verify_snapshot(run_dir: Path, budget: int = DEFAULT_VISIT_BUDGET) -> dict[s
 
     before = snapshot.get("repo", {})
     repo_path = Path(before.get("path", "."))
-    after = repo_state(repo_path)
+    after = repo_state(repo_path, run_dir)
     repo_readable = bool(before.get("readable")) and after["readable"]
     repo_changed = repo_readable and (
         before.get("status_digest") != after["status_digest"]
         or before.get("head") != after["head"]
+        or (
+            before.get("index_digest") is not None
+            and after["index_digest"] is not None
+            and before["index_digest"] != after["index_digest"]
+        )
+        or (
+            before.get("content_digest") is not None
+            and after["content_digest"] is not None
+            and before["content_digest"] != after["content_digest"]
+        )
     )
 
     started_at = float(snapshot.get("started_at", 0.0))
@@ -256,6 +318,13 @@ def verify_snapshot(run_dir: Path, budget: int = DEFAULT_VISIT_BUDGET) -> dict[s
     if not repo_readable:
         contained = "unverified"
         gaps.append("repository_state_unreadable")
+    if any(state.get(key) is None for state in (before, after)
+           for key in ("index_digest", "content_digest")):
+        contained = "unverified"
+        gaps.append("repository_content_unobserved")
+    if any(state.get("ignored_files_unobserved", True) for state in (before, after)):
+        contained = "unverified"
+        gaps.append("repository_ignored_files_unobserved")
     if not roots:
         contained = "unverified"
         gaps.append("no_declared_provider_state_surface")
@@ -271,6 +340,7 @@ def verify_snapshot(run_dir: Path, budget: int = DEFAULT_VISIT_BUDGET) -> dict[s
             "path": str(repo_path),
             "readable": repo_readable,
             "changed": bool(repo_changed),
+            "scope": "tracked_and_nonignored_untracked",
         },
         "scratch_artifacts": scratch_artifacts,
         "provider_state_changes": provider_changes,

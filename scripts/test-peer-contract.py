@@ -6,6 +6,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import time
@@ -943,6 +944,187 @@ class PeerBoundaryTests(unittest.TestCase):
             result = peer_boundary.verify_snapshot(Path(tmp))
         self.assertEqual(result["containment"], "unverified")
         self.assertEqual(result["permission_state"], "containment_unverified")
+
+    def test_repository_content_changes_cannot_hide_behind_unchanged_status(self) -> None:
+        for kind in ("tracked", "untracked", "ignored"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo = root / "repo"
+                repo.mkdir()
+                home = root / "home"
+                (home / ".claude").mkdir(parents=True)
+                run_dir = root / "run"
+                for args in (
+                    ["init", "--quiet"],
+                    ["config", "user.email", "synthetic@example.invalid"],
+                    ["config", "user.name", "synthetic"],
+                ):
+                    subprocess.run(["git", "-C", str(repo), *args], check=True)
+                (repo / ".gitignore").write_text("ignored.txt\n", encoding="utf-8")
+                (repo / "tracked.txt").write_text("base\n", encoding="utf-8")
+                subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+                subprocess.run(
+                    ["git", "-C", str(repo), "commit", "--quiet", "-m", "base"],
+                    check=True,
+                )
+                target = repo / f"{kind}.txt"
+                target.write_text("user work\n", encoding="utf-8")
+                peer_boundary.take_snapshot(run_dir, repo, "claude", home)
+                target.write_text("peer overwrote user work\n", encoding="utf-8")
+                result = peer_boundary.verify_snapshot(run_dir)
+                if kind == "ignored":
+                    self.assertEqual(result["permission_state"], "containment_unverified")
+                    self.assertIn("repository_ignored_files_unobserved", result["containment_gaps"])
+                else:
+                    self.assertTrue(result["repo_changes"]["changed"], result)
+                    self.assertEqual(result["permission_state"], "readonly_violated")
+
+    def test_declared_scratch_inside_repository_does_not_count_as_a_source_write(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            repo.mkdir()
+            home = Path(tmp) / "home"
+            (home / ".claude").mkdir(parents=True)
+            subprocess.run(["git", "-C", str(repo), "init", "--quiet"], check=True)
+            run_dir = repo / "run"
+            peer_boundary.take_snapshot(run_dir, repo, "claude", home)
+            (run_dir / "peer.stdout").write_text("answer", encoding="utf-8")
+            result = peer_boundary.verify_snapshot(run_dir)
+            self.assertFalse(result["repo_changes"]["changed"], result)
+            self.assertEqual(result["permission_state"], "readonly_verified")
+
+    def test_undecodable_git_path_output_is_unobserved(self) -> None:
+        original_run = subprocess.run
+
+        def emit_invalid_utf8(_argv: Any, **kwargs: Any) -> Any:
+            return original_run(
+                [sys.executable, "-c", "import sys; sys.stdout.buffer.write(bytes([255]))"],
+                **kwargs,
+            )
+
+        with mock.patch.object(peer_boundary.subprocess, "run", emit_invalid_utf8):
+            self.assertIsNone(peer_boundary.git_output(Path("."), ["ls-files", "-z"]))
+
+    def test_raw_byte_untracked_path_cannot_report_a_clean_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = root / "repo"
+            repo.mkdir()
+            home = root / "home"
+            (home / ".claude").mkdir(parents=True)
+            subprocess.run(["git", "-C", str(repo), "init", "--quiet"], check=True)
+            target = os.fsencode(repo) + b"/file-\xff.txt"
+            try:
+                with open(target, "wb") as handle:
+                    handle.write(b"user work")
+            except OSError as error:
+                if sys.platform == "darwin" and error.errno == 92:
+                    self.skipTest("filesystem rejects non-UTF-8 filenames; Ubuntu CI exercises this case")
+                raise
+            run_dir = root / "run"
+            peer_boundary.take_snapshot(run_dir, repo, "claude", home)
+            with open(target, "wb") as handle:
+                handle.write(b"peer overwrote user work")
+            result = peer_boundary.verify_snapshot(run_dir)
+            self.assertEqual(result["permission_state"], "containment_unverified", result)
+            self.assertIn("repository_content_unobserved", result["containment_gaps"])
+
+    def test_unencodable_symlink_target_is_unobserved(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = root / "repo"
+            repo.mkdir()
+            home = root / "home"
+            (home / ".claude").mkdir(parents=True)
+            subprocess.run(["git", "-C", str(repo), "init", "--quiet"], check=True)
+            (repo / "link").symlink_to("synthetic-target")
+            run_dir = root / "run"
+            with mock.patch.object(Path, "readlink", return_value=Path("target-\udcff")):
+                peer_boundary.take_snapshot(run_dir, repo, "claude", home)
+                result = peer_boundary.verify_snapshot(run_dir)
+            self.assertEqual(result["permission_state"], "containment_unverified", result)
+            self.assertIn("repository_content_unobserved", result["containment_gaps"])
+
+    def test_index_change_with_same_status_and_worktree_is_a_violation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            repo.mkdir()
+            home = Path(tmp) / "home"
+            (home / ".claude").mkdir(parents=True)
+            def git(*args: str, text: str | None = None) -> str:
+                return subprocess.run(
+                    ["git", "-C", str(repo), *args], input=text,
+                    capture_output=True, text=True, check=True,
+                ).stdout.strip()
+            git("init", "--quiet")
+            git("config", "user.email", "synthetic@example.invalid")
+            git("config", "user.name", "synthetic")
+            target = repo / "file.txt"
+            target.write_text("base", encoding="utf-8")
+            git("add", "file.txt")
+            git("commit", "--quiet", "-m", "base")
+            target.write_text("staged user work", encoding="utf-8")
+            git("add", "file.txt")
+            target.write_text("unstaged user work", encoding="utf-8")
+            status = git("status", "--porcelain")
+            run_dir = Path(tmp) / "run"
+            peer_boundary.take_snapshot(run_dir, repo, "claude", home)
+            changed_blob = git("hash-object", "-w", "--stdin", text="peer staged work")
+            git("update-index", "--cacheinfo", f"100644,{changed_blob},file.txt")
+            self.assertEqual(git("status", "--porcelain"), status)
+            self.assertEqual(target.read_text(), "unstaged user work")
+            result = peer_boundary.verify_snapshot(run_dir)
+            self.assertEqual(result["permission_state"], "readonly_violated")
+
+    def test_unreadable_repository_content_cannot_be_verified(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            repo.mkdir()
+            home = Path(tmp) / "home"
+            (home / ".claude").mkdir(parents=True)
+            subprocess.run(["git", "-C", str(repo), "init", "--quiet"], check=True)
+            (repo / "one.txt").write_text("one", encoding="utf-8")
+            (repo / "two.txt").write_text("two", encoding="utf-8")
+            run_dir = Path(tmp) / "run"
+            peer_boundary.take_snapshot(run_dir, repo, "claude", home)
+            original_open = Path.open
+            def deny_source(path: Path, *args: Any, **kwargs: Any) -> Any:
+                if path.parent == repo:
+                    raise PermissionError
+                return original_open(path, *args, **kwargs)
+            with mock.patch.object(Path, "open", deny_source):
+                result = peer_boundary.verify_snapshot(run_dir)
+            self.assertEqual(result["permission_state"], "containment_unverified")
+            self.assertIn("repository_content_unobserved", result["containment_gaps"])
+
+    def test_intermediate_symlink_never_reads_destination_content(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            repo = root / "repo"
+            (repo / "directory").mkdir(parents=True)
+            source = repo / "directory" / "data.txt"
+            source.write_text("tracked source", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "init", "--quiet"], check=True)
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            outside = root / "outside"
+            outside.mkdir()
+            destination = outside / "data.txt"
+            destination.write_text("outside the declared root", encoding="utf-8")
+            source.unlink()
+            source.parent.rmdir()
+            source.parent.symlink_to(outside, target_is_directory=True)
+            outside_reads = []
+            original_open = Path.open
+
+            def observe_open(path: Path, *args: Any, **kwargs: Any) -> Any:
+                if path.resolve() == destination:
+                    outside_reads.append(path)
+                return original_open(path, *args, **kwargs)
+
+            with mock.patch.object(Path, "open", observe_open):
+                snapshot = peer_boundary.take_snapshot(root / "run", repo, "claude", root / "home")
+            self.assertEqual(outside_reads, [])
+            self.assertIsNone(snapshot["repo"]["content_digest"])
 
     def test_scan_reports_only_files_written_during_the_run(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

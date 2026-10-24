@@ -14,7 +14,10 @@ a concept changes; keep implementation rules in this file.
 - Marketplace manifests live in `.agents/plugins/` and `.claude-plugin/`.
   Installation and the skill catalog are documented in `README.md`.
 - Private `v1-_*` skill directories are ignored and are not distributed.
-- Use `v1-skilling-it` for skill authoring and maintenance. Check
+- Use `v1-bigxtha-plugin` for plugin architecture, shared-resource ownership,
+  handoffs, and cross-skill change impact; use `v1-skilling-it` for individual
+  skill authoring and maintenance. Architecture work retains overall completion
+  after a bounded authoring subtask. Check
   `.out-of-scope/` before proposing a new skill or structural change.
 
 ## Public-safe contributions

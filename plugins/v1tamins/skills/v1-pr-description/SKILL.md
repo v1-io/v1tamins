@@ -37,6 +37,9 @@ gh pr view {pr} --json number,url,title,body,baseRefName,headRefName,headRefOid,
 
 Optional helper:
 
+Run this shell block with Bash. If your tool defaults to zsh or another shell,
+select Bash first; cache glob handling depends on it.
+
 ```bash
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 RESOLVER=""

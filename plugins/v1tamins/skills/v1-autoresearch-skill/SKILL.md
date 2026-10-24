@@ -100,11 +100,13 @@ Cycles: {max_cycles} | Time limit: {time_limit}min
 timestamp	cycle	change	metric_before	metric_after	verdict
 ```
 
-### 1.5 Tag Baseline
+### 1.5 Record the Baseline Revision
 
 ```bash
-git tag -f autoresearch-baseline
+git rev-parse HEAD
 ```
+
+Keep this SHA with the baseline result for the debrief. Preserve existing tags.
 
 ### 1.6 Read Strategy Reference
 
@@ -150,11 +152,21 @@ Bad changes (never do these):
 ### 2.3 Commit Before Verification
 
 ```bash
-git add -A
-git commit -m "autoresearch cycle {N}: {brief description of change}"
+git add -- <changed-asset-file-1> <changed-asset-file-2>
+git commit -m "autoresearch cycle {N}: {brief description of change}" -- <changed-asset-file-1> <changed-asset-file-2>
+git rev-parse HEAD
 ```
 
-This commit happens BEFORE we know if the change helps. This is intentional -- it makes reverts clean.
+Replace the placeholders with the reviewed, explicit list of changed files for
+this cycle; use just one argument for a one-file change. Never pass the asset
+directory or `.` as a commit path. Even when the asset is the repository root,
+exclude `autoresearch-results.tsv` and unrelated files from this list. Review
+`git status --short`, the unstaged diff, and the staged diff before committing;
+stop if another actor changed the source, index, or expected `HEAD`.
+
+Record the new SHA as CYCLE_COMMIT and inspect `git show --stat CYCLE_COMMIT`
+to confirm only the selected files were committed. This commit happens before
+measurement so rollback preserves the measurement log.
 
 ### 2.4 Measure and Decide
 
@@ -169,8 +181,20 @@ python3 "${SKILL_DIR}/scripts/measure_cycle.py" --metric '{metric_command}' --di
 Omit `--constraint` when none is configured. The script runs the constraint first; if it fails, the script skips measuring and logs `CONSTRAINT_FAIL`. Read the JSON result:
 
 - `verdict: KEPT` - set BEST_KNOWN to `best_after` and report `Cycle {N}: KEPT -- {description} ({best_before} -> {median}, {change_pct}%)`.
-- `verdict: DISCARDED` - run `git revert HEAD --no-edit` and report `Cycle {N}: DISCARDED -- {description}` with the `median` or the constraint failure.
-- `ok: false` (exit 2) - the metric command failed or printed no number, and nothing was logged. Revert the cycle commit, then fix the setup or stop.
+- `verdict: DISCARDED` - follow the rollback check below, then report `Cycle {N}: DISCARDED -- {description}` with the `median` or the constraint failure.
+- `ok: false` (exit 2) - the metric command failed or printed no number, and nothing was logged. Follow the same rollback check, then fix the setup or stop.
+
+Before rollback, confirm `HEAD` still equals CYCLE_COMMIT and the selected source
+files and index have no changes since that commit. Stop on concurrent changes.
+Run `git revert --no-edit CYCLE_COMMIT` using the recorded SHA. Require exit 0,
+confirm `HEAD` advanced to the revert commit, and compare the selected files to
+`CYCLE_COMMIT^` with `git diff --exit-code CYCLE_COMMIT^ HEAD -- <selected-files>`.
+For a logged verdict, check that the results log still contains the baseline
+and this cycle's row. For `ok: false`, verify that the existing log was preserved
+unchanged; no cycle row is expected. Only after successful rollback report the
+experiment as discarded, or report measurement failure with the source restored. If revert or verification fails,
+report rollback incomplete and stop; the measurement verdict alone does not
+prove that the source was restored.
 
 ### 2.5 Check Stop Conditions
 
@@ -184,11 +208,14 @@ Stop the loop if ANY of these are true:
 
 ## Phase 3: Debrief
 
-### 3.1 Tag Final State
+### 3.1 Record the Final Revision
 
 ```bash
-git tag -f autoresearch-final
+git rev-parse HEAD
 ```
+
+Include the baseline and final SHAs in the summary. Do not replace a tag from
+another run.
 
 ### 3.2 Display Summary
 

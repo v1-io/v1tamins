@@ -108,6 +108,9 @@ printf '999999999\n' > "$RACE_DIR/peer.child.pid"
 printf '9999999999\n' > "$RACE_DIR/peer.deadline"
 printf 'final answer\n' > "$RACE_DIR/peer.stdout"
 : > "$RACE_DIR/peer.stderr"
+# A vanished process without DONE stays stalled even if output exists.
+"$RUNNER" verdict --dir "$TEST_DIR" --slug sentinel-race --json > "$TEST_DIR/vanished.json"
+[ "$(json_field "$TEST_DIR/vanished.json" state)" = 'stalled' ]
 printf '%s\n' '#!/usr/bin/env bash' 'printf "DONE rc=0\n" > "$RACE_DONE"' 'printf "0\n"' > "$TEST_DIR/race-bin/date"
 chmod +x "$TEST_DIR/race-bin/date"
 RACE_DONE="$RACE_DIR/peer.done" PATH="$TEST_DIR/race-bin:$PATH" \

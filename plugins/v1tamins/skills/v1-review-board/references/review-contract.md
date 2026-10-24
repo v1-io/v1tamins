@@ -177,10 +177,11 @@ Git state alone. The full contract is the read-only boundary section of
 - Provider-created report files belong either in the disposable run directory or
   in the verdict. They are never silently absorbed into "nothing changed".
 
-Poll each slug across turns (`status`), read `verdict --json` (judged by
-substantive output, not exit code), and tear down stragglers by recorded PID
-only. One peer stalling never blocks the others — slugs are isolated. Record
-which selected peers completed, were partial, failed, returned empty output,
+Poll each slug across turns (`status`), consume the lifecycle state from
+`verdict --json` under the shared peer execution contract, and tear down
+stragglers by recorded PID only. One peer stalling never blocks the others —
+slugs are isolated. Record which selected peers completed, were partial, failed,
+returned empty output,
 timed out, stalled, were execution-uncertain, or were skipped. After dispatch, auth/model/workflow failures do not trigger
 retries or replacement fan-out.
 

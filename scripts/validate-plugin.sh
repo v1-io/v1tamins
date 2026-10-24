@@ -306,70 +306,7 @@ validate_skill_assets() {
     return 1
   fi
 
-  if ruby - "$plugin_skills_dir" "$repo_root" <<'RUBY'
-skills_dir = ARGV.fetch(0)
-repo_root = ARGV.fetch(1)
-failures = []
-
-def rel(path, root)
-  path.delete_prefix("#{root}/")
-end
-
-def existing_path?(skill_dir, repo_root, target)
-  return true if target.empty? || target.start_with?("#")
-  return true if target.match?(%r{\A[a-z][a-z0-9+.-]*:}i)
-
-  [File.expand_path(target, skill_dir), File.expand_path(target, repo_root)].any? do |candidate|
-    File.exist?(candidate)
-  end
-end
-
-Dir.glob(File.join(skills_dir, "v1-*", "SKILL.md")).sort.each do |path|
-  next if path.split(File::SEPARATOR).any? { |part| part.start_with?("v1-_") }
-
-  skill_dir = File.dirname(path)
-  in_fence = false
-
-  File.readlines(path).each_with_index do |line, index|
-    line_no = index + 1
-
-    if line.start_with?("```")
-      in_fence = !in_fence
-      next
-    end
-
-    unless in_fence
-      line.scan(/\[[^\]]+\]\(([^)]+)\)/) do |match|
-        target = match.fetch(0).split("#", 2).first
-        unless existing_path?(skill_dir, repo_root, target)
-          failures << "#{rel(path, repo_root)}:#{line_no}: missing linked asset #{target}"
-        end
-      end
-
-      if line.match?(/\b(read|run|use|follow|following|helper|starting point)\b/i)
-        line.scan(/`((?:references?|scripts)\/[^`\s]+)`/) do |match|
-          target = match.fetch(0)
-          unless existing_path?(skill_dir, repo_root, target)
-            failures << "#{rel(path, repo_root)}:#{line_no}: missing referenced asset #{target}"
-          end
-        end
-      end
-    end
-
-    line.scan(%r{\$SKILL_(?:ROOT|DIR)/((?:references?|scripts)/[A-Za-z0-9._/-]+)}) do |match|
-      target = match.fetch(0)
-      unless existing_path?(skill_dir, repo_root, target)
-        failures << "#{rel(path, repo_root)}:#{line_no}: missing bundled asset #{target}"
-      end
-    end
-  end
-end
-
-if failures.any?
-  warn failures.join("\n")
-  exit 1
-end
-RUBY
+  if ruby "$repo_root/scripts/check-skill-assets.rb" "$plugin_skills_dir" "$repo_root";
   then
     ok "plugin skill asset references"
   else
