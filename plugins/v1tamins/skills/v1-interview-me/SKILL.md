@@ -68,7 +68,13 @@ The loop also holds uncertainty handling, the question-category tables, construc
 
 With-docs is **opt-in** — the default interview is a pure conversation that writes nothing. Enable it only when the user asks (e.g. "keep a glossary as we go") or accepts it when offered. When interviewing inside a repo, offer it once in the opening round as a recommended-answer question — "Keep a running glossary and record hard-to-reverse decisions as we go? **(Recommended)**" — and enable writes only if they accept. Never write to the repo on mere repo-detection. Once enabled, write results as they land so the next session doesn't re-explain the same facts:
 
-**Resolved terms → the glossary, inline.** The moment a domain term is settled (not merely raised), invoke `v1-shared-language`'s inline term update to upsert that one term into `LANGUAGE.md`. Write it as it lands, mid-interview — not batched at the end. Re-runs update the row in place, so evolving a definition is safe.
+**Resolved terms → the glossary, inline.** The moment a domain term is settled
+(not merely raised), use `v1-shared-language`'s inline term update. Pass the
+resolved term, definition, aliases, and any glossary path named by the user or
+project. That skill owns glossary selection and preserves an existing owner's
+format; `LANGUAGE.md` is its default only when no glossary exists. Check its
+reported path and result, then continue the interview. Write as terms land,
+not in a batch at the end; the interview retains overall completion ownership.
 
 **Hard-to-reverse decisions → an ADR, gated.** Offer to record a decision as an ADR only when it clears all three gates:
 - **Hard to reverse** — undoing it later is expensive (data shape, public contract, framework choice).

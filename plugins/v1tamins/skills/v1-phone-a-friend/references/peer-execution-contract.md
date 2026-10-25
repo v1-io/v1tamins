@@ -126,7 +126,7 @@ never collapse them into one claim.
 
 | Surface | What it is | Expected under `readonly` |
 | --- | --- | --- |
-| repository | the reviewed checkout | unchanged — any change is a violation |
+| repository | tracked and nonignored untracked files plus the index and HEAD, excluding declared scratch | content/index changes are violations; ignored files remain an observation gap |
 | scratch | the run-specific directory | writes are fine and disposable |
 
 Keep scratch and the reviewed checkout disjoint, including after resolving
@@ -154,6 +154,18 @@ worktree metadata outside the checkout make containment unverified.
 These observations do not establish OS-level isolation or detect writes that
 were reverted before verification. A sandbox flag and a prompt instruction are
 not proof, and Git state alone cannot see provider-owned artifacts.
+
+Repository evidence includes file-content and index fingerprints, so edits to
+already-dirty or untracked files cannot hide behind unchanged status labels.
+Symlink targets are fingerprinted without reading their destinations. Ignored
+files are enumerated but never read; their presence outside declared scratch
+reports `repository_ignored_files_unobserved` and `containment_unverified`.
+Unreadable content, non-UTF-8 Git path output or symlink targets, and unsupported
+entries also prevent verification. Path encodings are never replaced to make a
+fingerprint. These are before/after observations of declared surfaces, not
+proof against a transient write that was reverted or a write outside those
+surfaces. Provider-state
+reporting uses modification times and retains that observation limit.
 
 `$HOME` is never redirected by default: a subscription peer keeps its login
 state there, and moving it would break the auth the run depends on. A provider

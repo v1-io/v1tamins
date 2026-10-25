@@ -53,6 +53,9 @@ Length follows evidence: Quick answers the question; Standard and Deep cover eve
 
 **Validation:** Resolve the bundled validator, then run it up to three times until the report passes:
 
+Run this shell block with Bash. If your tool defaults to zsh or another shell,
+select Bash first; cache glob handling depends on it.
+
 ```bash
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 RESOLVER=""

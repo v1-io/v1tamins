@@ -12,10 +12,16 @@ Posts often appear as `github-actions[bot]` with one or more of:
 
 ```bash
 gh api repos/{owner}/{repo}/issues/{pr}/comments --paginate | \
-jq -r '.[] | select(.user.login == "github-actions[bot]" and (.body | test("### Code Review|## Code Factory|Claude finished.*task in|code-factory-rerun")))'
+jq -r '.[] | select(.body | test("### Code Review|## Code Factory|Claude finished.*task in|code-factory-rerun"))'
 ```
 
-The bot may post multiple review comments (one per push). Use the **most recent** one. It may contain a "Previous Review Findings" status table, or it may be a summary-only status comment whose actionable findings live in line-specific review comments. Only address findings marked unresolved or new findings from the latest review.
+The bot may post multiple review comments (one per push). Inventory findings from
+every matching round. Use the most recent comment as status context, including
+any "Previous Review Findings" table or summary-only comment. Reconcile repeated
+findings against the current PR head and deduplicate them in the generic ledger;
+retain their source links. An older finding does not disappear merely because
+the newest summary omits it. Treat Fixed/Resolved labels as claims to verify in
+current code, then record the disposition rather than dropping the item.
 
 ## Parse multi-finding bodies
 
@@ -41,9 +47,11 @@ Extract each finding by:
 2. Parsing `**\`file.py:line\`**` for file and line references
 3. Reading the description and suggestion text
 4. **Ignoring** the "What looks good" section
-5. **Ignoring** findings already marked resolved in a "Previous Review Findings" table (rows with checkmarks/Fixed/Resolved)
+5. Recording prior Fixed/Resolved claims as status context, then checking current code before assigning an already-fixed or other disposition
 
-If the latest comment is summary-only, use it as gate/status context and rely on current line-specific review comments for the actionable ledger.
+If the latest comment is summary-only, use it as gate/status context. Keep
+earlier aggregate findings and current line-specific findings in the ledger
+until each has a verified disposition.
 
 ## Reply
 

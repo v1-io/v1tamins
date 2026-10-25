@@ -45,13 +45,15 @@ The user can invoke this command without arguments from the repository containin
 2. **Commit and Push**
    - Review the diff before committing with `git diff` and, when relevant, `git diff --staged`.
    - Run the fastest relevant local validation when it is clear from the changed files.
-   - Run `git fetch origin` before comparing local `HEAD` with its upstream or an existing PR's `headRefOid`.
-   - If the worktree is clean and local `HEAD` already matches its upstream, skip staging, committing, and pushing only when any existing PR's `headRefOid` also matches local `HEAD`. Never create an empty commit or no-op push.
-   - If an existing PR's `headRefOid` differs from local `HEAD`, stop and report both SHAs. Integrate the remote commits only with the user's approval.
+   - Resolve the push destination from the existing PR's head repository and branch, including fork PRs; verify a matching Git remote and fetch that head branch. For a new PR, use the intended branch on the verified repository remote. Do not assume `origin` is an existing PR's head repository.
+   - For an existing PR, require the fetched remote head to match its recorded `headRefOid` before using it for comparison. If that remote, branch, or SHA cannot be verified, stop and report the missing comparison. A verified absent branch for a new PR has no remote head to compare and can be created by the push below.
+   - If the worktree is clean and local `HEAD` matches the fetched head, skip staging, committing, and pushing. Never create an empty commit or no-op push.
+   - When a remote head exists, a local-ahead branch is expected: allow the push when `git merge-base --is-ancestor <fetched-head> HEAD` succeeds. If the local branch is behind or diverged, stop and report both SHAs; integrate remote commits only within the user's authorization.
+   - Re-read the existing PR head immediately before pushing. If it changed from the fetched head, refresh the comparison before proceeding.
    - Never force-push. If a push is rejected, stop and report the rejection.
    - Stage only intended files.
    - Commit with a concise message that describes the user-visible or operational value.
-   - Push the branch and set upstream if needed: `git push -u origin HEAD`.
+   - Push to the verified head destination and set upstream if needed: `git push -u <head-remote> HEAD:<head-branch>`.
 
 3. **Open a PR**
    - Reuse an existing PR for the branch when one exists.

@@ -9,18 +9,28 @@ local file.
 
 ## Process
 
-1. **Scan the conversation** for domain-relevant nouns, verbs, and concepts
-2. **Identify problems**:
+1. **Resolve the glossary owner.** Use the user's supplied path or the glossary
+   named by project instructions. Otherwise reuse an existing project glossary
+   (`GLOSSARY.md` or `LANGUAGE.md`); if several exist without a clear owner, ask
+   which one governs this domain. Create `LANGUAGE.md` in the working directory
+   only when no glossary exists. Read the selected file before writing and
+   preserve its format and unrelated content.
+2. **Scan the conversation** for domain-relevant nouns, verbs, and concepts
+3. **Identify problems**:
    - Same word used for different concepts (ambiguity)
    - Different words used for the same concept (synonyms)
    - Vague or overloaded terms
-3. **Propose a canonical glossary** with opinionated term choices
-4. **Write to `LANGUAGE.md`** in the working directory using the format below
-5. **Output a summary** inline in the conversation
+4. **Propose a canonical glossary** with opinionated term choices
+5. **Update the selected glossary.** Use the format below for a new file;
+   incorporate terms into an existing owner's format instead of creating a
+   competing file.
+6. **Output a summary** inline, including the path updated and any unresolved
+   terminology or write failure.
 
 ## Output Format
 
-Write a `LANGUAGE.md` file with this structure:
+For a new `LANGUAGE.md`, use this structure. Preserve an existing glossary's
+organization when updating it:
 
 ```md
 # Language
@@ -64,7 +74,7 @@ Write a `LANGUAGE.md` file with this structure:
 - **Keep definitions tight.** One sentence max. Define what it IS, not what it does.
 - **Show relationships.** Use bold term names and express cardinality where obvious.
 - **Only include domain terms.** Skip generic programming concepts (array, function, endpoint) unless they have domain-specific meaning.
-- **Group terms into multiple tables** when natural clusters emerge (e.g. by subdomain, lifecycle, or actor). Each group gets its own heading and table. If all terms belong to a single cohesive domain, one table is fine — don't force groupings.
+- **Group terms by natural clusters** (e.g. subdomain, lifecycle, or actor) while preserving the established glossary's format. In a new or table-based glossary, each group gets a heading and table. One cohesive domain can stay in one group.
 - **Write an example dialogue.** A short conversation (3-5 exchanges) between a dev and a domain expert that demonstrates how the terms interact naturally. The dialogue should clarify boundaries between related concepts and show terms being used precisely.
 
 <example>
@@ -85,7 +95,7 @@ Write a `LANGUAGE.md` file with this structure:
 
 When invoked again in the same conversation:
 
-1. Read the existing `LANGUAGE.md`
+1. Read the selected glossary again; keep the established owner
 2. Incorporate any new terms from subsequent discussion
 3. Update definitions if understanding has evolved
 4. Re-flag any new ambiguities
@@ -102,10 +112,17 @@ losing them.
 Given a single term — its canonical name, one-sentence definition, and optional
 group and aliases-to-avoid — do exactly this and nothing more:
 
-1. Read `LANGUAGE.md` if it exists. If it does not, create it with the `# Language` heading.
-2. Find the table for the term's group (create the group heading and a `Term | Definition | Aliases to avoid` table if that group has none yet).
-3. **Upsert the single row:** if a row for this term exists, update its definition and aliases in place; otherwise append a new row. Match on the canonical term name.
-4. Leave every other term, table, relationship, ambiguity note, and the example dialogue untouched. Do not rewrite the file, re-scan the conversation, or regenerate the example dialogue.
+1. Resolve and read the glossary owner using Process step 1, including any path
+   supplied by the caller. Only a new default glossary starts with `# Language`.
+2. Find the term's group and definition entry. Follow the existing format
+   (table row, definition list, or prose entry); use the default table above
+   when the file has no established format.
+3. **Upsert the single term:** update its definition and aliases in place if it
+   exists; otherwise append one entry to its group. Match on the canonical name.
+4. Leave every other term, table, relationship, ambiguity note, and example
+   dialogue untouched. Do not re-scan the conversation or regenerate the file.
+5. Report the path and term updated, or the write failure. The caller retains
+   its interview and overall completion responsibility.
 
 Keep the same tight, opinionated definition style as the batch mode (one
 sentence, define what it IS). The upsert is idempotent: calling it again with an

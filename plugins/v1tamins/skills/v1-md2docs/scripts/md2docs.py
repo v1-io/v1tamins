@@ -21,7 +21,7 @@ SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
 
 def ensure_dependencies():
-    """Install required packages if missing."""
+    """Report missing packages without changing the active Python environment."""
     missing = []
     try:
         import markdown  # noqa: F401
@@ -35,10 +35,13 @@ def ensure_dependencies():
         missing.extend(["google-auth", "google-auth-oauthlib", "google-api-python-client"])
 
     if missing:
-        print(f"Installing: {', '.join(missing)}...")
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "--quiet"] + missing
-        )
+        print(f"ERROR: Missing dependencies: {', '.join(missing)}", file=sys.stderr)
+        print("Create an isolated environment and install the dependencies there:", file=sys.stderr)
+        print("  python3 -m venv .venv/md2docs", file=sys.stderr)
+        print("  .venv/md2docs/bin/python -m pip install markdown google-auth "
+              "google-auth-oauthlib google-api-python-client", file=sys.stderr)
+        print("Then run this script with .venv/md2docs/bin/python.", file=sys.stderr)
+        sys.exit(1)
 
 
 def find_client_secret():
@@ -109,9 +112,12 @@ def render_mermaid_blocks(md_text):
     import base64
     import shutil
 
+    pattern = r"```mermaid\s*\n(.*?)```"
+    if not re.search(pattern, md_text, flags=re.DOTALL):
+        return md_text, []
+
     mmdc = shutil.which("mmdc")
-    npx = shutil.which("npx")
-    if not mmdc and not npx:
+    if not mmdc:
         return md_text, []
 
     images = []
@@ -124,30 +130,21 @@ def render_mermaid_blocks(md_text):
                 mmd_file = Path(temp_dir) / "diagram.mmd"
                 png_file = Path(temp_dir) / "diagram.png"
                 mmd_file.write_text(m.group(1), encoding="utf-8")
-                commands = []
-                if mmdc:
-                    commands.append(([mmdc], 30))
-                if npx:
-                    commands.append(([npx, "--yes", "@mermaid-js/mermaid-cli"], 60))
-                for command, timeout in commands:
-                    # A failed renderer can still leave a partial output.
-                    png_file.unlink(missing_ok=True)
-                    result = subprocess.run(
-                        command + ["-i", str(mmd_file), "-o", str(png_file),
-                                   "-b", "white", "-s", "2"],
-                        capture_output=True, timeout=timeout,
-                    )
-                    if result.returncode != 0 or not png_file.is_file():
-                        continue
+                result = subprocess.run(
+                    [mmdc, "-i", str(mmd_file), "-o", str(png_file),
+                     "-b", "white", "-s", "2"],
+                    capture_output=True, timeout=30,
+                )
+                # A failed renderer can still leave a partial output.
+                if result.returncode == 0 and png_file.is_file():
                     content = png_file.read_bytes()
-                    if not content:
-                        continue
-                    b64 = base64.b64encode(content).decode()
-                    idx = len(images)
-                    images.append(
-                        f'<img src="data:image/png;base64,{b64}" style="max-width:100%">'
-                    )
-                    return f"\n\nMERMAID_IMAGE_{idx}\n\n"
+                    if content:
+                        b64 = base64.b64encode(content).decode()
+                        idx = len(images)
+                        images.append(
+                            f'<img src="data:image/png;base64,{b64}" style="max-width:100%">'
+                        )
+                        return f"\n\nMERMAID_IMAGE_{idx}\n\n"
         except (OSError, subprocess.SubprocessError):
             pass
 
@@ -155,7 +152,7 @@ def render_mermaid_blocks(md_text):
         return m.group(0).replace("```mermaid", "```", 1)
 
     md_text = re.sub(
-        r"```mermaid\s*\n(.*?)```",
+        pattern,
         replace_mermaid,
         md_text,
         flags=re.DOTALL,

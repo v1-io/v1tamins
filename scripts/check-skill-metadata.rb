@@ -2,11 +2,9 @@
 # frozen_string_literal: true
 
 require "date"
-require "json"
 require "yaml"
 
 VALID_INVOCATION_POSTURES = %w[implicit selective_implicit explicit_only].freeze
-DESCRIPTION_TARGET_CHARS = 180
 # Grammar of a v1-menu entry: a backtick-wrapped slash-name, optionally
 # followed by the bold explicit marker. Centralized here; the menu body is
 # free-form Markdown, so this is the one scan the format allows.
@@ -67,14 +65,8 @@ def mutation_commands_in_skill?(markdown)
 end
 
 def usage
-  warn "Usage: scripts/check-skill-metadata.rb [--side-effect-skills-json] <skills-dir> <repo-root> <verbose>"
+  warn "Usage: scripts/check-skill-metadata.rb <skills-dir> <repo-root> <verbose>"
   exit 2
-end
-
-side_effect_json = false
-if ARGV.first == "--side-effect-skills-json"
-  side_effect_json = true
-  ARGV.shift
 end
 
 usage unless ARGV.length == 3
@@ -102,10 +94,7 @@ rescue Psych::Exception => e
   nil
 end
 
-warnings = []
 failures = []
-descriptions = []
-side_effect_skills = []
 claude_disabled_by_skill = {}
 
 Dir.glob(File.join(skills_dir, "v1-*", "SKILL.md")).sort.each do |skill_path|
@@ -119,27 +108,6 @@ Dir.glob(File.join(skills_dir, "v1-*", "SKILL.md")).sort.each do |skill_path|
   unless data.is_a?(Hash)
     failures << "#{rel(skill_path, repo_root)}: frontmatter must be a mapping"
     next
-  end
-
-  description = data.fetch("description", "").to_s.strip
-  descriptions << [skill_name, description.length]
-
-  first_clause = description.split(/[.;]/, 2).first.to_s.strip
-
-  if description.length > DESCRIPTION_TARGET_CHARS
-    warnings << "#{rel(skill_path, repo_root)}: description is #{description.length} chars; target <= #{DESCRIPTION_TARGET_CHARS} for budget resilience"
-  end
-
-  unless description.match?(/\A(Use when|Conducts?|Create|Convert|Extract|Commit|Autonomous)\b/i)
-    warnings << "#{rel(skill_path, repo_root)}: description should front-load the trigger condition"
-  end
-
-  unless description.match?(/\b(Use when|Triggers? on|trigger|review|debug|test|PR|prompt|skill|research|customer|prototype|HTML|chart|glossary|changelog|refactor|simplify|proof|Google Doc)\b/i)
-    warnings << "#{rel(skill_path, repo_root)}: description may not include natural trigger terms"
-  end
-
-  if first_clause.length > 140
-    warnings << "#{rel(skill_path, repo_root)}: first clause is #{first_clause.length} chars; key trigger may be truncated"
   end
 
   openai_path = File.join(File.dirname(skill_path), "agents", "openai.yaml")
@@ -166,7 +134,6 @@ Dir.glob(File.join(skills_dir, "v1-*", "SKILL.md")).sort.each do |skill_path|
   side_effects = Array(policy["side_effects"]).map(&:to_s).reject(&:empty?)
   claude_disabled = data["disable-model-invocation"] == true
   claude_disabled_by_skill[skill_name] = claude_disabled
-  side_effect_skills << skill_name if side_effects.any?
 
   unless VALID_INVOCATION_POSTURES.include?(invocation_posture)
     failures << "#{rel(openai_path, repo_root)}: policy.invocation_posture must be one of #{VALID_INVOCATION_POSTURES.join(', ')}"
@@ -243,24 +210,6 @@ elsif !claude_disabled_by_skill.empty?
   failures << "#{rel(menu_path, repo_root)}: missing v1-menu skill (router required)"
 end
 
-if side_effect_json
-  failures.each { |failure| warn "ERROR: #{failure}" }
-  exit 1 unless failures.empty?
-
-  puts JSON.generate(side_effect_skills.sort)
-  exit 0
-end
-
-total = descriptions.sum { |_name, length| length }
-largest = descriptions.max_by(5) { |_name, length| length }
-
-if verbose
-  puts "ok: total skill description chars: #{total}"
-  largest.each do |name, length|
-    puts "ok: description budget contributor #{name}: #{length} chars"
-  end
-end
-
+puts "ok: skill invocation policies and menu coverage" if verbose && failures.empty?
 failures.each { |failure| puts "ERROR: #{failure}" }
-warnings.each { |warning| puts "WARNING: #{warning}" }
 exit failures.empty? ? 0 : 1

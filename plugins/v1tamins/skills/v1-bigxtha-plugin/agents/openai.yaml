@@ -1,0 +1,9 @@
+interface:
+  display_name: "Bigxtha Plugin"
+  short_description: "Design and maintain skill-plugin architecture"
+  default_prompt: "Use $v1-bigxtha-plugin to review this skill plugin as a system. Identify capability owners, shared resources, handoffs, and affected consumers, then recommend the smallest justified changes."
+
+policy:
+  allow_implicit_invocation: true
+  invocation_posture: implicit
+  side_effects: []

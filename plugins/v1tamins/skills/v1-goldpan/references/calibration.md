@@ -22,7 +22,7 @@ Calibration is not free (~3-5 min, dispatches 4 parallel research agents). Do no
 ### Step 1: Size the corpus
 
 ```bash
-BASE_BRANCH="main"   # override from .agents/goldpan.config.yaml if present
+BASE_BRANCH="<resolved pr_base_branch>"   # main when no override
 SINCE=$(python3 -c "import datetime; print((datetime.date.today() - datetime.timedelta(days=30)).isoformat())")
 
 gh pr list --state merged --base "$BASE_BRANCH" \

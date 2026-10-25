@@ -4,11 +4,14 @@
 from contextlib import redirect_stderr, redirect_stdout
 import importlib.util
 import io
+import os
 from pathlib import Path
+import subprocess
 from subprocess import CompletedProcess
 import sys
 import tempfile
 import unittest
+import venv
 from unittest.mock import patch
 
 sys.dont_write_bytecode = True
@@ -25,9 +28,102 @@ def load(name, path):
 
 DOC = load("md2docs", "plugins/v1tamins/skills/v1-md2docs/scripts/md2docs.py")
 VIDEO = load("video_to_gif", "plugins/v1tamins/skills/v1-prove-work/scripts/video_to_gif.py")
+RESEARCH = load("validate_report", "plugins/v1tamins/skills/v1-deep-research/scripts/validate_report.py")
+
+
+class DependencyTests(unittest.TestCase):
+    def test_missing_document_dependencies_fail_without_installing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            isolated = Path(directory) / "venv"
+            venv.EnvBuilder(with_pip=False, symlinks=True).create(isolated)
+            source = Path(directory) / "source.md"
+            source.write_text("# Synthetic document\n")
+            result = subprocess.run(
+                [str(isolated / "bin" / "python"), DOC.__file__, str(source), "--no-open"],
+                env={"PATH": os.defpath, "HOME": directory, "PYTHONNOUSERSITE": "1"},
+                capture_output=True, text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Missing dependencies", result.stderr)
+            self.assertIn("-m venv", result.stderr)
+            self.assertNotIn("Installing:", result.stdout)
+            self.assertFalse((Path(directory) / ".md2docs").exists())
+
+    def test_video_input_and_missing_dependencies_fail_without_installing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            isolated = root / "venv"
+            venv.EnvBuilder(with_pip=False, symlinks=True).create(isolated)
+            source = root / "source.webm"
+            source.write_bytes(b"synthetic input")
+            before = set(isolated.rglob("*"))
+            for input_path, error in ((root / "missing.webm", "No .webm file found"),
+                                      (source, "Missing dependencies")):
+                with self.subTest(input_path=input_path.name):
+                    result = subprocess.run(
+                        [str(isolated / "bin" / "python"), VIDEO.__file__,
+                         "--input", str(input_path), "--output", str(root / "output" / "demo.gif"),
+                         "--upload", "--repo", "example/example"],
+                        env={"PATH": os.defpath, "HOME": directory,
+                             "PYTHONNOUSERSITE": "1", "PYTHONDONTWRITEBYTECODE": "1"},
+                        capture_output=True, text=True,
+                    )
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(error, result.stderr)
+                    self.assertNotIn("Installing:", result.stdout)
+                    self.assertFalse((root / "output").exists())
+                    self.assertFalse((root / ".cache").exists())
+                    self.assertFalse((root / ".config").exists())
+                    self.assertEqual(set(isolated.rglob("*")), before)
+
+
+class ResearchTests(unittest.TestCase):
+    def test_bibliography_entries_do_not_count_as_body_citations(self):
+        issues = RESEARCH._check_citations(
+            "## Findings\nSupported [1].\n## Bibliography\n"
+            "[1] https://example.com/used\n[2] https://example.com/unused\n"
+        )
+        self.assertTrue(any("[2] never cited" in issue for issue in issues))
+        self.assertEqual(RESEARCH._check_citations(
+            "## Findings\nSupported [1].\n## Bibliography\n[1] https://example.com/used\n"
+        ), [])
 
 
 class DiagramTests(unittest.TestCase):
+    def test_document_without_mermaid_does_not_resolve_or_run_renderer(self):
+        source = "# Document\nNo diagram.\n"
+        with patch("shutil.which") as which, patch.object(DOC.subprocess, "run") as run:
+            self.assertEqual(DOC.render_mermaid_blocks(source), (source, []))
+        which.assert_not_called()
+        run.assert_not_called()
+
+    def test_absent_renderer_keeps_code_even_when_npx_is_available(self):
+        source = "```mermaid\ngraph TD; A-->B\n```"
+        with patch("shutil.which", side_effect=lambda name: "/bin/npx" if name == "npx" else None), \
+             patch.object(DOC.subprocess, "run") as run:
+            self.assertEqual(DOC.render_mermaid_blocks(source), (source, []))
+        run.assert_not_called()
+
+    def test_available_or_failed_renderer_never_falls_back_to_npx(self):
+        source = "```mermaid\ngraph TD; A-->B\n```"
+        for succeeds in (True, False):
+            with self.subTest(succeeds=succeeds):
+                def renderer(argv, **kwargs):
+                    self.assertEqual(argv[0], "/bin/mmdc")
+                    if succeeds:
+                        Path(argv[argv.index("-o") + 1]).write_bytes(b"image")
+                    return CompletedProcess(argv, 0 if succeeds else 1)
+
+                with patch("shutil.which", side_effect=lambda name: f"/bin/{name}") as which, \
+                     patch.object(DOC.subprocess, "run", side_effect=renderer) as run:
+                    text, images = DOC.render_mermaid_blocks(source)
+                self.assertEqual(which.call_args_list, [unittest.mock.call("mmdc")])
+                self.assertEqual(run.call_count, 1)
+                self.assertEqual(len(images), int(succeeds))
+                if not succeeds:
+                    self.assertIn("graph TD; A-->B", text)
+                    self.assertIn("```", text)
+
     def render(self, source, renderer):
         with patch("shutil.which", side_effect=lambda name: "mmdc" if name == "mmdc" else None):
             with patch.object(DOC.subprocess, "run", side_effect=renderer):
@@ -128,9 +224,9 @@ class VideoTests(unittest.TestCase):
                  patch.object(VIDEO, "save_gif", side_effect=save) as encode:
                 with self.assertRaises(SystemExit):
                     quiet(VIDEO.enforce_size_limit, Path("input.webm"), output, 1, fps=5, max_width=320, colors=32)
-            self.assertEqual(decode.call_count, 2)
+            self.assertEqual(decode.call_count, 1)
             self.assertTrue(all(c.kwargs == {"target_fps": 5, "max_width": 320} for c in decode.call_args_list))
-            self.assertEqual(len(encode.call_args.args[0]), 50)
+            self.assertEqual(len(encode.call_args.args[0]), 100)
 
     def test_cli_passes_settings_and_rejects_invalid_input_before_dependencies(self):
         with tempfile.TemporaryDirectory() as directory:

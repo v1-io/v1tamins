@@ -106,7 +106,7 @@ class ManifestScan:
 
 
 def digest(value: str) -> str:
-    return hashlib.sha256(value.encode("utf-8", errors="replace")).hexdigest()
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 def git_output(repo: Path, args: list[str]) -> str | None:
@@ -121,11 +121,11 @@ def git_output(repo: Path, args: list[str]) -> str | None:
             capture_output=True,
             stdin=subprocess.DEVNULL,
             text=True,
-            errors="replace",
+            encoding="utf-8",
             env=environment,
             timeout=30,
         )
-    except (subprocess.TimeoutExpired, OSError):
+    except (subprocess.TimeoutExpired, OSError, UnicodeError):
         return None
     if completed.returncode != 0:
         return None
@@ -137,11 +137,13 @@ def repo_state(repo: Path) -> dict[str, Any]:
 
     status = git_output(repo, ["status", "--porcelain", "-uall"])
     head = git_output(repo, ["rev-parse", "HEAD"])
+    index = git_output(repo, ["ls-files", "--stage", "-z"])
     return {
         "path": str(repo),
         "readable": status is not None,
         "status_digest": digest(status) if status is not None else None,
         "head": head.strip() if head else None,
+        "index_digest": digest(index) if index is not None else None,
     }
 
 
@@ -196,6 +198,11 @@ def scan_manifest(
                         continue
 
                     relative = str(child.relative_to(root))
+                    try:
+                        relative.encode("utf-8")
+                    except UnicodeError:
+                        errors = True
+                        continue
                     mode = item_stat.st_mode
                     if stat_module.S_ISDIR(mode):
                         entries[relative] = (
@@ -206,12 +213,13 @@ def scan_manifest(
                     if stat_module.S_ISLNK(mode):
                         try:
                             target = child.readlink()
+                            str(target).encode("utf-8")
                             resolved_target = (child.parent / target).resolve(strict=False)
                             resolved_target.relative_to(root.resolve(strict=False))
                         except OSError:
                             errors = True
                             target = "<unreadable>"
-                        except (RuntimeError, ValueError):
+                        except (RuntimeError, ValueError, UnicodeError):
                             errors = True
                         entries[relative] = (
                             f"link:{mode:o}:{item_stat.st_mtime_ns}:{target}"
@@ -514,6 +522,8 @@ def verify_snapshot(run_dir: Path, budget: int = DEFAULT_VISIT_BUDGET) -> dict[s
     status_changed = repo_readable and (
         before.get("status_digest") != after["status_digest"]
         or before.get("head") != after["head"]
+        or (before.get("index_digest") is not None and after["index_digest"] is not None
+            and before["index_digest"] != after["index_digest"])
     )
     before_repo_manifest = snapshot.get("repo_manifest")
     after_repo_manifest, metadata_root, metadata_scope_error = scan_repository_manifest(
@@ -569,7 +579,7 @@ def verify_snapshot(run_dir: Path, budget: int = DEFAULT_VISIT_BUDGET) -> dict[s
     # Containment is about what was observed, not about what was clean.
     contained: Containment = "verified"
     gaps: list[str] = []
-    if not repo_readable:
+    if not repo_readable or before.get("index_digest") is None or after.get("index_digest") is None:
         contained = "unverified"
         gaps.append("repository_state_unreadable")
     if not manifest_observation_complete(before_repo_manifest, after_repo_manifest):

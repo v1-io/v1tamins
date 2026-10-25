@@ -1,5 +1,42 @@
 # v1tamins
 
+## 0.15.0
+
+### Minor Changes
+
+- 3dfc721: Add Bigxtha Plugin for designing, auditing, and maintaining skill-plugin architecture, with bounded authoring handoffs and explicit package and runtime evidence.
+
+  Repair architecture-review findings across shared resources and workflows: keep companion guidance inside the package, preserve existing glossary owners and complete review ledgers, check remote ancestry before PR updates, detect content changes in peer repository snapshots, isolate document dependencies, retain full proof duration, and clean up E2E server process groups. Extend static asset checks to references and package containment, and align discovery and contributor guidance with the resulting 42-skill package.
+
+  Complete the follow-up review: handle catchable server cancellation, fail closed on unrepresentable peer pathnames, use canonical peer lifecycle verdicts, make broad-target experiment rollback verifiable, remove ambient converter dependency installs and implicit Mermaid downloads, and reconcile Goldpan options with the configuration policy.
+
+## 0.14.5
+
+### Patch Changes
+
+- 19df70e: Remove packaged routing eval assets and repository-only evaluation and verification tooling. Keep all shipped skills and runtime helpers, with static packaging checks and offline helper tests.
+
+  Keep a focused project-local verification skill and a current project glossary. Align skill-authoring guidance with the reduced verification workflow.
+
+## 0.14.4
+
+### Patch Changes
+
+- 36de080: Remove unbundled skill routes from contributor guidance and validate shared instructions and scripts for undeclared named skills, personal dependencies, and operator-specific home paths while preserving historical records.
+- 89670d9: Ground what-next recommendations in current evidence, resolve cheap read-only checks before answering, and make human decisions actionable. Honor project-wide priorities and requested options while preserving the read-only boundary.
+
+  Use plain instructions and explain recommendations for readers who have not followed the thread, with technical detail only when it helps the decision.
+
+## 0.14.3
+
+### Patch Changes
+
+- 249012d: Bind deep reviews to the intended revisions and report incomplete coverage. Audit independently before reconciling existing review discussion, and replace the numeric risk score with separate merge-risk and structural verdicts.
+
+  Keep unpublished local-fix verdicts separate from remote PR-head verdicts, and align both finding templates with their ID, bar, disposition, and confidence requirements.
+
+- b6386bb: Improve v1-skilling-it guidance for diagnosing skipped actions, ordering gates and reference loads, preserving completion contracts, and interpreting structural evidence without universal size thresholds.
+
 ## 0.14.2
 
 ### Patch Changes

@@ -13,6 +13,11 @@ and pushes behavior out of the reviewable Markdown into settings that are easy t
 miss. When a skill needs to vary behavior, express it in the skill body or in the
 existing metadata — not in a new config file.
 
+Goldpan's legacy settings file is migration input only: existing custom values
+must remain visible while preferences move to the request or existing project
+guidance. Do not create or update that file. Its calibrated signals Markdown is
+evidence, not a settings surface.
+
 ## Prior requests
 - 2026-07-02 — repo architecture review — raised while considering how skills
   should carry options; rejected in favor of prose + the single metadata file.
