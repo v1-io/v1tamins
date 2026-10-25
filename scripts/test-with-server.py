@@ -2,6 +2,7 @@
 """Offline checks of server startup, command status, and descendant cleanup."""
 
 import os
+import importlib.util
 from pathlib import Path
 import shlex
 import signal
@@ -11,10 +12,62 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch, call, Mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
 HELPER = ROOT / "plugins/v1tamins/skills/v1-e2e-testing/scripts/with_server.py"
+sys.dont_write_bytecode = True
+SPEC = importlib.util.spec_from_file_location("with_server", HELPER)
+helper = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(helper)
+
+
+@unittest.skipUnless(os.name == "posix", "server process groups require POSIX")
+class GroupSignalTests(unittest.TestCase):
+    def test_cleanup_failure_does_not_skip_other_owned_groups(self):
+        first, second, command = Mock(pid=12345), Mock(pid=12346), Mock(pid=12347)
+        command.wait.return_value = 0
+        denied = PermissionError("owned group still denied")
+        signals = (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)
+        handlers = {sig: signal.getsignal(sig) for sig in signals}
+        with patch.object(sys, "argv", [str(HELPER), "--server", "first", "--port", "1234",
+                                      "--server", "second", "--port", "2345", "--", "command"]), \
+                patch.object(helper, "port_is_open", return_value=False), \
+                patch.object(helper, "wait_for_server"), \
+                patch.object(helper.subprocess, "Popen", side_effect=[first, second, command]), \
+                patch.object(helper, "stop_process_group", side_effect=[denied, None, None]) as stop:
+            with self.assertRaises(PermissionError) as caught:
+                helper.main()
+            self.assertIs(caught.exception, denied)
+            self.assertEqual(stop.call_args_list, [call(command), call(second), call(first)])
+        self.assertEqual({sig: signal.getsignal(sig) for sig in signals}, handlers)
+
+    def test_denied_signal_succeeds_only_after_group_disappears(self):
+        for signum in (signal.SIGTERM, signal.SIGKILL):
+            with self.subTest(signum=signum), \
+                    patch.object(helper.os, "killpg", side_effect=[PermissionError(), PermissionError(), ProcessLookupError()]) as kill, \
+                    patch.object(helper.time, "sleep"):
+                helper.signal_process_group(12345, signum)
+                self.assertEqual(kill.call_args_list, [call(12345, signum), call(12345, 0), call(12345, 0)])
+
+    def test_persistent_permission_failure_is_not_hidden(self):
+        denied = PermissionError("still denied")
+        with patch.object(helper.os, "killpg", side_effect=denied), \
+                patch.object(helper.time, "monotonic", side_effect=[0, 2]), \
+                patch.object(helper.time, "sleep") as sleep:
+            with self.assertRaises(PermissionError) as caught:
+                helper.signal_process_group(12345, signal.SIGKILL)
+            self.assertIs(caught.exception, denied)
+            sleep.assert_not_called()
+
+    def test_present_group_after_denied_signal_is_not_clean(self):
+        denied = PermissionError("signal denied")
+        with patch.object(helper.os, "killpg", side_effect=[denied, None]), \
+                patch.object(helper.time, "monotonic", side_effect=[0, 2]):
+            with self.assertRaises(PermissionError) as caught:
+                helper.signal_process_group(12345, signal.SIGKILL)
+            self.assertIs(caught.exception, denied)
 
 
 @unittest.skipUnless(os.name == "posix", "server process groups require POSIX")
@@ -117,7 +170,7 @@ class ServerTests(unittest.TestCase):
             self.assert_port_closed(port)
             for pid in owned_pids:
                 self.assert_process_stopped(pid)
-            self.assertEqual(wrapper.returncode, 128 + signum)
+            self.assertEqual(wrapper.returncode, 128 + signum, wrapper.communicate(timeout=5))
             with socket.create_connection(unrelated_listener.getsockname(), timeout=1):
                 pass
         finally:
@@ -157,6 +210,16 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 23, result.stderr)
         self.assertTrue(self.command_marker.exists())
         self.assert_port_closed(port)
+
+    def test_term_ignoring_server_child_is_force_stopped(self):
+        self.server_script.write_text(
+            self.server_script.read_text().replace(
+                "import os,", "import signal; signal.signal(signal.SIGTERM, signal.SIG_IGN)\nimport os,", 1))
+        port = self.free_port()
+        result = self.run_helper([(self.server_command(port), port)], self.command(23))
+        self.assertEqual(result.returncode, 23, result.stderr)
+        self.assert_port_closed(port)
+        self.assert_process_stopped(int((self.directory / "server.pid").read_text()))
 
     def test_existing_listener_is_rejected_before_launch_or_test_command(self):
         with socket.socket() as listener:

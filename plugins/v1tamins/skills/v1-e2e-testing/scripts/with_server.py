@@ -49,22 +49,39 @@ def wait_for_server(process, port, timeout, check_interrupted):
     raise RuntimeError(f"Server failed to start on port {port} within {timeout}s")
 
 
-def stop_process_group(process):
-    """Stop the command's entire group, including children of a shell wrapper."""
+def signal_process_group(pgid, signum):
+    """Signal an owned group; tolerate a denial only once it is gone."""
     try:
-        os.killpg(process.pid, signal.SIGTERM)
+        os.killpg(pgid, signum)
     except ProcessLookupError:
         pass
+    except PermissionError:
+        # macOS can return EPERM while a group contains only exiting/zombie
+        # members. Event-driven waits expose this brief state. Do not equate
+        # EPERM with successful cleanup: require ESRCH within a bounded grace.
+        deadline = time.monotonic() + 1
+        while True:
+            try:
+                os.killpg(pgid, 0)
+            except ProcessLookupError:
+                return
+            except PermissionError:
+                pass
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(0.01)
+
+
+def stop_process_group(process):
+    """Stop the command's entire group, including children of a shell wrapper."""
+    signal_process_group(process.pid, signal.SIGTERM)
     try:
         process.wait(timeout=5)
     except subprocess.TimeoutExpired:
         pass
     finally:
         # The shell may have exited while a descendant is still running.
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
+        signal_process_group(process.pid, signal.SIGKILL)
         process.wait()
 
 
@@ -188,16 +205,24 @@ def main():
         exit_status = 130
 
     finally:
+        cleanup_error = None
         try:
-            if command_process is not None:
-                stop_process_group(command_process)
             print(f"\nStopping {len(server_processes)} server(s)...")
-            for i, process in reversed(list(enumerate(server_processes))):
-                stop_process_group(process)
-                print(f"Server {i+1} stopped")
+            for process in [command_process, *reversed(server_processes)]:
+                if process is None:
+                    continue
+                try:
+                    stop_process_group(process)
+                    print(f"Process group {process.pid} stopped")
+                except OSError as error:
+                    print(f"Error stopping process group {process.pid}: {error}", file=sys.stderr)
+                    if cleanup_error is None:
+                        cleanup_error = error
         finally:
             for signum, handler in previous_handlers.items():
                 signal.signal(signum, handler)
+        if cleanup_error is not None:
+            raise cleanup_error
 
     return 128 + interrupted_signal if interrupted_signal is not None else exit_status
 
