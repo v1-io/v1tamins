@@ -152,9 +152,11 @@ and read-only through `peer-run.sh`, one slug per peer under a single run dir:
   --boundary-repo "$REPO" --boundary-provider cursor-agent -- <cursor read-only wrapper>   # only if selected
 ```
 
-The boundary flags are what make the `readonly` seat checkable. Without them the
-verdict reports no containment evidence at all, and the Board has nothing to
-stand on when it summarizes what the peers touched.
+Retain each launch's owner receipt (`snapshot_path`, `snapshot_sha256`) outside
+peer scratch and prompts. Pass that seat's exact values to its terminal verdict
+as `--boundary-snapshot` and `--boundary-sha256`, following the shared boundary
+contract. Do not accept replacement proof from a peer. Without an authenticated
+baseline the Board has no containment evidence for a read-only claim.
 
 ### Read-only boundary reporting
 

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -48,6 +49,89 @@ def make_repo(root: Path) -> Path:
 
 
 class BoundaryManifestTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.receipts = {}
+
+    def take_snapshot(self, run_dir, repo, provider, home):
+        snapshot = peer_boundary.take_snapshot(run_dir, repo, provider, home)
+        receipt = peer_boundary.write_owner_snapshot(snapshot)
+        self.receipts[str(run_dir.resolve())] = receipt
+        self.addCleanup(Path(receipt["snapshot_path"]).unlink, missing_ok=True)
+        return snapshot
+
+    def verify_snapshot(self, run_dir, budget=peer_boundary.DEFAULT_VISIT_BUDGET):
+        receipt = self.receipts[str(run_dir.resolve())]
+        return peer_boundary.verify_snapshot(
+            run_dir, budget, snapshot_path=Path(receipt["snapshot_path"]),
+            snapshot_sha256=receipt["snapshot_sha256"],
+        )
+
+    def test_synthetic_child_cannot_forge_owner_baseline(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            repo = make_repo(root / "repo")
+            home = root / "home"
+            (home / ".claude").mkdir(parents=True)
+            run_dir = root / "run"
+            self.take_snapshot(run_dir, repo, "claude", home)
+            receipt = self.receipts[str(run_dir.resolve())]
+            baseline = Path(receipt["snapshot_path"])
+            self.assertNotIn(run_dir, baseline.parents)
+            self.assertEqual(baseline.stat().st_mode & 0o077, 0)
+            self.assertFalse((run_dir / peer_boundary.SNAPSHOT_NAME).exists())
+            child = '''
+import json, pathlib, sys
+sys.path.insert(0, sys.argv[1])
+import peer_boundary
+repo, run, baseline = map(pathlib.Path, sys.argv[2:])
+(repo / "tracked.txt").write_text("forged change\\n")
+snapshot = json.loads(baseline.read_text())
+snapshot["repo"] = peer_boundary.repo_state(repo)
+snapshot["repo_manifest"] = peer_boundary.scan_repository_manifest(repo)[0].to_dict()
+(run / peer_boundary.SNAPSHOT_NAME).write_text(json.dumps(snapshot))
+baseline.write_text(json.dumps(snapshot, sort_keys=True))
+'''
+            subprocess.run([sys.executable, "-B", "-c", child, str(SCRIPTS),
+                            str(repo), str(run_dir), str(baseline)], check=True)
+            with patch.object(peer_boundary, "scan_repository_manifest", side_effect=AssertionError("must authenticate before scanning")):
+                result = self.verify_snapshot(run_dir)
+            self.assertEqual(result["permission_state"], "containment_unverified")
+            self.assertIn("integrity", result["detail"])
+
+    def test_peer_scratch_baseline_without_owner_receipt_is_unverified(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            run_dir = Path(raw)
+            (run_dir / peer_boundary.SNAPSHOT_NAME).write_text('{}')
+            result = peer_boundary.verify_snapshot(run_dir)
+            self.assertEqual(result["permission_state"], "containment_unverified")
+
+    def test_owner_receipt_cannot_be_reused_for_other_run(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            repo = make_repo(root / "repo")
+            self.take_snapshot(root / "run", repo, "claude", root / "home")
+            receipt = self.receipts[str((root / "run").resolve())]
+            result = peer_boundary.verify_snapshot(
+                root / "different", snapshot_path=Path(receipt["snapshot_path"]),
+                snapshot_sha256=receipt["snapshot_sha256"])
+            self.assertEqual(result["permission_state"], "containment_unverified")
+
+    def test_authenticated_manifest_identity_mismatch_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            repo = make_repo(root / "repo")
+            snapshot = self.take_snapshot(root / "run", repo, "claude", root / "home")
+            for key in ("repo_manifest", "scratch_manifest"):
+                with self.subTest(key=key):
+                    changed = json.loads(json.dumps(snapshot))
+                    changed[key]["root"] = str(root / "different")
+                    receipt = peer_boundary.write_owner_snapshot(changed)
+                    path = Path(receipt["snapshot_path"])
+                    self.addCleanup(path.unlink, missing_ok=True)
+                    result = peer_boundary.verify_snapshot(root / "run", snapshot_path=path,
+                                                          snapshot_sha256=receipt["snapshot_sha256"])
+                    self.assertEqual(result["permission_state"], "containment_unverified")
+
     def test_overlapping_scratch_is_rejected_before_snapshot(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
@@ -56,7 +140,7 @@ class BoundaryManifestTests(unittest.TestCase):
             for run_dir in (repo / "scratch", repo, root):
                 with self.subTest(run_dir=run_dir):
                     with self.assertRaisesRegex(ValueError, "must not overlap"):
-                        peer_boundary.take_snapshot(run_dir, repo, "claude", home)
+                        self.take_snapshot(run_dir, repo, "claude", home)
                     self.assertFalse((run_dir / peer_boundary.SNAPSHOT_NAME).exists())
             self.assertFalse((repo / "scratch").exists())
 
@@ -109,21 +193,21 @@ class BoundaryManifestTests(unittest.TestCase):
             (repo / "ignored.txt").write_text("before\n", encoding="utf-8")
             run_dir = root / "run"
 
-            peer_boundary.take_snapshot(run_dir, repo, "claude", home)
+            self.take_snapshot(run_dir, repo, "claude", home)
             (repo / "ignored.txt").write_text("after\n", encoding="utf-8")
-            result = peer_boundary.verify_snapshot(run_dir)
+            result = self.verify_snapshot(run_dir)
 
             self.assertTrue(result["repo_changes"]["changed"])
             self.assertIn("ignored.txt", result["repo_changes"]["changed_paths"])
             self.assertEqual(result["permission_state"], "readonly_violated")
 
-            peer_boundary.take_snapshot(run_dir, repo, "claude", home)
+            self.take_snapshot(run_dir, repo, "claude", home)
             (repo / ".git" / "config").write_text(
                 (repo / ".git" / "config").read_text(encoding="utf-8")
                 + "\n[synthetic]\n\tchanged = true\n",
                 encoding="utf-8",
             )
-            result = peer_boundary.verify_snapshot(run_dir)
+            result = self.verify_snapshot(run_dir)
             self.assertIn(".git/config", result["repo_changes"]["changed_paths"])
 
     def test_existing_dirty_files_are_compared_by_content(self) -> None:
@@ -136,10 +220,10 @@ class BoundaryManifestTests(unittest.TestCase):
             (repo / "untracked.txt").write_text("untracked-before\n", encoding="utf-8")
             run_dir = root / "run"
 
-            peer_boundary.take_snapshot(run_dir, repo, "claude", home)
+            self.take_snapshot(run_dir, repo, "claude", home)
             (repo / "tracked.txt").write_text("dirty-after\n", encoding="utf-8")
             (repo / "untracked.txt").write_text("untracked-after\n", encoding="utf-8")
-            result = peer_boundary.verify_snapshot(run_dir)
+            result = self.verify_snapshot(run_dir)
 
             self.assertTrue(result["repo_changes"]["changed"])
             self.assertIn("tracked.txt", result["repo_changes"]["changed_paths"])
@@ -162,11 +246,11 @@ class BoundaryManifestTests(unittest.TestCase):
                 try:
                     with self.assertRaises(PermissionError):
                         list(closed.iterdir())
-                    peer_boundary.take_snapshot(run_dir, repo, "claude", home)
+                    self.take_snapshot(run_dir, repo, "claude", home)
                     writer.write("changed through an already-open descriptor")
                     writer.flush()
                     os.fsync(writer.fileno())
-                    result = peer_boundary.verify_snapshot(run_dir)
+                    result = self.verify_snapshot(run_dir)
                 finally:
                     closed.chmod(0o700)
             self.assertEqual(result["permission_state"], "containment_unverified", result)
@@ -177,13 +261,20 @@ class BoundaryManifestTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
             original_scandir = os.scandir
+            denied_calls = []
             def denied(path):
-                if Path(path) == root:
+                if isinstance(path, int):
+                    matches = os.fstat(path).st_ino == root.stat().st_ino
+                else:
+                    matches = Path(path) == root
+                if matches:
+                    denied_calls.append(path)
                     raise PermissionError("synthetic denied enumeration")
                 return original_scandir(path)
             with patch.object(peer_boundary.os, "scandir", denied):
                 result = peer_boundary.scan_manifest(root)
             self.assertTrue(result.errors)
+            self.assertEqual(len(denied_calls), 1)
             self.assertFalse(result.truncated)
 
     def test_undecodable_git_output_is_an_observation_gap(self) -> None:
@@ -207,10 +298,10 @@ class BoundaryManifestTests(unittest.TestCase):
                 if sys.platform == "darwin" and error.errno == 92:
                     self.skipTest("filesystem rejects non-UTF-8 filenames; Ubuntu exercises this case")
                 raise
-            peer_boundary.take_snapshot(root / "run", repo, "claude", home)
+            self.take_snapshot(root / "run", repo, "claude", home)
             with open(target, "wb") as handle:
                 handle.write(b"after")
-            result = peer_boundary.verify_snapshot(root / "run")
+            result = self.verify_snapshot(root / "run")
             self.assertEqual(result["permission_state"], "containment_unverified", result)
 
     def test_unsupported_symlink_target_prevents_verification(self) -> None:
@@ -220,9 +311,14 @@ class BoundaryManifestTests(unittest.TestCase):
             home = root / "home"
             (home / ".claude").mkdir(parents=True)
             (repo / "link").symlink_to("target")
-            with patch.object(Path, "readlink", return_value=Path("target-\udcff")):
-                peer_boundary.take_snapshot(root / "run", repo, "claude", home)
-                result = peer_boundary.verify_snapshot(root / "run")
+            original_readlink = os.readlink
+            def unsupported_target(path, *, dir_fd=None):
+                if dir_fd is not None:
+                    return "target-\udcff"
+                return original_readlink(path)
+            with patch.object(peer_boundary.os, "readlink", side_effect=unsupported_target):
+                self.take_snapshot(root / "run", repo, "claude", home)
+                result = self.verify_snapshot(root / "run")
             self.assertEqual(result["permission_state"], "containment_unverified", result)
 
     def test_index_change_with_unchanged_worktree_is_detected(self) -> None:
@@ -232,9 +328,9 @@ class BoundaryManifestTests(unittest.TestCase):
             home = root / "home"
             (home / ".claude").mkdir(parents=True)
             (repo / "tracked.txt").write_text("dirty-before")
-            peer_boundary.take_snapshot(root / "run", repo, "claude", home)
+            self.take_snapshot(root / "run", repo, "claude", home)
             run_git(repo, "add", "tracked.txt")
-            result = peer_boundary.verify_snapshot(root / "run")
+            result = self.verify_snapshot(root / "run")
             self.assertEqual(result["permission_state"], "readonly_violated", result)
 
     def test_provider_state_deletion_is_reported(self) -> None:
@@ -247,9 +343,9 @@ class BoundaryManifestTests(unittest.TestCase):
             old_state.write_text("old\n", encoding="utf-8")
             run_dir = root / "run"
 
-            peer_boundary.take_snapshot(run_dir, repo, "claude", home)
+            self.take_snapshot(run_dir, repo, "claude", home)
             old_state.unlink()
-            result = peer_boundary.verify_snapshot(run_dir)
+            result = self.verify_snapshot(run_dir)
 
             self.assertEqual(result["permission_state"], "readonly_degraded_provider_state")
             changed = {
@@ -289,9 +385,9 @@ class BoundaryManifestTests(unittest.TestCase):
             home = root / "home"
             (home / ".claude").mkdir(parents=True)
             run_dir = root / "run"
-            peer_boundary.take_snapshot(run_dir, repo, "claude", home)
+            self.take_snapshot(run_dir, repo, "claude", home)
 
-            result = peer_boundary.verify_snapshot(run_dir, budget=1)
+            result = self.verify_snapshot(run_dir, budget=1)
 
             self.assertEqual(result["permission_state"], "containment_unverified")
             self.assertIn("repository_manifest_unverified", result["containment_gaps"])
@@ -307,8 +403,8 @@ class BoundaryManifestTests(unittest.TestCase):
             (repo / "link.txt").symlink_to(outside)
             run_dir = root / "run"
 
-            peer_boundary.take_snapshot(run_dir, repo, "claude", home)
-            result = peer_boundary.verify_snapshot(run_dir)
+            self.take_snapshot(run_dir, repo, "claude", home)
+            result = self.verify_snapshot(run_dir)
 
             self.assertEqual(result["permission_state"], "containment_unverified")
             self.assertIn("repository_manifest_unverified", result["containment_gaps"])

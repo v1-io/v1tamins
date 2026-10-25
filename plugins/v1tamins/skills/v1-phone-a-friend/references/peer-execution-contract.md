@@ -136,7 +136,22 @@ so its snapshot and sentinels cannot count as unauthorized repository writes.
 
 Pass `--boundary-repo <path> --boundary-provider <name>` to `peer-run.sh launch`
 and it records the boundary through `scripts/peer_boundary.py` before anything
-can write, then reports it in `verdict --json` once the run is terminal:
+can write. Launch returns a separate JSON receipt with `snapshot_path` and
+`snapshot_sha256`. The baseline file is outside the observed roots. Retain
+the receipt in the owner's context, never in peer scratch or the peer prompt.
+On the terminal read, pass those exact owner-held values:
+
+```bash
+"$PEER_RUN" verdict --dir "$RUN_DIR" --slug "$SLUG" --json \
+  --boundary-snapshot "$OWNER_SNAPSHOT_PATH" --boundary-sha256 "$OWNER_SNAPSHOT_SHA256"
+```
+
+Verification authenticates the bytes before trusting root or manifest identity.
+Never recover the expected digest from peer output or mutable scratch files.
+Missing or mismatched proof cannot support a clean claim. A verdict without a
+receipt reports no boundary evidence. Retain the owner baseline for review or
+remove that exact owner-created file after the final verdict; teardown does not
+delete arbitrary external paths. The authenticated terminal verdict reports:
 
 | `permission_state` | Meaning |
 | --- | --- |

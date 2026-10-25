@@ -34,6 +34,7 @@ Usage:
                        [--boundary-repo <path> --boundary-provider <name>] -- <command...>
   peer-run.sh status   --dir <run-dir> --slug <slug>
   peer-run.sh verdict  --dir <run-dir> --slug <slug> [--json]
+                       [--boundary-snapshot <owner-path> --boundary-sha256 <owner-digest>]
   peer-run.sh teardown --dir <run-dir> --slug <slug>
 
 States: running | complete | failed | empty_output | stalled | timed_out
@@ -49,6 +50,8 @@ SLUG=""
 DEADLINE_SECONDS=""
 BOUNDARY_REPO=""
 BOUNDARY_PROVIDER=""
+BOUNDARY_SNAPSHOT=""
+BOUNDARY_SHA256=""
 JSON=false
 PEER_CMD=()
 
@@ -77,6 +80,16 @@ while [ "$#" -gt 0 ]; do
     --boundary-provider)
       [ "$#" -ge 2 ] || die "--boundary-provider needs a value"
       BOUNDARY_PROVIDER="$2"
+      shift 2
+      ;;
+    --boundary-snapshot)
+      [ "$#" -ge 2 ] || die "--boundary-snapshot needs a value"
+      BOUNDARY_SNAPSHOT="$2"
+      shift 2
+      ;;
+    --boundary-sha256)
+      [ "$#" -ge 2 ] || die "--boundary-sha256 needs a value"
+      BOUNDARY_SHA256="$2"
       shift 2
       ;;
     --json)
@@ -136,6 +149,11 @@ case "$cmd" in
     [ -z "$BOUNDARY_PROVIDER" ] || die "--boundary-provider is valid only for launch"
     ;;
 esac
+
+if [ -n "$BOUNDARY_SNAPSHOT" ] || [ -n "$BOUNDARY_SHA256" ]; then
+  [ "$cmd" = verdict ] || die "owner boundary receipt is valid only for verdict"
+  [ -n "$BOUNDARY_SNAPSHOT" ] && [ -n "$BOUNDARY_SHA256" ] || die "both owner boundary receipt fields are required"
+fi
 
 peerdir="$RUNDIR/$SLUG"
 pidfile="$peerdir/peer.pid"
@@ -284,13 +302,12 @@ case "$cmd" in
     rm -f "$pidfile" "$sessfile" "$donefile" "$childpidfile" "$watchdogfile"
     deadline_epoch=$(( $(date +%s) + DEADLINE_SECONDS ))
     printf '%s\n' "$deadline_epoch" > "$deadlinefile"
-    rm -f "$peerdir/boundary.snapshot.json"
-
     # Record the snapshot after old peers stop and runner sentinels are reset.
+    boundary_receipt=""
     if [ -n "$BOUNDARY_REPO" ]; then
-      python3 -B "$BOUNDARY_HELPER" snapshot \
-        --run-dir "$peerdir" --repo "$BOUNDARY_REPO" --provider "$BOUNDARY_PROVIDER" \
-        >/dev/null || die "cannot record the read-only boundary"
+      boundary_receipt="$(python3 -B "$BOUNDARY_HELPER" snapshot \
+        --run-dir "$peerdir" --repo "$BOUNDARY_REPO" --provider "$BOUNDARY_PROVIDER")" \
+        || die "cannot record the read-only boundary"
     fi
 
     # The inner runner records its own PID because GNU setsid may fork before
@@ -346,6 +363,7 @@ case "$cmd" in
     printf '%s\n' "$watchdog_pid" > "$watchdogfile"
 
     printf 'launched slug=%s pid=%s deadline=%s detach=%s\n' "$SLUG" "$pid" "$deadline_epoch" "$how"
+    [ -z "$boundary_receipt" ] || printf '%s\n' "$boundary_receipt"
     ;;
 
   status)
@@ -376,8 +394,9 @@ EOF
     # Verifying the boundary walks the declared state directories, so do it
     # once the run is terminal rather than on every poll.
     boundary="null"
-    if [ -f "$peerdir/boundary.snapshot.json" ] && [ "$state" != "running" ]; then
-      boundary="$(python3 -B "$BOUNDARY_HELPER" verify --run-dir "$peerdir" 2>/dev/null)"
+    if [ -n "$BOUNDARY_SNAPSHOT" ] && [ "$state" != "running" ]; then
+      boundary="$(python3 -B "$BOUNDARY_HELPER" verify --run-dir "$peerdir" \
+        --snapshot-path "$BOUNDARY_SNAPSHOT" --snapshot-sha256 "$BOUNDARY_SHA256" 2>/dev/null)"
       case "$boundary" in
         \{*) ;;
         *) boundary='{"schema":"v1-peer-boundary/v1","containment":"unverified","permission_state":"containment_unverified"}' ;;

@@ -32,7 +32,7 @@ Return:
 - Risks, missing checks, and local verification steps
 ```
 
-For read-only consults, require `Commands run and results: none` and `Files changed: none` — then verify it. A peer's claim is not evidence: launch with `--boundary-repo` and `--boundary-provider` and read the verdict's `permission_state`. Only `readonly_verified` supports reporting `Files changed: none observed in declared repository and provider paths`; a before/after comparison cannot prove that no transient writes occurred.
+For read-only consults, require `Commands run and results: none` and `Files changed: none` — then verify it. A peer's claim is not evidence: launch with `--boundary-repo` and `--boundary-provider`, retain the launch receipt in the owner context, then pass its path/digest as `--boundary-snapshot` and `--boundary-sha256` to the terminal verdict and read `permission_state`. Only `readonly_verified` supports reporting `Files changed: none observed in declared repository and provider paths`; a before/after comparison cannot prove that no transient writes occurred.
 
 For `local-verify` or `isolated-delegate` runs, record the starting state first:
 

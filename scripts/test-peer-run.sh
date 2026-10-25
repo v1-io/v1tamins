@@ -7,6 +7,7 @@ trap 'printf "peer-run contract failed at line %s (exit %s)\n" "$LINENO" "$?" >&
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUNNER="$ROOT_DIR/plugins/v1tamins/skills/v1-phone-a-friend/scripts/peer-run.sh"
 TEST_DIR="$(mktemp -d "${TMPDIR:-/tmp}/v1-peer-run-test.XXXXXX")"
+mkdir "$TEST_DIR/owner-baselines"
 
 cleanup() {
   if [ -n "${UNRELATED_PID:-}" ] && kill -0 "$UNRELATED_PID" 2>/dev/null; then
@@ -76,8 +77,13 @@ poll_verdict() {
   local dir="$1"
   local slug="$2"
   local output="$3"
+  local args=(verdict --dir "$dir" --slug "$slug" --json)
+  if [ -f "$dir/$slug.launch.jsonl" ]; then
+    args+=(--boundary-snapshot "$(receipt_field "$dir/$slug.launch.jsonl" snapshot_path)"
+           --boundary-sha256 "$(receipt_field "$dir/$slug.launch.jsonl" snapshot_sha256)")
+  fi
   for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do
-    "$RUNNER" verdict --dir "$dir" --slug "$slug" --json > "$output"
+    "$RUNNER" "${args[@]}" > "$output"
     case "$(json_field "$output" state)" in
       running) sleep 0.1 ;;
       *) return 0 ;;
@@ -85,6 +91,16 @@ poll_verdict() {
   done
   printf 'peer did not reach a terminal state: %s\n' "$slug" >&2
   return 1
+}
+
+receipt_field() {
+  python3 - "$1" "$2" <<'PY'
+import json, sys
+from pathlib import Path
+receipts = [json.loads(line) for line in Path(sys.argv[1]).read_text().splitlines() if line.startswith('{')]
+assert len(receipts) == 1
+print(receipts[0][sys.argv[2]])
+PY
 }
 
 # Nonzero provider exit plus substantive output is complete, and stdin is
@@ -300,9 +316,9 @@ git -C "$BOUNDARY_REPO" commit --quiet -m 'synthetic'
 FAKE_CLEAN_PEER="$TEST_DIR/fake-clean-peer.sh"
 printf '%s\n' '#!/usr/bin/env bash' 'printf "clean peer answer\n"' > "$FAKE_CLEAN_PEER"
 chmod +x "$FAKE_CLEAN_PEER"
-HOME="$BOUNDARY_HOME" "$RUNNER" launch --dir "$TEST_DIR" --slug clean-boundary \
+TMPDIR="$TEST_DIR/owner-baselines" HOME="$BOUNDARY_HOME" "$RUNNER" launch --dir "$TEST_DIR" --slug clean-boundary \
   --deadline-seconds 5 --boundary-repo "$BOUNDARY_REPO" --boundary-provider claude \
-  -- "$FAKE_CLEAN_PEER" >/dev/null
+  -- "$FAKE_CLEAN_PEER" > "$TEST_DIR/clean-boundary.launch.jsonl"
 poll_verdict "$TEST_DIR" clean-boundary "$TEST_DIR/clean-boundary.json"
 [ "$(json_field "$TEST_DIR/clean-boundary.json" state)" = 'complete' ]
 python3 - "$TEST_DIR/clean-boundary.json" <<'PY'
@@ -315,6 +331,14 @@ assert boundary["repo_changes"]["changed"] is False, boundary
 assert boundary["provider_state_changes"] == [], boundary
 PY
 
+# A peer or caller cannot recover a clean claim by omitting the owner proof.
+"$RUNNER" verdict --dir "$TEST_DIR" --slug clean-boundary --json > "$TEST_DIR/no-proof.json"
+python3 - "$TEST_DIR/no-proof.json" <<'PY'
+import json, sys
+from pathlib import Path
+assert json.loads(Path(sys.argv[1]).read_text())["boundary"] is None
+PY
+
 FAKE_STATE_WRITER="$TEST_DIR/fake-state-writer.sh"
 cat > "$FAKE_STATE_WRITER" <<'PEER'
 #!/usr/bin/env bash
@@ -323,9 +347,9 @@ mkdir -p "$HOME/.claude/projects"
 printf 'session report\n' > "$HOME/.claude/projects/synthetic-report.json"
 PEER
 chmod +x "$FAKE_STATE_WRITER"
-HOME="$BOUNDARY_HOME" "$RUNNER" launch --dir "$TEST_DIR" --slug state-boundary \
+TMPDIR="$TEST_DIR/owner-baselines" HOME="$BOUNDARY_HOME" "$RUNNER" launch --dir "$TEST_DIR" --slug state-boundary \
   --deadline-seconds 5 --boundary-repo "$BOUNDARY_REPO" --boundary-provider claude \
-  -- "$FAKE_STATE_WRITER" >/dev/null
+  -- "$FAKE_STATE_WRITER" > "$TEST_DIR/state-boundary.launch.jsonl"
 poll_verdict "$TEST_DIR" state-boundary "$TEST_DIR/state-boundary.json"
 python3 - "$TEST_DIR/state-boundary.json" <<'PY'
 import json, sys
@@ -344,9 +368,9 @@ printf 'peer answer after editing the checkout\n'
 printf 'edited\n' >> "$BOUNDARY_REPO/file.txt"
 PEER
 chmod +x "$FAKE_REPO_WRITER"
-HOME="$BOUNDARY_HOME" "$RUNNER" launch --dir "$TEST_DIR" --slug violated-boundary \
+TMPDIR="$TEST_DIR/owner-baselines" HOME="$BOUNDARY_HOME" "$RUNNER" launch --dir "$TEST_DIR" --slug violated-boundary \
   --deadline-seconds 5 --boundary-repo "$BOUNDARY_REPO" --boundary-provider claude \
-  -- "$FAKE_REPO_WRITER" >/dev/null
+  -- "$FAKE_REPO_WRITER" > "$TEST_DIR/violated-boundary.launch.jsonl"
 poll_verdict "$TEST_DIR" violated-boundary "$TEST_DIR/violated-boundary.json"
 python3 - "$TEST_DIR/violated-boundary.json" <<'PY'
 import json, sys
@@ -357,9 +381,9 @@ assert boundary["repo_changes"]["changed"] is True, boundary
 PY
 
 # A provider with no declared state surface cannot claim a verified boundary.
-HOME="$BOUNDARY_HOME" "$RUNNER" launch --dir "$TEST_DIR" --slug undeclared-boundary \
+TMPDIR="$TEST_DIR/owner-baselines" HOME="$BOUNDARY_HOME" "$RUNNER" launch --dir "$TEST_DIR" --slug undeclared-boundary \
   --deadline-seconds 5 --boundary-repo "$BOUNDARY_REPO" --boundary-provider agy \
-  -- "$FAKE_CLEAN_PEER" >/dev/null
+  -- "$FAKE_CLEAN_PEER" > "$TEST_DIR/undeclared-boundary.launch.jsonl"
 poll_verdict "$TEST_DIR" undeclared-boundary "$TEST_DIR/undeclared-boundary.json"
 python3 - "$TEST_DIR/undeclared-boundary.json" <<'PY'
 import json, sys
