@@ -32,7 +32,7 @@ Return:
 - Risks, missing checks, and local verification steps
 ```
 
-For read-only consults, require `Commands run and results: none` and `Files changed: none` — then verify it. A peer's claim is not evidence: launch with `--boundary-repo` and `--boundary-provider` and read the verdict's `permission_state`. Only `readonly_verified` supports repeating `Files changed: none` as fact.
+For read-only consults, require `Commands run and results: none` and `Files changed: none` — then verify it. A peer's claim is not evidence: launch with `--boundary-repo` and `--boundary-provider`, retain the launch receipt in the owner context, then pass its path/digest as `--boundary-snapshot` and `--boundary-sha256` to the terminal verdict and read `permission_state`. Only `readonly_verified` supports reporting `Files changed: none observed in declared repository and provider paths`; a before/after comparison cannot prove that no transient writes occurred.
 
 For `local-verify` or `isolated-delegate` runs, record the starting state first:
 
@@ -204,7 +204,8 @@ peer failure:
 - **A model argument is used exactly as validated.** Never synthesize an
   effort-parameterized model ID. When a requested reasoning level has no
   advertised launch argument for that provider, the result is
-  `launch_recipe_unresolved`.
+  `launch_recipe_unresolved`. Codex's separate launch argument is its
+  provider-owned `--config model_reasoning_effort=<level>` setting.
 
 `--probe-syntax` reads the installed CLI's own help surface — no model request —
 and returns `wrapper_validation_failed` with the missing option names when the
@@ -262,6 +263,7 @@ Read-only consult:
   --cd "<repo>" \
   --json \
   --model "<current-model-from-catalog>" \
+  --config "model_reasoning_effort=<current-reasoning-level>" \
   "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
@@ -273,10 +275,11 @@ Trusted verification or isolated delegation:
   --cd "<trusted-or-isolated-repo>" \
   --json \
   --model "<current-model-from-catalog>" \
+  --config "model_reasoning_effort=<current-reasoning-level>" \
   "$PHONE_A_FRIEND_PROMPT" < /dev/null
 ```
 
-The working directory is required: the adapter returns `launch_recipe_unresolved` rather than letting a sandbox scope default to the caller's cwd. Codex takes no separate reasoning flag, so a reasoning level that the model argument does not already encode is unrepresentable and is refused before launch.
+The working directory is required: the adapter returns `launch_recipe_unresolved` rather than letting a sandbox scope default to the caller's cwd. Codex keeps the selected model ID unchanged and carries the selected reasoning level separately through its provider-owned `--config model_reasoning_effort=<level>` setting. The level must be supported by the current catalog evidence when the catalog resolves; an unsupported level is refused before launch.
 
 Always close stdin (`< /dev/null`) when the prompt is passed as an argument. Without it, `codex exec` blocks on `Reading additional input from stdin` and the run stalls with no output — a recurring, silent failure.
 

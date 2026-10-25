@@ -94,7 +94,16 @@ OCR fallback order:
    If the host does not expose `SKILL_DIR`, resolve `scripts/ocr-pdf-macos.swift` relative to this skill directory.
 4. If OCR is not possible locally, report the blocker as a data gap and don't pretend the source was read.
 
-For OCR output, keep page markers such as `=== Page 12 ===`. Treat OCR as lower-confidence than embedded text and spot-check early, middle, and late pages before using it for recommendations.
+The macOS helper writes page markers such as `=== Page 12 ===` and preserves
+successful pages when a page cannot be loaded, rendered, or recognized. It
+also appends an `=== OCR Failure Summary ===` section. Exit `0` means every
+page completed. Exit `2` means partial OCR or that every page failed; other
+nonzero exits mean the helper could not produce its output. A nonzero exit is
+not an empty result: keep `ocr.txt`, copy the failed-page summary into Data
+Gaps, and do not make recommendations that depend on missing pages until the
+gap is recovered or the recommendation is explicitly limited to the pages
+that completed. Treat OCR as lower-confidence than embedded text and
+spot-check early, middle, and late pages before using it for recommendations.
 
 ### 2. Build a Source Map
 

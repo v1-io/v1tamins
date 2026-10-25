@@ -2,7 +2,7 @@
 set -euo pipefail
 
 pr_ref="${1:-}"
-json_fields="number,url,title,body,baseRefName,headRefName,headRefOid,files,commits"
+json_fields="number,url,title,body,baseRefName,baseRefOid,headRefName,headRefOid,headRepository,headRepositoryOwner,files,commits"
 
 usage() {
   echo "Usage: $0 <PR_URL_or_NUMBER>" >&2
@@ -39,21 +39,135 @@ else
   fi
 fi
 
-number="$(jq -r '.number' <<<"$metadata")"
-url="$(jq -r '.url' <<<"$metadata")"
-title="$(jq -r '.title' <<<"$metadata")"
-base_ref="$(jq -r '.baseRefName' <<<"$metadata")"
-head_ref="$(jq -r '.headRefName' <<<"$metadata")"
-head_sha="$(jq -r '.headRefOid' <<<"$metadata")"
+number="$(jq -r '.number // ""' <<<"$metadata")"
+url="$(jq -r '.url // ""' <<<"$metadata")"
+title="$(jq -r '.title // ""' <<<"$metadata")"
+base_ref="$(jq -r '.baseRefName // ""' <<<"$metadata")"
+pr_base_sha="$(jq -r '.baseRefOid // ""' <<<"$metadata")"
+base_sha=""
+head_ref="$(jq -r '.headRefName // ""' <<<"$metadata")"
+head_sha="$(jq -r '.headRefOid // ""' <<<"$metadata")"
+head_repo="$(jq -r '.headRepository.nameWithOwner // .headRepositoryOwner.login // "unavailable"' <<<"$metadata")"
 local_sha="$(git rev-parse HEAD 2>/dev/null || true)"
+
+lower() {
+  tr '[:upper:]' '[:lower:]' <<<"$1"
+}
+
+pr_repository_from_url() {
+  local value="$1"
+  if [[ "$value" =~ ^https://([^/]+)/([^/]+)/([^/]+)/pull/[0-9]+/?$ ]]; then
+    printf '%s|%s/%s' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}"
+    return 0
+  fi
+  return 1
+}
+
+remote_repository_identity() {
+  local remote="$1"
+  local remote_url=""
+  local remote_host=""
+  local remote_path=""
+
+  # `git remote get-url` applies url.*.insteadOf rewrites. Read the raw
+  # configured URL so identity checks cannot be redirected to another repo.
+  remote_url="$(git config --get "remote.$remote.url" 2>/dev/null || true)"
+  [ -n "$remote_url" ] || return 1
+
+  case "$remote_url" in
+    https://*|http://*)
+      remote_host="${remote_url#*://}"
+      remote_host="${remote_host%%/*}"
+      remote_path="${remote_url#*://*/}"
+      ;;
+    ssh://*)
+      remote_host="${remote_url#ssh://}"
+      remote_host="${remote_host%%/*}"
+      remote_host="${remote_host#*@}"
+      remote_path="${remote_url#ssh://*/}"
+      ;;
+    git@*:*)
+      remote_host="${remote_url#git@}"
+      remote_host="${remote_host%%:*}"
+      remote_path="${remote_url#*:}"
+      ;;
+    file://*|/*|./*|../*)
+      remote_host="local"
+      remote_path="${remote_url#file://}"
+      remote_path="${remote_path##*/}"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  remote_path="${remote_path%%\?*}"
+  remote_path="${remote_path%%#*}"
+  remote_path="${remote_path%/}"
+  remote_path="${remote_path%.git}"
+  remote_path="${remote_path#/}"
+  remote_path="${remote_path%/}"
+  [ -n "$remote_host" ] && [ -n "$remote_path" ] || return 1
+  printf '%s|%s' "$(lower "$remote_host")" "$(lower "$remote_path")"
+}
+
+base_repository_key=""
+base_repository=""
+identity_error=""
+if ! parsed_pr_repository="$(pr_repository_from_url "$url")"; then
+  identity_error="PR URL is not a supported GitHub repository URL"
+else
+  pr_host="${parsed_pr_repository%%|*}"
+  pr_repository_from_url="${parsed_pr_repository#*|}"
+  repo_selector="$pr_host/$pr_repository_from_url"
+  if ! repository_metadata="$(gh repo view "$repo_selector" --json id,nameWithOwner 2>/dev/null)"; then
+    identity_error="could not load GitHub repository identity for $repo_selector"
+  elif ! base_repository="$(jq -er '.nameWithOwner // empty' <<<"$repository_metadata")"; then
+    identity_error="GitHub repository metadata did not include nameWithOwner"
+  elif ! base_repository_id="$(jq -er '.id // empty' <<<"$repository_metadata")"; then
+    identity_error="GitHub repository metadata did not include id"
+  elif [ "$(lower "$base_repository")" != "$(lower "$pr_repository_from_url")" ]; then
+    identity_error="GitHub repository identity did not match the PR URL"
+  elif [ -z "$base_ref" ]; then
+    identity_error="PR metadata did not include the base branch name"
+  else
+    base_ref_endpoint="repos/$base_repository/git/ref/heads/$base_ref"
+    if ! base_ref_metadata="$(gh api --hostname "$pr_host" "$base_ref_endpoint" 2>/dev/null)"; then
+      identity_error="could not resolve the authoritative base ref from $pr_host"
+    elif ! live_base_ref="$(jq -er '.ref // empty' <<<"$base_ref_metadata")"; then
+      identity_error="base ref API response did not include ref"
+    elif [ "$live_base_ref" != "refs/heads/$base_ref" ]; then
+      identity_error="base ref API response did not match the requested branch"
+    elif ! live_base_sha="$(jq -er 'select(.object.type == "commit") | .object.sha // empty' <<<"$base_ref_metadata")"; then
+      identity_error="base ref API response did not include a commit SHA"
+    elif [[ ! "$live_base_sha" =~ ^[0-9a-fA-F]{40}$ ]]; then
+      identity_error="base ref API response included an invalid commit SHA"
+    elif ! repository_metadata_after="$(gh repo view "$repo_selector" --json id,nameWithOwner 2>/dev/null)"; then
+      identity_error="could not re-read GitHub repository identity after resolving the base ref"
+    elif ! base_repository_after="$(jq -er '.nameWithOwner // empty' <<<"$repository_metadata_after")"; then
+      identity_error="GitHub repository re-read did not include nameWithOwner"
+    elif ! base_repository_id_after="$(jq -er '.id // empty' <<<"$repository_metadata_after")"; then
+      identity_error="GitHub repository re-read did not include id"
+    elif [ "$(lower "$base_repository_after")" != "$(lower "$base_repository")" ] || [ "$base_repository_id_after" != "$base_repository_id" ]; then
+      identity_error="GitHub repository identity changed while resolving the base ref"
+    else
+      base_sha="$live_base_sha"
+      base_repository_key="$(lower "$pr_host|$base_repository")"
+    fi
+  fi
+fi
 
 echo "=== PR ==="
 echo "Number: $number"
 echo "URL: $url"
 echo "Title: $title"
 echo "Base: $base_ref"
+echo "Base repository: ${base_repository:-unavailable}"
+echo "Base SHA: ${base_sha:-unavailable}"
+echo "PR metadata base SHA (historical): ${pr_base_sha:-unavailable}"
 echo "Head: $head_ref"
 echo "Head SHA: $head_sha"
+echo "Head repository: $head_repo"
 if [ -n "$local_sha" ] && [ "$local_sha" != "$head_sha" ]; then
   echo "Warning: local HEAD ($local_sha) does not match PR head SHA"
 fi
@@ -72,56 +186,74 @@ jq -r '.commits[] | "- \(.oid[0:12]) \(.messageHeadline)"' <<<"$metadata"
 echo
 
 if [ -z "$local_sha" ]; then
-  echo "Warning: not in a git checkout; skipping local diff context" >&2
-  exit 0
+  echo "Diff context: unavailable (not in a git checkout)" >&2
+  exit 2
 fi
 
 if [ "$local_sha" != "$head_sha" ]; then
-  echo "Warning: local HEAD does not match PR head; skipping local diff context" >&2
-  exit 0
+  echo "Diff context: unavailable (local HEAD does not match PR head SHA)" >&2
+  exit 2
 fi
 
-merge_base=""
 base_remote=""
-stale_base_remote=""
-for remote in upstream origin; do
-  if ! git remote get-url "$remote" >/dev/null 2>&1; then
+if [ -n "$identity_error" ]; then
+  echo "Diff context: unavailable ($identity_error)" >&2
+  exit 2
+fi
+
+if [ -z "$base_ref" ] || [ -z "$base_sha" ]; then
+  echo "Diff context: unavailable (PR metadata did not include base branch and base SHA)" >&2
+  exit 2
+fi
+
+matching_remote_found=0
+remotes="$(git remote 2>/dev/null || true)"
+while IFS= read -r remote; do
+  [ -n "$remote" ] || continue
+  remote_key="$(remote_repository_identity "$remote" || true)"
+  if [ "$remote_key" != "$base_repository_key" ]; then
+    continue
+  fi
+  matching_remote_found=1
+
+  if ! git fetch --no-tags "$remote" -- "refs/heads/$base_ref" >/dev/null 2>&1; then
+    echo "Warning: could not fetch $base_ref from the PR base remote '$remote'" >&2
     continue
   fi
 
-  if git fetch "$remote" -- "$base_ref" >/dev/null 2>&1; then
-    if git rev-parse --verify --quiet "refs/remotes/$remote/$base_ref^{commit}" >/dev/null; then
-      base_remote="$remote"
-      break
-    fi
-  else
-    echo "Warning: could not fetch $remote/$base_ref" >&2
-    if [ -z "$stale_base_remote" ] && git rev-parse --verify --quiet "refs/remotes/$remote/$base_ref^{commit}" >/dev/null; then
-      stale_base_remote="$remote"
-    fi
+  fetched_base_sha="$(git rev-parse --verify --quiet FETCH_HEAD^{commit} 2>/dev/null || true)"
+  if [ "$fetched_base_sha" != "$base_sha" ]; then
+    echo "Warning: fetched $remote/$base_ref resolved to ${fetched_base_sha:-unavailable}, expected $base_sha" >&2
+    continue
   fi
-done
 
-if [ -z "$base_remote" ] && [ -n "$stale_base_remote" ]; then
-  base_remote="$stale_base_remote"
-  echo "Warning: using existing local refs/remotes/$base_remote/$base_ref; it may be stale" >&2
+  if ! git cat-file -e "$base_sha^{commit}" 2>/dev/null; then
+    echo "Warning: fetched base SHA $base_sha is not available as a commit" >&2
+    continue
+  fi
+
+  base_remote="$remote"
+  break
+done <<<"$remotes"
+
+if [ -z "$base_remote" ]; then
+  if [ "$matching_remote_found" -eq 0 ]; then
+    echo "Diff context: unavailable (no local remote maps to GitHub base repository $base_repository)" >&2
+  else
+    echo "Diff context: unavailable (the mapped base remote could not prove base SHA $base_sha)" >&2
+  fi
+  exit 2
 fi
 
 if [ -n "$base_remote" ]; then
-  merge_base="$(git merge-base "refs/remotes/$base_remote/$base_ref" HEAD 2>/dev/null || true)"
-fi
-
-if [ -n "$merge_base" ]; then
-  echo "=== Diff Stat ($merge_base...HEAD) ==="
-  git diff --stat "$merge_base"...HEAD
+  echo "=== Diff Stat ($base_sha...HEAD) ==="
+  git diff --stat "$base_sha"...HEAD
   echo
 
-  echo "=== Diff Name Status ($merge_base...HEAD) ==="
-  git diff --name-status "$merge_base"...HEAD
+  echo "=== Diff Name Status ($base_sha...HEAD) ==="
+  git diff --name-status "$base_sha"...HEAD
   echo
 
-  echo "=== Commit Range ($merge_base..HEAD) ==="
-  git log --oneline "$merge_base"..HEAD
-else
-  echo "Warning: could not compute merge base against a fetched $base_ref remote branch" >&2
+  echo "=== Commit Range ($base_sha..HEAD) ==="
+  git log --oneline "$base_sha"..HEAD
 fi

@@ -126,13 +126,32 @@ never collapse them into one claim.
 
 | Surface | What it is | Expected under `readonly` |
 | --- | --- | --- |
-| repository | tracked and nonignored untracked files plus the index and HEAD, excluding declared scratch | content/index changes are violations; ignored files remain an observation gap |
+| repository | checkout files, including ignored files and Git metadata inside the checkout, plus index and HEAD observations | observed changes are violations; incomplete scans remain a gap |
 | scratch | the run-specific directory | writes are fine and disposable |
-| provider state | the provider's own home-relative directories | provider-owned session and report files may appear |
+| provider state | the provider's own declared home-relative directories | provider-owned session and report files may appear |
+
+Keep scratch and the reviewed checkout disjoint, including after resolving
+symlinks. The runner rejects overlap before changing files or stopping a peer,
+so its snapshot and sentinels cannot count as unauthorized repository writes.
 
 Pass `--boundary-repo <path> --boundary-provider <name>` to `peer-run.sh launch`
 and it records the boundary through `scripts/peer_boundary.py` before anything
-can write, then reports it in `verdict --json` once the run is terminal:
+can write. Launch returns a separate JSON receipt with `snapshot_path` and
+`snapshot_sha256`. The baseline file is outside the observed roots. Retain
+the receipt in the owner's context, never in peer scratch or the peer prompt.
+On the terminal read, pass those exact owner-held values:
+
+```bash
+"$PEER_RUN" verdict --dir "$RUN_DIR" --slug "$SLUG" --json \
+  --boundary-snapshot "$OWNER_SNAPSHOT_PATH" --boundary-sha256 "$OWNER_SNAPSHOT_SHA256"
+```
+
+Verification authenticates the bytes before trusting root or manifest identity.
+Never recover the expected digest from peer output or mutable scratch files.
+Missing or mismatched proof cannot support a clean claim. A verdict without a
+receipt reports no boundary evidence. Retain the owner baseline for review or
+remove that exact owner-created file after the final verdict; teardown does not
+delete arbitrary external paths. The authenticated terminal verdict reports:
 
 | `permission_state` | Meaning |
 | --- | --- |
@@ -141,21 +160,23 @@ can write, then reports it in `verdict --json` once the run is terminal:
 | `readonly_violated` | The reviewed checkout changed. A read-only seat must not do this. |
 | `containment_unverified` | The boundary could not be fully observed, so no read-only claim is available. |
 
-Only `readonly_verified` supports a statement that nothing was written. A
-sandbox flag and a prompt instruction are not proof, and the repository's Git
-state alone cannot see provider-owned artifacts.
+`readonly_verified` means no changes were observed in the declared repository
+and provider paths. Before/after manifests include ignored and already-dirty
+files and detect deletions. Each root is limited to 50,000 entries and 64 MiB of
+hashed content; incomplete or unreadable scans, external symlinks, and linked
+worktree metadata outside the checkout make containment unverified.
+
+These observations do not establish OS-level isolation or detect writes that
+were reverted before verification. A sandbox flag and a prompt instruction are
+not proof, and Git state alone cannot see provider-owned artifacts.
 
 Repository evidence includes file-content and index fingerprints, so edits to
-already-dirty or untracked files cannot hide behind unchanged status labels.
-Symlink targets are fingerprinted without reading their destinations. Ignored
-files are enumerated but never read; their presence outside declared scratch
-reports `repository_ignored_files_unobserved` and `containment_unverified`.
-Unreadable content, non-UTF-8 Git path output or symlink targets, and unsupported
-entries also prevent verification. Path encodings are never replaced to make a
-fingerprint. These are before/after observations of declared surfaces, not
-proof against a transient write that was reverted or a write outside those
-surfaces. Provider-state
-reporting uses modification times and retains that observation limit.
+already-dirty files cannot hide behind unchanged status labels. Symlink targets
+are fingerprinted without reading their destinations; an escaping target makes
+the observation incomplete. Unreadable content, unsupported entries, and
+non-UTF-8 Git paths or symlink targets also prevent verification. Path encodings
+are never replaced to make a fingerprint. Provider manifests compare contents
+and deletions rather than relying only on modification times.
 
 `$HOME` is never redirected by default: a subscription peer keeps its login
 state there, and moving it would break the auth the run depends on. A provider

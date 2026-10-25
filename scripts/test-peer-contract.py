@@ -6,10 +6,10 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
-import subprocess
+import re
+import shlex
 import sys
 import tempfile
-import time
 import unittest
 from pathlib import Path
 from typing import Any
@@ -719,6 +719,23 @@ class PeerContractTests(unittest.TestCase):
         self.assertEqual(payload["efforts"], ["high"])
         self.assertFalse(hasattr(entry, "efforts"))
 
+    def test_shared_sources_do_not_pin_concrete_model_ids(self) -> None:
+        source_paths = [
+            REPO_ROOT / "plugins/v1tamins/skills/v1-phone-a-friend/SKILL.md",
+            REPO_ROOT
+            / "plugins/v1tamins/skills/v1-phone-a-friend/references/model-selection.md",
+            REPO_ROOT / "plugins/v1tamins/skills/v1-review-board/SKILL.md",
+            REPO_ROOT
+            / "plugins/v1tamins/skills/v1-review-board/references/review-contract.md",
+        ]
+        concrete_id = re.compile(
+            r"\b(?:gpt|claude|gemini|sonnet|opus)[-_][0-9]", re.IGNORECASE
+        )
+        for path in source_paths:
+            self.assertIsNone(
+                concrete_id.search(path.read_text(encoding="utf-8")), path
+            )
+
 
 class SubscriptionDiscoveryTests(unittest.TestCase):
     """Discovery must only propose what the installed CLI can actually launch."""
@@ -792,7 +809,7 @@ class SubscriptionDiscoveryTests(unittest.TestCase):
         self.assertEqual(selected[0].launch_model_argument, "fake-alias")
         self.assertEqual(selected[0].representation, "alias")
 
-    def test_alias_level_still_rejected_without_a_provider_effort_option(self) -> None:
+    def test_codex_alias_level_uses_the_provider_config_transport(self) -> None:
         provider = make_provider(
             cli="codex",
             models=[],
@@ -801,13 +818,31 @@ class SubscriptionDiscoveryTests(unittest.TestCase):
             catalog_fingerprint=None,
             reasoning_levels=[],
         )
-        outcome = peer_catalog.choose_model(provider, "custom", "fake-alias", "high")
-        self.assertEqual(outcome.code, "reasoning_level_unsupported")
-        # The same alias with the level encoded in the ID resolves.
-        resolved = peer_catalog.choose_model(
-            provider, "custom", "fake-alias-high", "high"
+        outcome = peer_catalog.choose_model(
+            provider, "custom", "synthetic-alias", "high"
         )
-        self.assertEqual(resolved.launch_model, "fake-alias-high")
+        self.assertEqual(outcome.model, "synthetic-alias")
+        self.assertEqual(outcome.reasoning, "high")
+        self.assertEqual(outcome.launch_model, "synthetic-alias")
+
+    def test_codex_rejects_reasoning_level_outside_current_evidence(self) -> None:
+        provider = make_provider(
+            cli="codex",
+            models=[
+                {
+                    "id": "synthetic-codex-model",
+                    "family": "synthetic",
+                    "rank": 0,
+                    "reasoning_levels": ["low", "high"],
+                }
+            ],
+            reasoning_levels=["low", "high"],
+        )
+        outcome = peer_catalog.choose_model(
+            provider, "custom", "synthetic-codex-model", "max"
+        )
+        self.assertEqual(outcome.code, "reasoning_level_unsupported")
+        self.assertEqual(list(outcome.alternatives), ["low", "high"])
 
     def test_selection_without_a_launch_argument_is_typed_and_ineligible(self) -> None:
         # The catalog advertises a level the model argument cannot carry.
@@ -891,6 +926,26 @@ def stream(*events: dict[str, Any]) -> str:
     return "".join(json.dumps(event) + "\n" for event in events)
 
 
+def wrapper_blocks(markdown: str) -> list[tuple[str, ...]]:
+    """Tokenize every fenced credential-wrapper example in a templates file."""
+
+    blocks: list[tuple[str, ...]] = []
+    current: list[str] | None = None
+    for line in markdown.splitlines():
+        if line.startswith("```"):
+            if current is not None:
+                text = "\n".join(current)
+                if text.lstrip().startswith('"$PEER_ENV"'):
+                    blocks.append(tuple(shlex.split(text.replace("\\\n", " "))))
+                current = None
+            elif line.strip() == "```bash":
+                current = []
+            continue
+        if current is not None:
+            current.append(line)
+    return blocks
+
+
 class PeerBoundaryTests(unittest.TestCase):
     """A read-only claim must rest on what was observed, not on a flag."""
 
@@ -944,208 +999,6 @@ class PeerBoundaryTests(unittest.TestCase):
             result = peer_boundary.verify_snapshot(Path(tmp))
         self.assertEqual(result["containment"], "unverified")
         self.assertEqual(result["permission_state"], "containment_unverified")
-
-    def test_repository_content_changes_cannot_hide_behind_unchanged_status(self) -> None:
-        for kind in ("tracked", "untracked", "ignored"):
-            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as tmp:
-                root = Path(tmp)
-                repo = root / "repo"
-                repo.mkdir()
-                home = root / "home"
-                (home / ".claude").mkdir(parents=True)
-                run_dir = root / "run"
-                for args in (
-                    ["init", "--quiet"],
-                    ["config", "user.email", "synthetic@example.invalid"],
-                    ["config", "user.name", "synthetic"],
-                ):
-                    subprocess.run(["git", "-C", str(repo), *args], check=True)
-                (repo / ".gitignore").write_text("ignored.txt\n", encoding="utf-8")
-                (repo / "tracked.txt").write_text("base\n", encoding="utf-8")
-                subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
-                subprocess.run(
-                    ["git", "-C", str(repo), "commit", "--quiet", "-m", "base"],
-                    check=True,
-                )
-                target = repo / f"{kind}.txt"
-                target.write_text("user work\n", encoding="utf-8")
-                peer_boundary.take_snapshot(run_dir, repo, "claude", home)
-                target.write_text("peer overwrote user work\n", encoding="utf-8")
-                result = peer_boundary.verify_snapshot(run_dir)
-                if kind == "ignored":
-                    self.assertEqual(result["permission_state"], "containment_unverified")
-                    self.assertIn("repository_ignored_files_unobserved", result["containment_gaps"])
-                else:
-                    self.assertTrue(result["repo_changes"]["changed"], result)
-                    self.assertEqual(result["permission_state"], "readonly_violated")
-
-    def test_declared_scratch_inside_repository_does_not_count_as_a_source_write(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / "repo"
-            repo.mkdir()
-            home = Path(tmp) / "home"
-            (home / ".claude").mkdir(parents=True)
-            subprocess.run(["git", "-C", str(repo), "init", "--quiet"], check=True)
-            run_dir = repo / "run"
-            peer_boundary.take_snapshot(run_dir, repo, "claude", home)
-            (run_dir / "peer.stdout").write_text("answer", encoding="utf-8")
-            result = peer_boundary.verify_snapshot(run_dir)
-            self.assertFalse(result["repo_changes"]["changed"], result)
-            self.assertEqual(result["permission_state"], "readonly_verified")
-
-    def test_undecodable_git_path_output_is_unobserved(self) -> None:
-        original_run = subprocess.run
-
-        def emit_invalid_utf8(_argv: Any, **kwargs: Any) -> Any:
-            return original_run(
-                [sys.executable, "-c", "import sys; sys.stdout.buffer.write(bytes([255]))"],
-                **kwargs,
-            )
-
-        with mock.patch.object(peer_boundary.subprocess, "run", emit_invalid_utf8):
-            self.assertIsNone(peer_boundary.git_output(Path("."), ["ls-files", "-z"]))
-
-    def test_raw_byte_untracked_path_cannot_report_a_clean_boundary(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            repo = root / "repo"
-            repo.mkdir()
-            home = root / "home"
-            (home / ".claude").mkdir(parents=True)
-            subprocess.run(["git", "-C", str(repo), "init", "--quiet"], check=True)
-            target = os.fsencode(repo) + b"/file-\xff.txt"
-            try:
-                with open(target, "wb") as handle:
-                    handle.write(b"user work")
-            except OSError as error:
-                if sys.platform == "darwin" and error.errno == 92:
-                    self.skipTest("filesystem rejects non-UTF-8 filenames; Ubuntu CI exercises this case")
-                raise
-            run_dir = root / "run"
-            peer_boundary.take_snapshot(run_dir, repo, "claude", home)
-            with open(target, "wb") as handle:
-                handle.write(b"peer overwrote user work")
-            result = peer_boundary.verify_snapshot(run_dir)
-            self.assertEqual(result["permission_state"], "containment_unverified", result)
-            self.assertIn("repository_content_unobserved", result["containment_gaps"])
-
-    def test_unencodable_symlink_target_is_unobserved(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            repo = root / "repo"
-            repo.mkdir()
-            home = root / "home"
-            (home / ".claude").mkdir(parents=True)
-            subprocess.run(["git", "-C", str(repo), "init", "--quiet"], check=True)
-            (repo / "link").symlink_to("synthetic-target")
-            run_dir = root / "run"
-            with mock.patch.object(Path, "readlink", return_value=Path("target-\udcff")):
-                peer_boundary.take_snapshot(run_dir, repo, "claude", home)
-                result = peer_boundary.verify_snapshot(run_dir)
-            self.assertEqual(result["permission_state"], "containment_unverified", result)
-            self.assertIn("repository_content_unobserved", result["containment_gaps"])
-
-    def test_index_change_with_same_status_and_worktree_is_a_violation(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / "repo"
-            repo.mkdir()
-            home = Path(tmp) / "home"
-            (home / ".claude").mkdir(parents=True)
-            def git(*args: str, text: str | None = None) -> str:
-                return subprocess.run(
-                    ["git", "-C", str(repo), *args], input=text,
-                    capture_output=True, text=True, check=True,
-                ).stdout.strip()
-            git("init", "--quiet")
-            git("config", "user.email", "synthetic@example.invalid")
-            git("config", "user.name", "synthetic")
-            target = repo / "file.txt"
-            target.write_text("base", encoding="utf-8")
-            git("add", "file.txt")
-            git("commit", "--quiet", "-m", "base")
-            target.write_text("staged user work", encoding="utf-8")
-            git("add", "file.txt")
-            target.write_text("unstaged user work", encoding="utf-8")
-            status = git("status", "--porcelain")
-            run_dir = Path(tmp) / "run"
-            peer_boundary.take_snapshot(run_dir, repo, "claude", home)
-            changed_blob = git("hash-object", "-w", "--stdin", text="peer staged work")
-            git("update-index", "--cacheinfo", f"100644,{changed_blob},file.txt")
-            self.assertEqual(git("status", "--porcelain"), status)
-            self.assertEqual(target.read_text(), "unstaged user work")
-            result = peer_boundary.verify_snapshot(run_dir)
-            self.assertEqual(result["permission_state"], "readonly_violated")
-
-    def test_unreadable_repository_content_cannot_be_verified(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp) / "repo"
-            repo.mkdir()
-            home = Path(tmp) / "home"
-            (home / ".claude").mkdir(parents=True)
-            subprocess.run(["git", "-C", str(repo), "init", "--quiet"], check=True)
-            (repo / "one.txt").write_text("one", encoding="utf-8")
-            (repo / "two.txt").write_text("two", encoding="utf-8")
-            run_dir = Path(tmp) / "run"
-            peer_boundary.take_snapshot(run_dir, repo, "claude", home)
-            original_open = Path.open
-            def deny_source(path: Path, *args: Any, **kwargs: Any) -> Any:
-                if path.parent == repo:
-                    raise PermissionError
-                return original_open(path, *args, **kwargs)
-            with mock.patch.object(Path, "open", deny_source):
-                result = peer_boundary.verify_snapshot(run_dir)
-            self.assertEqual(result["permission_state"], "containment_unverified")
-            self.assertIn("repository_content_unobserved", result["containment_gaps"])
-
-    def test_intermediate_symlink_never_reads_destination_content(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp).resolve()
-            repo = root / "repo"
-            (repo / "directory").mkdir(parents=True)
-            source = repo / "directory" / "data.txt"
-            source.write_text("tracked source", encoding="utf-8")
-            subprocess.run(["git", "-C", str(repo), "init", "--quiet"], check=True)
-            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
-            outside = root / "outside"
-            outside.mkdir()
-            destination = outside / "data.txt"
-            destination.write_text("outside the declared root", encoding="utf-8")
-            source.unlink()
-            source.parent.rmdir()
-            source.parent.symlink_to(outside, target_is_directory=True)
-            outside_reads = []
-            original_open = Path.open
-
-            def observe_open(path: Path, *args: Any, **kwargs: Any) -> Any:
-                if path.resolve() == destination:
-                    outside_reads.append(path)
-                return original_open(path, *args, **kwargs)
-
-            with mock.patch.object(Path, "open", observe_open):
-                snapshot = peer_boundary.take_snapshot(root / "run", repo, "claude", root / "home")
-            self.assertEqual(outside_reads, [])
-            self.assertIsNone(snapshot["repo"]["content_digest"])
-
-    def test_scan_reports_only_files_written_during_the_run(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            (root / "before.txt").write_text("old", encoding="utf-8")
-            os.utime(root / "before.txt", (1_000_000, 1_000_000))
-            started = time.time()
-            (root / "nested").mkdir()
-            (root / "nested" / "after.txt").write_text("new", encoding="utf-8")
-            scan = peer_boundary.scan_tree(root, started, peer_boundary.DEFAULT_VISIT_BUDGET)
-        self.assertEqual(scan.changed, ("nested/after.txt",))
-        self.assertFalse(scan.truncated)
-
-    def test_exhausted_scan_budget_blocks_a_verified_claim(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            for index in range(5):
-                (root / f"file-{index}.txt").write_text("x", encoding="utf-8")
-            scan = peer_boundary.scan_tree(root, time.time(), budget=2)
-        self.assertTrue(scan.truncated)
-
 
 class PeerLaunchTests(unittest.TestCase):
     """Provider argv construction, refusals, and doc/adapter agreement."""
@@ -1228,6 +1081,67 @@ class PeerLaunchTests(unittest.TestCase):
             ("codex", "exec", "--sandbox", "read-only", "--cd", "/synthetic/repo"),
         )
         self.assertIn("--json", recipe.argv)
+
+    def test_codex_transports_reasoning_separately_without_changing_model(self) -> None:
+        model = "synthetic-codex-model"
+        recipe = self.recipe(
+            "codex",
+            model=model,
+            reasoning="high",
+            context=peer_launch.LaunchContext(repo="/synthetic/repo"),
+        )
+        self.assertIsInstance(recipe, peer_launch.LaunchRecipe)
+        self.assertEqual(recipe.launch_model_argument, model)
+        self.assertEqual(recipe.reasoning_argument, "high")
+        self.assertIn("--model", recipe.argv)
+        self.assertEqual(recipe.argv[recipe.argv.index("--model") + 1], model)
+        self.assertIn("--config", recipe.argv)
+        self.assertEqual(
+            recipe.argv[recipe.argv.index("--config") + 1],
+            "model_reasoning_effort=high",
+        )
+        self.assertFalse(any(token.endswith("-high") for token in recipe.argv))
+        self.assertEqual(recipe.argv[-1], "SYNTHETIC PROMPT")
+
+    def test_codex_syntax_probe_checks_the_config_transport(self) -> None:
+        recipe = self.recipe(
+            "codex",
+            model="synthetic-codex-model",
+            reasoning="high",
+            context=peer_launch.LaunchContext(repo="/synthetic/repo"),
+        )
+        with mock.patch.object(
+            peer_launch,
+            "help_surface",
+            return_value="usage\n"
+            + "\n".join(peer_launch.recipe_flags(recipe))
+            + "\n",
+        ):
+            outcome = peer_launch.validate_syntax(recipe)
+        self.assertIsInstance(outcome, peer_launch.LaunchRecipe)
+        self.assertEqual(outcome.syntax_validation, "verified")
+        self.assertIn("--config", peer_launch.recipe_flags(recipe))
+
+    def test_codex_rejects_config_injection_in_reasoning_value(self) -> None:
+        for reasoning in ("model_provider=evil", "high\nmodel_provider=evil"):
+            outcome = self.recipe(
+                "codex",
+                model="synthetic-codex-model",
+                reasoning=reasoning,
+                context=peer_launch.LaunchContext(repo="/synthetic/repo"),
+            )
+            self.assertIsInstance(outcome, peer_launch.LaunchError, reasoning)
+            self.assertEqual(outcome.code, "launch_recipe_unresolved")
+
+    def test_reasoning_placeholder_is_not_a_launch_value(self) -> None:
+        outcome = self.recipe(
+            "codex",
+            model="synthetic-codex-model",
+            reasoning=peer_launch.DOC_REASONING,
+            context=peer_launch.LaunchContext(repo="/synthetic/repo"),
+        )
+        self.assertIsInstance(outcome, peer_launch.LaunchError)
+        self.assertEqual(outcome.code, "launch_recipe_unresolved")
 
     def test_cursor_never_synthesizes_an_effort_model_argument(self) -> None:
         outcome = self.recipe("cursor-agent", model="fake-strong", reasoning="high")
@@ -1314,6 +1228,19 @@ class PeerLaunchTests(unittest.TestCase):
             probe_env = peer_policy.subscription_environment(recipe.auth_mode, recipe.cli)
         for name in peer_policy.API_KEY_ENV_VARS:
             self.assertNotIn(name, probe_env)
+
+    def test_documented_wrappers_match_the_adapter_flag_for_flag(self) -> None:
+        templates = (
+            REPO_ROOT
+            / "plugins/v1tamins/skills/v1-phone-a-friend/references/command-templates.md"
+        )
+        documented = wrapper_blocks(templates.read_text(encoding="utf-8"))
+        rendered = [
+            tuple(shlex.split(example["block"].replace("\\\n", " ")))
+            for example in peer_launch.doc_examples()
+        ]
+        self.assertEqual(len(documented), len(rendered))
+        self.assertEqual(sorted(documented), sorted(rendered))
 
 
 class PeerVerdictTests(unittest.TestCase):

@@ -66,7 +66,7 @@ Discover current provider surfaces. Do not copy them into this file:
 | Runtime | Preferred model surface | Auth surface | Boundary |
 | --- | --- | --- | --- |
 | Claude Code | Provider-owned catalog when available; otherwise a user-named alias | `auth status` JSON (`loggedIn`, `authMethod`) | Ambient API keys in subscription mode are a policy block; do not invent models from help. Carries its own reasoning option. |
-| Codex | Provider-owned catalog when available; otherwise a user-named alias | `doctor --json` credentials check (`stored ChatGPT tokens` / `stored auth mode`) | Do not invent a model from the parent ChatGPT session or free-form status prose. No separate reasoning option, so the level must be part of the model ID. |
+| Codex | Provider-owned catalog when available; otherwise a user-named alias | `doctor --json` credentials check (`stored ChatGPT tokens` / `stored auth mode`) | Do not invent a model from the parent ChatGPT session or free-form status prose. Keep the model ID exact and carry reasoning separately through `--config model_reasoning_effort=<level>`. |
 | Cursor Agent | `--list-models` (`id - label` lines) | `status --format json` (`isAuthenticated` / `status`) | Browser login and API-key auth are separate. The model argument is used exactly as the catalog listed it. |
 | Antigravity CLI (`agy`) | `models` list command | No structured auth probe; subscription mode is launchable after proposal confirmation once the catalog resolves. Ambient keys still require `api_explicit`. | Use Agy's supported native login path; do not assume another Google CLI's login state applies. |
 
