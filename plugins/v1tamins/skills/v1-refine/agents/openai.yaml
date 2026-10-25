@@ -6,3 +6,5 @@ interface:
 policy:
   allow_implicit_invocation: true
   invocation_posture: selective_implicit
+  side_effects:
+    - peer_launch

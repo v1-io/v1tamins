@@ -27,7 +27,7 @@ _SCRIPT_DIR = Path(__file__).resolve().parent
 if str(_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPT_DIR))
 
-from peer_adapters import reasoning_encoded_in_model, run_probe  # noqa: E402
+from peer_adapters import effort_name, reasoning_encoded_in_model, run_probe  # noqa: E402
 from peer_policy import PROVIDERS, subscription_environment  # noqa: E402
 
 SCHEMA = "v1-peer-launch/v1"
@@ -160,9 +160,12 @@ def finalize(cli: str, argv: list[str], prompt: str) -> list[str] | LaunchError:
 def effort_option(cli: str, reasoning: str | None) -> list[str]:
     """Emit the provider's own reasoning option when it has one."""
 
-    flag = PROVIDERS[cli].effort_flag
+    spec = PROVIDERS[cli]
+    flag = spec.effort_flag
     if reasoning is None or flag is None:
         return []
+    if spec.effort_config_key is not None:
+        return [flag, f"{spec.effort_config_key}={reasoning}"]
     return [flag, reasoning]
 
 
@@ -205,6 +208,7 @@ def build_codex(
     argv = ["codex", "exec", *sandbox, "--cd", context.repo, "--json"]
     if model:
         argv += ["--model", model]
+    argv += effort_option("codex", reasoning)
     return argv
 
 
@@ -275,6 +279,14 @@ def build_recipe(
         return unresolved(cli, "unsupported provider")
     if permission not in PERMISSION_MODES:
         return unresolved(cli, f"unsupported permission mode: {permission}")
+    if reasoning is not None:
+        normalized_reasoning = effort_name(reasoning)
+        if normalized_reasoning is None:
+            return unresolved(
+                cli,
+                f"reasoning level {reasoning!r} is not a supported value",
+            )
+        reasoning = normalized_reasoning or reasoning
     # A provider with no reasoning option can only reach a level its model
     # argument already carries. Never synthesize a parameterized model ID.
     if PROVIDERS[cli].effort_flag is None and not reasoning_encoded_in_model(
@@ -292,7 +304,8 @@ def build_recipe(
     if isinstance(completed, LaunchError):
         return completed
 
-    reasoning_argument = reasoning if reasoning and "--effort" in completed else None
+    effort_flag = PROVIDERS[cli].effort_flag
+    reasoning_argument = reasoning if reasoning and effort_flag in completed else None
     return LaunchRecipe(
         cli=cli,
         argv=tuple(completed),
@@ -426,25 +439,40 @@ def render_example(recipe: LaunchRecipe) -> str:
 # Placeholders the documented examples use in place of runtime values.
 DOC_MODEL = "<current-model-from-catalog>"
 DOC_REASONING = "<current-reasoning-level>"
+DOC_REASONING_BUILD = "high"
+
+
+def render_doc_example(recipe: LaunchRecipe) -> str:
+    """Render a recipe while replacing its synthetic level with a placeholder."""
+
+    block = render_example(recipe)
+    block = block.replace(
+        f"--effort {DOC_REASONING_BUILD}",
+        f'--effort "{DOC_REASONING}"',
+    )
+    return block.replace(
+        f"--config model_reasoning_effort={DOC_REASONING_BUILD}",
+        f'--config "model_reasoning_effort={DOC_REASONING}"',
+    )
 
 
 def doc_examples() -> list[dict[str, str]]:
     """Every wrapper the command templates document, rendered from the adapter."""
 
     plans: list[tuple[str, PermissionMode, LaunchContext, str | None]] = [
-        ("claude", "readonly", LaunchContext(), DOC_REASONING),
-        ("claude", "isolated-delegate", LaunchContext(), DOC_REASONING),
-        ("codex", "readonly", LaunchContext(repo="<repo>"), None),
+        ("claude", "readonly", LaunchContext(), DOC_REASONING_BUILD),
+        ("claude", "isolated-delegate", LaunchContext(), DOC_REASONING_BUILD),
+        ("codex", "readonly", LaunchContext(repo="<repo>"), DOC_REASONING_BUILD),
         (
             "codex",
             "isolated-delegate",
             LaunchContext(repo="<trusted-or-isolated-repo>"),
-            None,
+            DOC_REASONING_BUILD,
         ),
         ("cursor-agent", "readonly", LaunchContext(), None),
         ("cursor-agent", "isolated-delegate", LaunchContext(worktree="<name>"), None),
-        ("agy", "readonly", LaunchContext(run_dir="<run-dir>"), DOC_REASONING),
-        ("agy", "isolated-delegate", LaunchContext(run_dir="<run-dir>"), DOC_REASONING),
+        ("agy", "readonly", LaunchContext(run_dir="<run-dir>"), DOC_REASONING_BUILD),
+        ("agy", "isolated-delegate", LaunchContext(run_dir="<run-dir>"), DOC_REASONING_BUILD),
     ]
     examples: list[dict[str, str]] = []
     for cli, permission, context, reasoning in plans:
@@ -462,7 +490,7 @@ def doc_examples() -> list[dict[str, str]]:
             {
                 "cli": cli,
                 "permission": permission,
-                "block": render_example(recipe),
+                "block": render_doc_example(recipe),
             }
         )
     return examples

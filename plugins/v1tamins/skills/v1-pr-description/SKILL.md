@@ -32,8 +32,27 @@ In Codex, the slash examples above map directly to `$v1-pr-description ...`.
 Use the PR itself as the source of truth for base/head instead of assuming `main`:
 
 ```bash
-gh pr view {pr} --json number,url,title,body,baseRefName,headRefName,headRefOid,files,commits
+gh pr view {pr} --json number,url,title,body,baseRefName,baseRefOid,headRefName,headRefOid,headRepository,headRepositoryOwner,files,commits
 ```
+
+Treat the repository named by the PR URL as the base repository. Confirm its
+primary GitHub identity before using local refs:
+
+```bash
+gh repo view {host}/{owner}/{repo} --json nameWithOwner
+```
+
+The base identity, the current base branch ref from the Git ref API, and local
+`HEAD` are one contract. The PR metadata `baseRefOid` is historical context;
+an open PR can retain it after the base branch advances. The local checkout is
+usable only when `HEAD` equals `headRefOid`, a local remote URL maps to the
+GitHub base repository, the authoritative API response is a commit for the
+requested `refs/heads/{baseRefName}`, and a successful fetch resolves to that
+same current SHA. Re-read the repository identity after resolving the ref so a
+concurrent repository change fails closed. Do not choose a remote because it
+is named `origin` or `upstream`, and do not use an existing remote-tracking ref
+after a failed fetch. If any check fails, stop with an explicit unavailable
+diff context and do not draft or update the description from that local diff.
 
 Optional helper:
 
@@ -61,19 +80,29 @@ SKILL_ROOT="$("$RESOLVER" v1-pr-description generate.sh)"
 "$SKILL_ROOT/generate.sh" {PR_URL_or_NUMBER}
 ```
 
-Use the helper to collect metadata, changed files, commits, and merge-base diff context. Treat its output as evidence, not as the finished PR description.
+Use the helper to collect metadata, changed files, commits, and verified diff
+context. Treat its output as evidence, not as the finished PR description. A
+successful helper run (exit `0`) is required before using its local diff; exit
+`2` means the metadata was collected but the diff context is unavailable.
 
-Fetch enough refs to compare against the actual base branch:
+If you need to inspect the context manually, fetch the mapped base remote and
+resolve the current branch revision from the primary Git ref API, then prove
+the exact revision before diffing:
 
 ```bash
-git fetch origin {baseRefName}
-merge_base="$(git merge-base origin/{baseRefName} HEAD)"
-git diff --stat "$merge_base"...HEAD
-git diff --name-only "$merge_base"...HEAD
-git log --oneline "$merge_base"..HEAD
+base_sha="$(gh api --hostname {host} repos/{owner}/{repo}/git/ref/heads/{baseRefName} \
+  --jq 'select(.ref == "refs/heads/{baseRefName}" and .object.type == "commit") | .object.sha')"
+test -n "$base_sha"
+git fetch <base-remote> refs/heads/{baseRefName}
+test "$(git rev-parse FETCH_HEAD^{commit})" = "$base_sha"
+git diff --stat "$base_sha"...HEAD
+git diff --name-only "$base_sha"...HEAD
+git log --oneline "$base_sha"..HEAD
 ```
 
-If the current checkout does not match the PR head SHA, say so and either check out the PR branch or base the description on GitHub metadata plus fetched refs. Do not write a description from an unknown local branch.
+If the current checkout does not match the PR head SHA, or the base identity or
+exact base revision cannot be proved, say so and stop the local-diff workflow.
+Do not write a description from an unknown local branch or stale base ref.
 
 ### 2. Build a Ledger
 

@@ -134,7 +134,12 @@ Stop as blocked when the same valid finding returns without head advancement or 
 
 ### 7. Land the PR
 
-After a clean review, tell the implementation thread to invoke `v1-land-pr` on the reviewed branch. Require it to:
+After a clean review, tell the implementation thread to invoke `v1-land-pr`
+on the reviewed branch. Pass the reviewed head SHA as context and the cumulative
+`remediation_pushes_used` (zero for the first landing). On every return, retain
+the updated count and latest head before starting another review or resuming
+landing. If the count is missing, recover it before another push; do not assume
+zero. Require the landing step to:
 
 - reuse or create the PR against the resolved base;
 - monitor required checks through completion;

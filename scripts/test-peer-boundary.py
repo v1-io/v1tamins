@@ -17,6 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "plugins/v1tamins/skills/v1-phone-a-friend/scripts"
 RUNNER = SCRIPTS / "peer-run.sh"
+sys.dont_write_bytecode = True
 sys.path.insert(0, str(SCRIPTS))
 
 import peer_adapters  # noqa: E402
@@ -143,6 +144,98 @@ class BoundaryManifestTests(unittest.TestCase):
             self.assertTrue(result["repo_changes"]["changed"])
             self.assertIn("tracked.txt", result["repo_changes"]["changed_paths"])
             self.assertIn("untracked.txt", result["repo_changes"]["changed_paths"])
+
+    def test_unreadable_provider_subtree_never_verifies_no_writes(self) -> None:
+        if os.geteuid() == 0:
+            self.skipTest("real unreadable directory requires an unprivileged process")
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            repo = make_repo(root / "repo")
+            home = root / "home"
+            closed = home / ".claude/closed"
+            closed.mkdir(parents=True)
+            state = closed / "state.txt"
+            state.write_text("before")
+            run_dir = root / "run"
+            with state.open("w") as writer:
+                closed.chmod(0)
+                try:
+                    with self.assertRaises(PermissionError):
+                        list(closed.iterdir())
+                    peer_boundary.take_snapshot(run_dir, repo, "claude", home)
+                    writer.write("changed through an already-open descriptor")
+                    writer.flush()
+                    os.fsync(writer.fileno())
+                    result = peer_boundary.verify_snapshot(run_dir)
+                finally:
+                    closed.chmod(0o700)
+            self.assertEqual(result["permission_state"], "containment_unverified", result)
+            self.assertIn("provider_manifest_unverified:0", result["containment_gaps"])
+            self.assertEqual(state.read_text(), "changed through an already-open descriptor")
+
+    def test_directory_enumeration_error_marks_manifest_incomplete(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            original_scandir = os.scandir
+            def denied(path):
+                if Path(path) == root:
+                    raise PermissionError("synthetic denied enumeration")
+                return original_scandir(path)
+            with patch.object(peer_boundary.os, "scandir", denied):
+                result = peer_boundary.scan_manifest(root)
+            self.assertTrue(result.errors)
+            self.assertFalse(result.truncated)
+
+    def test_undecodable_git_output_is_an_observation_gap(self) -> None:
+        original_run = subprocess.run
+        def invalid_output(_argv, **kwargs):
+            return original_run([sys.executable, "-c", "import sys; sys.stdout.buffer.write(bytes([255]))"], **kwargs)
+        with patch.object(peer_boundary.subprocess, "run", invalid_output):
+            self.assertIsNone(peer_boundary.git_output(Path("."), ["ls-files", "-z"]))
+
+    def test_raw_byte_path_does_not_collapse_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            repo = make_repo(root / "repo")
+            home = root / "home"
+            (home / ".claude").mkdir(parents=True)
+            target = os.fsencode(repo) + b"/file-\xff.txt"
+            try:
+                with open(target, "wb") as handle:
+                    handle.write(b"before")
+            except OSError as error:
+                if sys.platform == "darwin" and error.errno == 92:
+                    self.skipTest("filesystem rejects non-UTF-8 filenames; Ubuntu exercises this case")
+                raise
+            peer_boundary.take_snapshot(root / "run", repo, "claude", home)
+            with open(target, "wb") as handle:
+                handle.write(b"after")
+            result = peer_boundary.verify_snapshot(root / "run")
+            self.assertEqual(result["permission_state"], "containment_unverified", result)
+
+    def test_unsupported_symlink_target_prevents_verification(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            repo = make_repo(root / "repo")
+            home = root / "home"
+            (home / ".claude").mkdir(parents=True)
+            (repo / "link").symlink_to("target")
+            with patch.object(Path, "readlink", return_value=Path("target-\udcff")):
+                peer_boundary.take_snapshot(root / "run", repo, "claude", home)
+                result = peer_boundary.verify_snapshot(root / "run")
+            self.assertEqual(result["permission_state"], "containment_unverified", result)
+
+    def test_index_change_with_unchanged_worktree_is_detected(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            repo = make_repo(root / "repo")
+            home = root / "home"
+            (home / ".claude").mkdir(parents=True)
+            (repo / "tracked.txt").write_text("dirty-before")
+            peer_boundary.take_snapshot(root / "run", repo, "claude", home)
+            run_git(repo, "add", "tracked.txt")
+            result = peer_boundary.verify_snapshot(root / "run")
+            self.assertEqual(result["permission_state"], "readonly_violated", result)
 
     def test_provider_state_deletion_is_reported(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

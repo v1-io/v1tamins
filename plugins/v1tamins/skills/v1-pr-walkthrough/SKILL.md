@@ -35,3 +35,20 @@ Format:
     Before saving the file, scan each code block in the HTML source and confirm its CSS includes
     `white-space: pre` or `pre-wrap`.
 - Use callouts for key concepts or definitions, important edge cases, etc.
+
+
+## Verify and return
+
+After saving, confirm the reported file exists and remains self-contained.
+Apply the representative interaction and static-completeness checks in
+[HTML It's quality bar](../v1-html-it/SKILL.md#quality-bar). For this page,
+exercise a quiz answer from its default state, inspect correct/incorrect
+feedback, and check reset when offered. Check the narrow layout when relevant.
+If browser inspection is unavailable, report that limit; static checks do not
+verify the quiz. Do not install a browser or broaden permissions just to claim
+a pass.
+
+Return a link to the exact saved path, what the page explains, and which checks
+were observed versus unavailable. If the path is temporary, say so. Keep the
+explicit video handoff at the start of this workflow; a video request does not
+require creating or checking an HTML page first.

@@ -126,13 +126,13 @@ never collapse them into one claim.
 
 | Surface | What it is | Expected under `readonly` |
 | --- | --- | --- |
-| repository | tracked and nonignored untracked files plus the index and HEAD, excluding declared scratch | content/index changes are violations; ignored files remain an observation gap |
+| repository | checkout files, including ignored files and Git metadata inside the checkout, plus index and HEAD observations | observed changes are violations; incomplete scans remain a gap |
 | scratch | the run-specific directory | writes are fine and disposable |
+| provider state | the provider's own declared home-relative directories | provider-owned session and report files may appear |
 
 Keep scratch and the reviewed checkout disjoint, including after resolving
 symlinks. The runner rejects overlap before changing files or stopping a peer,
 so its snapshot and sentinels cannot count as unauthorized repository writes.
-| provider state | the provider's own home-relative directories | provider-owned session and report files may appear |
 
 Pass `--boundary-repo <path> --boundary-provider <name>` to `peer-run.sh launch`
 and it records the boundary through `scripts/peer_boundary.py` before anything
@@ -156,16 +156,12 @@ were reverted before verification. A sandbox flag and a prompt instruction are
 not proof, and Git state alone cannot see provider-owned artifacts.
 
 Repository evidence includes file-content and index fingerprints, so edits to
-already-dirty or untracked files cannot hide behind unchanged status labels.
-Symlink targets are fingerprinted without reading their destinations. Ignored
-files are enumerated but never read; their presence outside declared scratch
-reports `repository_ignored_files_unobserved` and `containment_unverified`.
-Unreadable content, non-UTF-8 Git path output or symlink targets, and unsupported
-entries also prevent verification. Path encodings are never replaced to make a
-fingerprint. These are before/after observations of declared surfaces, not
-proof against a transient write that was reverted or a write outside those
-surfaces. Provider-state
-reporting uses modification times and retains that observation limit.
+already-dirty files cannot hide behind unchanged status labels. Symlink targets
+are fingerprinted without reading their destinations; an escaping target makes
+the observation incomplete. Unreadable content, unsupported entries, and
+non-UTF-8 Git paths or symlink targets also prevent verification. Path encodings
+are never replaced to make a fingerprint. Provider manifests compare contents
+and deletions rather than relying only on modification times.
 
 `$HOME` is never redirected by default: a subscription peer keeps its login
 state there, and moving it would break the auth the run depends on. A provider

@@ -6,6 +6,7 @@ allowed-tools:
   - Read
   - Edit
   - Grep
+  - Agent
 ---
 # Refine
 
@@ -42,7 +43,16 @@ Review changed code (or named files) for reuse, quality, structure, cognitive co
 
 ### Review Passes
 
-Run the passes on the target. When the host supports subagents or parallel review workers, launch them with the same context before applying fixes; otherwise run sequentially. If they named a focus, still check the rest of the changed surface.
+Run the passes on the target directly by default. Use native review workers
+only when the user's request or the host's delegation policy authorizes them
+and independent review materially improves coverage. Give each worker a bounded
+read-only brief with the same target/source snapshot, focus, expected findings,
+and stopping point. Workers must not edit, install, publish, or launch more
+workers. Collect and verify their findings before the parent applies fixes.
+If delegation is unavailable or unauthorized, run the passes sequentially.
+External CLI peers follow `v1-phone-a-friend`'s separately authorized selection
+and execution contract; native workers do not silently open that workflow.
+If the user named a focus, still check the rest of the changed surface.
 
 #### 1. Reuse
 

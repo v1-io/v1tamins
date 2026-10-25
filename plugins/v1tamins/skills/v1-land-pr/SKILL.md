@@ -28,6 +28,14 @@ The user can invoke this command without arguments from the repository containin
 /v1-land-pr
 ```
 
+For an orchestrated or resumed run, accept the caller's
+`remediation_pushes_used` (integer 0–3). A genuinely new standalone run starts
+at zero. A resumed run must recover the existing count from its caller or
+prior handoff; if it is unknown, stop before another remediation push rather
+than reset it. Return the cumulative count and latest head on every exit,
+including blocked or failed exits, so the caller can carry the same limit
+through another review cycle. No new state file is required.
+
 ## Steps
 
 1. **Inspect Repository State**
@@ -51,6 +59,8 @@ The user can invoke this command without arguments from the repository containin
    - When a remote head exists, a local-ahead branch is expected: allow the push when `git merge-base --is-ancestor <fetched-head> HEAD` succeeds. If the local branch is behind or diverged, stop and report both SHAs; integrate remote commits only within the user's authorization.
    - Re-read the existing PR head immediately before pushing. If it changed from the fetched head, refresh the comparison before proceeding.
    - Never force-push. If a push is rejected, stop and report the rejection.
+   - Count remediation consistently at every push site, including this step on a resumed run. Initial publication of a clean implementation is not a remediation push; a push containing fixes for already observed check/review failures is, even if those commits were prepared during another review cycle.
+   - Before any remediation push, require a known cumulative count below three. At three, stop before publishing pending remediation commits. After a successful remediation push, increment exactly once and retain the updated count before entering monitoring or returning to the caller; do not reinitialize it in the CI loop.
    - Stage only intended files.
    - Commit with a concise message that describes the user-visible or operational value.
    - Push to the verified head destination and set upstream if needed: `git push -u <head-remote> HEAD:<head-branch>`.
@@ -76,7 +86,7 @@ The user can invoke this command without arguments from the repository containin
    - Record the PR head SHA used to build the ledger. If the head changes, rebuild the ledger before replying, resolving threads, or declaring review complete.
 
 5. **Remediate Failed Checks and Code Review Feedback**
-   - Make up to three remediation pushes.
+   - Make up to three cumulative remediation pushes, including pushes already used in earlier invocations of this run.
    - Inspect the failing check details before changing code. Prefer `gh run view --log-failed` or the failing job logs when available.
    - Remediate every valid or partial finding regardless of source. For invalid, duplicate, or already-fixed findings, verify the current code and explain the disposition instead of silently skipping the feedback.
    - Investigate failing checks from their concrete output before changing code; use the narrowest relevant debugging or review workflow.
@@ -97,7 +107,7 @@ The user can invoke this command without arguments from the repository containin
 Use three remediation attempts, not three polling attempts:
 
 ```text
-remediation_pushes = 0
+# remediation_pushes was resolved at intake and includes any Step 2 remediation push
 while remediation_pushes <= 3:
   monitor checks and all feedback surfaces for up to 3 minutes
   if required checks passed and the final review audit passed:
@@ -114,6 +124,7 @@ while remediation_pushes <= 3:
     stop and report failure
   fix valid findings, reply, resolve eligible threads, validate, commit, push
   remediation_pushes += 1
+  return the updated count and new head to the caller before any review/resume boundary
 ```
 
 Do not make speculative fixes without reading the failing check output. If the failure is unrelated to the branch, flaky, or infrastructure-owned, rerun the failed job once if appropriate and report the evidence instead of churning code.
@@ -135,6 +146,6 @@ Report:
 - PR URL and whether it remains draft or is ready for review.
 - Checks status.
 - Review ledger totals by disposition, reply status, and thread resolution status.
-- Number of remediation pushes used.
+- Cumulative number of remediation pushes used and remaining, plus the latest head SHA.
 - Configured tracker status only when explicitly requested; otherwise state that it was unchanged.
 - Any validation, feedback inventory, reply, or thread resolution that could not be completed.

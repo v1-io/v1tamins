@@ -52,6 +52,9 @@ class ProviderSpec:
     # level can only be reached through the model ID itself, so selection and
     # launch both refuse a level the ID does not already encode.
     effort_flag: str | None = None
+    # Some providers carry the level as a key/value assignment under their
+    # generic config option rather than as the option's direct value.
+    effort_config_key: str | None = None
     # Home-relative directories the provider writes its own state and reports
     # into. Declare only directories a provider actually documents; an empty
     # tuple is an honest "not declared", never an assumed-clean surface.
@@ -79,6 +82,8 @@ PROVIDERS: dict[str, ProviderSpec] = {
         None,
         ("doctor", "--json"),
         ("structural review", "correctness/security", "verification"),
+        effort_flag="--config",
+        effort_config_key="model_reasoning_effort",
         state_dirs=(".codex",),
         state_isolation="snapshot",
     ),

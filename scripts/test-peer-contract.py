@@ -809,7 +809,7 @@ class SubscriptionDiscoveryTests(unittest.TestCase):
         self.assertEqual(selected[0].launch_model_argument, "fake-alias")
         self.assertEqual(selected[0].representation, "alias")
 
-    def test_alias_level_still_rejected_without_a_provider_effort_option(self) -> None:
+    def test_codex_alias_level_uses_the_provider_config_transport(self) -> None:
         provider = make_provider(
             cli="codex",
             models=[],
@@ -818,13 +818,31 @@ class SubscriptionDiscoveryTests(unittest.TestCase):
             catalog_fingerprint=None,
             reasoning_levels=[],
         )
-        outcome = peer_catalog.choose_model(provider, "custom", "fake-alias", "high")
-        self.assertEqual(outcome.code, "reasoning_level_unsupported")
-        # The same alias with the level encoded in the ID resolves.
-        resolved = peer_catalog.choose_model(
-            provider, "custom", "fake-alias-high", "high"
+        outcome = peer_catalog.choose_model(
+            provider, "custom", "synthetic-alias", "high"
         )
-        self.assertEqual(resolved.launch_model, "fake-alias-high")
+        self.assertEqual(outcome.model, "synthetic-alias")
+        self.assertEqual(outcome.reasoning, "high")
+        self.assertEqual(outcome.launch_model, "synthetic-alias")
+
+    def test_codex_rejects_reasoning_level_outside_current_evidence(self) -> None:
+        provider = make_provider(
+            cli="codex",
+            models=[
+                {
+                    "id": "synthetic-codex-model",
+                    "family": "synthetic",
+                    "rank": 0,
+                    "reasoning_levels": ["low", "high"],
+                }
+            ],
+            reasoning_levels=["low", "high"],
+        )
+        outcome = peer_catalog.choose_model(
+            provider, "custom", "synthetic-codex-model", "max"
+        )
+        self.assertEqual(outcome.code, "reasoning_level_unsupported")
+        self.assertEqual(list(outcome.alternatives), ["low", "high"])
 
     def test_selection_without_a_launch_argument_is_typed_and_ineligible(self) -> None:
         # The catalog advertises a level the model argument cannot carry.
@@ -1063,6 +1081,67 @@ class PeerLaunchTests(unittest.TestCase):
             ("codex", "exec", "--sandbox", "read-only", "--cd", "/synthetic/repo"),
         )
         self.assertIn("--json", recipe.argv)
+
+    def test_codex_transports_reasoning_separately_without_changing_model(self) -> None:
+        model = "synthetic-codex-model"
+        recipe = self.recipe(
+            "codex",
+            model=model,
+            reasoning="high",
+            context=peer_launch.LaunchContext(repo="/synthetic/repo"),
+        )
+        self.assertIsInstance(recipe, peer_launch.LaunchRecipe)
+        self.assertEqual(recipe.launch_model_argument, model)
+        self.assertEqual(recipe.reasoning_argument, "high")
+        self.assertIn("--model", recipe.argv)
+        self.assertEqual(recipe.argv[recipe.argv.index("--model") + 1], model)
+        self.assertIn("--config", recipe.argv)
+        self.assertEqual(
+            recipe.argv[recipe.argv.index("--config") + 1],
+            "model_reasoning_effort=high",
+        )
+        self.assertFalse(any(token.endswith("-high") for token in recipe.argv))
+        self.assertEqual(recipe.argv[-1], "SYNTHETIC PROMPT")
+
+    def test_codex_syntax_probe_checks_the_config_transport(self) -> None:
+        recipe = self.recipe(
+            "codex",
+            model="synthetic-codex-model",
+            reasoning="high",
+            context=peer_launch.LaunchContext(repo="/synthetic/repo"),
+        )
+        with mock.patch.object(
+            peer_launch,
+            "help_surface",
+            return_value="usage\n"
+            + "\n".join(peer_launch.recipe_flags(recipe))
+            + "\n",
+        ):
+            outcome = peer_launch.validate_syntax(recipe)
+        self.assertIsInstance(outcome, peer_launch.LaunchRecipe)
+        self.assertEqual(outcome.syntax_validation, "verified")
+        self.assertIn("--config", peer_launch.recipe_flags(recipe))
+
+    def test_codex_rejects_config_injection_in_reasoning_value(self) -> None:
+        for reasoning in ("model_provider=evil", "high\nmodel_provider=evil"):
+            outcome = self.recipe(
+                "codex",
+                model="synthetic-codex-model",
+                reasoning=reasoning,
+                context=peer_launch.LaunchContext(repo="/synthetic/repo"),
+            )
+            self.assertIsInstance(outcome, peer_launch.LaunchError, reasoning)
+            self.assertEqual(outcome.code, "launch_recipe_unresolved")
+
+    def test_reasoning_placeholder_is_not_a_launch_value(self) -> None:
+        outcome = self.recipe(
+            "codex",
+            model="synthetic-codex-model",
+            reasoning=peer_launch.DOC_REASONING,
+            context=peer_launch.LaunchContext(repo="/synthetic/repo"),
+        )
+        self.assertIsInstance(outcome, peer_launch.LaunchError)
+        self.assertEqual(outcome.code, "launch_recipe_unresolved")
 
     def test_cursor_never_synthesizes_an_effort_model_argument(self) -> None:
         outcome = self.recipe("cursor-agent", model="fake-strong", reasoning="high")
