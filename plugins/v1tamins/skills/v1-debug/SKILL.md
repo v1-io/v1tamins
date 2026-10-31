@@ -10,8 +10,7 @@ allowed-tools:
 # Debug Anything
 
 Turn a surprising outcome into a tested causal explanation and the smallest
-durable correction. Same causal loop in every domain; the appendix has the
-loop and correction shapes.
+change that removes the origin. The appendix has domain-specific feedback loops.
 
 Default to diagnosis. Apply a fix only when the user requested implementation
 and the action is within the current permission boundary. Never let source
@@ -52,25 +51,26 @@ failure. Resolve the goal, contract, or decision first.
 
 ### 2. Observe
 
-Create the smallest repeatable signal that distinguishes broken from working.
-The loop must represent the real symptom, not a nearby proxy. Use the domain
-appendix for loop and correction shapes.
+For stored-state failures, read the
+[worked example](references/upstream-origin-example.md) before building the reproduction.
+
+Create the smallest repeatable signal for the real symptom. For software,
+reproduce through the reporter's entry on unchanged code. Use synthetic data
+with the evidence's type, encoding, and structure, plus one variant input.
+Reject contradicted placeholders. If that entry cannot run anywhere, use the
+nearest runnable entry and state the limit. A path that bypasses the proposed
+change cannot prove the fix.
 
 Prefer structured primary evidence:
 
-- Runtime state, test output, traces, metrics, timestamps, records, and direct
-  observations.
-- The exact input, environment, actors, sequence, permissions, and dependencies
-  present at failure time.
-- A matched working case, previous healthy period, or control group when
-  available.
-- Prior attempts and what each one actually changed.
-- Recent code/config/process changes when the timeline or a hypothesis
-  implicates a change — scoped to the failing area.
+- Runtime state, traces, tests, timestamps, and direct observations.
+- Failure-time inputs, environment, actors, sequence, permissions, and dependencies.
+- A matched working case or healthy baseline.
+- Prior attempts and what each changed.
+- Recent changes implicated by the timeline or a hypothesis, scoped to the failing area.
 
-For intermittent problems, increase observation density: repeat the trigger,
-narrow the time window, pin relevant conditions, sample more frequently, or
-compare matched cases.
+For intermittent failures, repeat the trigger, narrow the window, pin conditions,
+or compare matched cases.
 
 Label reported claims as reported. Don't promote a ticket, memory, screenshot,
 dashboard, or stakeholder explanation into fact without checking the strongest
@@ -87,22 +87,16 @@ missing artifact, access, observation, or safe experiment.
 
 ### 3. Assumption Audit
 
-Before forming hypotheses, list the concrete beliefs the current mental model
-depends on. When the cause is immediately observable and verified, record that
-and move on; run the full audit when the cause is not obvious or a first round
-of hypotheses has failed.
+List the beliefs the current explanation depends on. If the cause is directly
+observed and verified, record that and continue. Otherwise, audit assumptions.
 
 | Belief that must be true | Status | Evidence or next probe | Consequence if false |
 | --- | --- | --- | --- |
 | `<specific belief>` | verified / assumed / contradicted | `<source or test>` | `<what changes>` |
 
-Check assumptions about goal and success definition, measurement accuracy,
-initial state and sequence, what a component/rule/person/handoff actually does,
-ownership/incentives/permissions/timing, dependencies/environment/capacity, and
-whether the failure and proposed cause occur together consistently.
-
-Test the unverified assumption that would change the most if wrong first. Many stuck
-investigations are correct hypotheses sitting on a false premise.
+Check goals, measurements, initial state, sequence, actual behavior, ownership,
+permissions, timing, dependencies, and whether cause and failure consistently
+coincide. Test the assumption whose failure would change the explanation most.
 
 ### 4. Hypothesize and Probe
 
@@ -120,13 +114,12 @@ Include measurement failure, wrong initial conditions, external dependencies,
 interaction effects, and goal/contract mismatch when the evidence warrants
 them. Don't use a catch-all category merely to fill the list.
 
-Debug systems, not people: treat blame, motivation, and incompetence as weak
-hypotheses until mechanisms, incentives, information, tools, and constraints
-have been tested.
+For bad values or state, include an upstream producer hypothesis. For stored
+values, search assignments, casts, jobs, and imports by field or symbol, then
+inspect the writer's `git log` or `git blame`.
 
-Share the ranking when their domain knowledge could cheaply improve it,
-but continue with the best current probe when you don't need an answer to
-proceed.
+Test mechanisms, incentives, tools, and constraints before blaming people.
+Share the ranking when domain knowledge can improve it. Otherwise continue.
 
 Probe one hypothesis at a time with the smallest discriminating test:
 
@@ -139,7 +132,9 @@ Probe one hypothesis at a time with the smallest discriminating test:
 - Reconstruct the event timeline when order or delay may be causal.
 
 State the prediction before running the probe. Record what the result rules in
-or out. A change that improves the symptom while violating the prediction is a
+or out. Masked, blocked, or unavailable evidence leaves a hypothesis open and
+unverified. Never bypass that boundary through another access path.
+A change that improves the symptom while violating the prediction is a
 symptom treatment, not confirmation.
 
 After two or three exhausted hypotheses, stop generating variants of the same
@@ -147,7 +142,9 @@ story. Revisit Frame, Observe, and the assumption audit.
 
 ### 5. Explain and Validate
 
-For a localized problem, express the chain with no unexplained jump:
+Localization ends when you name where correct input or state first becomes
+wrong, how that causes the symptom, and why that behavior is wrong. Express
+the chain without unexplained jumps:
 
 ```text
 trigger -> enabling condition -> mechanism -> invalid state or action -> symptom
@@ -156,7 +153,14 @@ trigger -> enabling condition -> mechanism -> invalid state or action -> symptom
 When one chain cannot explain the pattern, separate primary causes (removal
 changes the outcome) from contributing factors. A useful root cause is the
 deepest supported condition you can act on inside the system, and it explains
-the observed pattern better than the alternatives.
+the observed pattern better than the alternatives. Name each contributing
+cause and which one the change removes.
+
+When the origin or proposed change involves shared code, search before correction
+by symbol for the same rule, query, guard, or send path. Mark each site
+`in the change`, `unaffected` with a reason, or `excluded` with a reason.
+Symptom-producing sites stay in the change regardless of size. Otherwise,
+state that no shared code is involved.
 
 Validate with one or more of:
 
@@ -172,14 +176,21 @@ observed end to end and the intervention behaves as predicted.
 ### 6. Correct and Close
 
 Don't mutate anything unless implementation was requested and authorized.
-When it is, apply the smallest durable correction for the domain (see appendix).
-Keep the correction scoped to the causal explanation. Record rollback or stop
-conditions for any experiment or operational change.
+On handoff, re-run the causal check on your own reproduction. Stop if the origin
+differs. Remove each proven origin within authorization. Diff size alone never
+excludes an origin. Record rollback or stop conditions for operational changes.
+
+A fix removes the tested origin. Catching and continuing silently, filtering
+or deduplicating on read, or leaving
+the defect behind a disabled flag is mitigation unless protected work is queued,
+retried, or alerted. Name the remaining origin and its fix owner.
+An unresolved result with the exact evidence gap or required decision, or a
+labelled mitigation, is a complete investigation result.
 
 Then:
 
 - Re-run the Step 5 validation against the applied correction.
-- Check adjacent paths or cases that share the cause.
+- Verify every site marked `in the change`.
 - Remove temporary `[DEBUG-...]` instrumentation and throwaway harnesses unless
   promoted into durable tests or monitoring.
 - Distinguish fixed, mitigated, monitored, and unresolved outcomes.
@@ -193,20 +204,18 @@ Use this final shape:
 **Evidence**: <strongest observations and baseline>
 **Assumption audit**: <important verified, assumed, or contradicted beliefs>
 **Root cause**: <tested causal chain>
+**Same-logic sites**: <sites and dispositions, or no shared code>
+**Fix class**: <fixed / mitigated / monitored / unresolved; remaining origin and fix owner for mitigation>
 **Fix or experiment**: <change made, proposed, or diagnosis only>
 **Validation**: <feedback loop and result>
 **Residual uncertainty**: <unknowns and reopen signal>
 **Confidence**: <high / medium / low with reason>
 ```
 
-Omit sections with nothing to report, such as the assumption audit when none
-was needed.
+Keep Fix class and Same-logic sites. Omit other empty sections.
 
-If the investigation is stuck, revisit Frame, Observe, and Assumption Audit
-before inventing new hypothesis variants. Common traps: undefined expected
-behavior, weak observability, contradictory evidence from mixed populations,
-hypotheses spanning unrelated subsystems, symptom treatments that violate their
-prediction, and remedies that only work under a hidden condition.
+If stuck, revisit Frame, Observe, and Assumption Audit. Report the exact gap
+rather than inventing variants of an exhausted hypothesis.
 
 ## Domain Appendix
 
