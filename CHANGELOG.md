@@ -1,5 +1,11 @@
 # v1tamins
 
+## 0.15.3
+
+### Patch Changes
+
+- 6d4b072: Require upstream hypotheses, reporter-shaped reproductions, and shared-logic coverage before debugging fixes. Add explicit mitigation ownership, evidence-gap exits, and a synthetic worked example.
+
 ## 0.15.2
 
 ### Patch Changes
