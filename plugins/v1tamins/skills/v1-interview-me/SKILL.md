@@ -33,6 +33,10 @@ Can also be triggered conversationally: "I have an idea for X", "help me spec ou
 
 **Gather context first — explore, don't ask.** If a question can be answered by reading the codebase, the issue tracker, or existing docs, explore instead of asking. Only interview for what requires the user's judgment, intent, or domain knowledge.
 
+## When another skill calls
+
+Another skill, such as `v1-explainer-video`, can run this interview for its own choices. The caller supplies the known context, the choices to resolve with a recommended answer for each, and any skip option. Skip posture classification, with-docs mode, completion, output format, and next steps. Run the [interview loop](references/interview-loop.md) on the caller's choices only, offer the skip option in every round, and return each choice as decided, deferred, or blocked. The caller owns the rest of the workflow.
+
 ## Choose the interview posture
 
 Classify the session before asking the first question:
