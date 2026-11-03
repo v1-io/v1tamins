@@ -351,8 +351,9 @@ The full authoring workflow is in
 Use [`/v1-bigxtha-plugin`](plugins/v1tamins/skills/v1-bigxtha-plugin/SKILL.md)
 when the question spans plugin capabilities, shared resources, or handoffs.
 It passes bounded skill edits to the authoring owner and retains responsibility
-for the plugin result. GitHub
-Issues are the public [issue tracker](docs/agents/issue-tracker.md).
+for the plugin result. Report bugs
+and requests through GitHub Issues; maintainers triage them as described in
+the [issue tracker guide](docs/agents/issue-tracker.md).
 
 ## Validation
 

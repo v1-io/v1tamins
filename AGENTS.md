@@ -76,5 +76,6 @@ its image.
 
 ## Tracker
 
-Use the public GitHub Issues route in `docs/agents/issue-tracker.md`.
-For triage labels, read `docs/agents/triage-labels.md`.
+Track accepted work in Linear with the `repo:v1tamins` label. GitHub Issues are
+public intake only; triage them with `docs/agents/issue-tracker.md`. For triage
+labels, read `docs/agents/triage-labels.md`.
