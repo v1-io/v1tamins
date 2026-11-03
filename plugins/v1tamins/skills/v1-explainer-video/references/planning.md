@@ -7,11 +7,11 @@ The brief is the set of production choices below. Resolve each choice from the f
 | Choice | Fallback |
 |---|---|
 | Audience and technical depth | An informed colleague who has not followed the work |
-| Question and takeaway | Inferred from the request (see step 2 of `SKILL.md`) |
-| Story approach | One worked example that changes on screen |
+| Angle: question, takeaway, worked example, and visual world | Inferred from the request (see step 2 of `SKILL.md`) |
 | Tone and humor | Warm, deadpan, at most one small gag ([style.md](style.md)) |
 | Visual style | The illustrated everyday system ([style.md](style.md)) |
 | Brand | None. Use the generic recipe |
+| Destination and length | A landscape 1080p video whose length the story sets |
 | Narration | Provider and voice resolved through [speech.md](speech.md) |
 
 ## Interview by default
@@ -25,11 +25,30 @@ Interview the user unless one of these applies:
 
 In those cases, go to [Decide and proceed](#decide-and-proceed).
 
-Run the interview through `v1-interview-me` as a calling skill. Pass it the context you have, the open choices, a recommended answer for each, and the skip option below.
+Run the interview through `v1-interview-me` as a calling skill. Pass it the context you have, the open choices, your options and recommendation for each, and the skip option below. Act as a creative director pitching ideas, not a form collecting fields.
 
-- Look up what the context, project, and sources answer. Ask only about choices that need the user's judgment.
-- Ask about brand assets in the first round unless the brief already settles them. See [Discover brand sources](#discover-brand-sources).
-- Offer **Just make it: you decide the rest** in every round. When the user picks it, decide and proceed at once.
+### Understand the subject first
+
+Before the first question, read the sources and work out how the subject really works: the mechanism, what surprises people, where newcomers go wrong, and which concrete cases show it best. Settle everything the context, project, and sources answer. Ask only about choices that need the user's judgment.
+
+### Pitch the angle
+
+Open with two or three pitches for the video. Each pitch is a takeaway, a worked example, and a visual world or metaphor, with one sentence on why it works and what it gives up. Make the pitches take really different angles, such as showing the failure, the hidden mechanism, or the before and after, not three versions of one idea. Recommend one and say why.
+
+In the same round, ask about brand assets and the destination unless the brief already settles them. See [Discover brand sources](#discover-brand-sources). The destination, such as a chat thread, a meeting, documentation, or social media, sets length, aspect ratio, and how much the captions must carry.
+
+### Refine from the answers
+
+Ask next only about what the chosen pitch leaves open or what the user's answer changed. Let each answer shape the next question:
+
+- When the user merges or rewrites pitches, ask what drew them to the parts they kept, then pitch again around those parts.
+- When the user names an audience, ask what that audience already believes or doubts about the subject.
+- When the user asks for everything, propose a short series or move the extras into supporting notes, and say what the single video gains.
+- When the user supplies a real case, check whether it shows the mechanism better than your example, and say so either way.
+
+Give every question two or three concrete options that only this subject could produce, with a recommendation and its reason. Replace a question any video could get, such as "What tone do you want?", with options for this subject, such as a deadpan joke about the subject's own quirk. Push back once, with a reason, when a choice would weaken the explanation. Offer **Just make it: you decide the rest** in every round. When the user picks it, decide and proceed at once.
+
+### Review the storyboard
 
 When the choices are closed, draft the storyboard ([storyboard.md](storyboard.md)) with its narration. Show the user the storyboard table, the narration, and the brief with each choice's source. Revise until the user approves it or says to just make it. Then continue to rough frames.
 
