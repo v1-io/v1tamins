@@ -13,7 +13,7 @@ When another skill supplies the context, reuse its audience, question, takeaway,
 
 ## 1. Plan with the user
 
-Read [planning.md](references/planning.md) and resolve the brief before you write scenes. By default, interview the user through `v1-interview-me` about the choices the context leaves open, including whether the video should follow brand assets. Offer to just make the video in every round. Skip the interview when the user asks you to decide, when a standing preference or a calling skill says not to ask, or when the host cannot ask questions.
+Read [planning.md](references/planning.md) and resolve the brief before you write scenes. By default, interview the user through `v1-interview-me` about the choices the context leaves open, including whether the video should follow brand assets. Offer to just make the video in every round. Skip the interview when the user asks you to decide, when a standing preference, a calling skill, or a script says not to ask, or when the host cannot ask questions.
 
 ## 2. Establish the lesson
 

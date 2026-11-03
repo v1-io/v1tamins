@@ -13,7 +13,7 @@ The brief is the set of production choices below. Resolve each choice from the f
 | Brand | None. Use the generic recipe |
 | Destination and length | A landscape 1080p video whose length the story sets |
 | Must include or avoid | Anonymize private details and label hypothetical examples |
-| Narration | Provider and voice resolved through [speech.md](speech.md). Ask only when no usable provider exists |
+| Narration | Provider and voice resolved through [speech.md](speech.md). In an interview, ask only when no usable provider exists |
 
 ## Interview by default
 
@@ -64,7 +64,7 @@ Ask next only about what the chosen pitch leaves open or what the user's answer 
 - When the user supplies a real case, check whether it shows the mechanism better than your example, and say so either way.
 - When an answer reveals a different objective, name the shift and reframe the pitches around it.
 
-Give every question two or three concrete options that only this subject could produce, with a recommendation and its reason. Replace a question any video could get, such as "What tone do you want?", with options for this subject, such as a deadpan joke about the subject's own quirk. Push back once, with a reason, when a choice would weaken the video. Offer **Just make it: you decide the rest** in every round. When the user picks it, decide and proceed at once.
+Give every question two or three concrete options that only this subject could produce, with a recommendation and its reason. Replace a question any video could get, such as "What tone do you want?", with options for this subject, such as a deadpan joke about the subject's own quirk. Push back once, with a reason, when a choice would weaken the video. Offer **Just make it: you decide the rest** as an option on the first question of every round. When the user picks it, decide and proceed at once.
 
 ### Present the creative brief and storyboard
 
@@ -74,7 +74,7 @@ When the choices are closed, draft the storyboard ([storyboard.md](storyboard.md
 
 Fill each open choice with the fallback or with your best judgment for the subject. Do not ask more questions or wait for storyboard approval. In the delivery note, list the choices you made and why, so the user can ask for a revised cut.
 
-Blockers still stop the run: a requested speech provider that is unavailable ([speech.md](speech.md)), or a selected brand source you cannot read.
+Blockers still stop the run: a requested speech provider that is unavailable or no usable speech path at all ([speech.md](speech.md)), or a selected brand source you cannot read.
 
 ## Discover brand sources
 
@@ -91,4 +91,4 @@ Accept any source the user can point to:
 
 Read the source with the tools the host has, such as a connector, an export, a browser, or files the user supplies. Write a short brand note: logo files to use, colors and their roles, typefaces and fallbacks, illustration treatment, and anything the source forbids. Mark which parts came from the source and which you inferred. In interview mode, show the brand note with the storyboard.
 
-When only some parts are available, apply those, leave out the rest, and list each gap in the delivery note. Never redraw a logo or guess a brand color. When you cannot read the selected source at all, ask for another route while the interview is still running, such as an export, screenshots, or the files. After the user says to just make it, or without an interview, stop with a blocker that names the source and what failed.
+When only some parts are available, apply those, leave out the rest, and list each gap in the delivery note. Never redraw a logo or guess a brand color. When you cannot read the selected source at all, ask for another route while the user is still answering, in the interview or the storyboard review, such as an export, screenshots, or the files. After the user says to just make it, or without an interview, stop with a blocker that names the source and what failed.
