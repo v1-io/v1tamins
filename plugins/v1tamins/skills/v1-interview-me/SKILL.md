@@ -35,7 +35,7 @@ Can also be triggered conversationally: "I have an idea for X", "help me spec ou
 
 ## When another skill calls
 
-Another skill, such as `v1-explainer-video`, can run this interview for its own choices. The caller supplies the known context, the choices to resolve with a recommended answer for each, and any skip option. Skip posture classification, with-docs mode, completion, output format, and next steps. Run the [interview loop](references/interview-loop.md) on the caller's choices only, offer the skip option in every round, and return each choice as decided, deferred, or blocked. The caller owns the rest of the workflow.
+Another skill, such as `v1-explainer-video`, can run this interview for its own choices. The caller supplies the known context, the choices to resolve with a recommended answer for each, and any skip option. Skip posture classification, with-docs mode, completion, output format, and next steps. Run the [interview loop](references/interview-loop.md) on the caller's choices only, offer the skip option in every round, and stop when every caller choice is closed or the user picks the skip option. Return each choice as decided, deferred, or blocked. The caller owns the rest of the workflow.
 
 ## Choose the interview posture
 
