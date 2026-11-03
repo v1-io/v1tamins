@@ -20,8 +20,17 @@ Use warm, direct, deadpan narration. Explain the visible mechanism before adding
 
 Humor should illuminate the idea rather than mock users, affected people, or the seriousness of harm. Reduce or omit it for sensitive subjects and formal audiences. Never let a joke remove uncertainty or imply a result that the evidence does not support.
 
+## Apply a selected brand
+
+When the brief selects a brand, its brand note ([planning.md](planning.md#discover-brand-sources)) replaces this recipe's palette and typefaces and adds a logo. Keep the recipe's drawing, motion, and voice unless the brand defines its own illustration or imagery treatment.
+
+- Use logo files exactly as supplied, with the clear space and color variants the source requires. Show the logo where it helps, usually the opening and closing frames, not in every scene.
+- Give brand colors roles: background, ink, and the accents that carry meaning. Check text contrast, and use a brand neutral when a brand color is too weak for labels or captions.
+- Use brand typefaces for headings and labels when their font files are available. Keep captions in the most readable face the brand allows.
+- Brand the video's own frame. Show product screenshots and recreated interfaces as they really appear, so viewers recognize them.
+
 ## Apply and check
 
-Before full production, render a representative frame and a short motion beat with the chosen palette, type, objects, and caption position. Check legibility, continuity, the metaphor's causal meaning, and whether the humor helps the explanation. This is a production check, not another user approval gate.
+Before full production, render a representative frame and a short motion beat with the chosen palette, type, objects, caption position, and brand when one is selected. Check legibility, continuity, the metaphor's causal meaning, and whether the humor helps the explanation. This is a production check, not another user approval gate.
 
 Reject a metaphor if it needs more explanation than the actual process. Avoid sprawling whiteboards, stock office characters, status-card dashboards, boxes joined by lines, decorative slogans, and scenery competing with the action. Keep the drawing, timing, and voice coherent while letting each subject determine its own visual world.
