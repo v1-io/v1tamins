@@ -64,6 +64,37 @@ class PortabilityTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("scripts/helper.sh:1:", result.stderr)
 
+    def test_private_tracker_references_fail_in_every_tracked_file(self):
+        self.write("CHANGELOG.md", "- Fixed the peer verdict (VER-4967).\n")
+        self.write(".changeset/x.md", "See https://linear.app/example/issue/ABC-1\n")
+        self.write("docs/notes.md", "Moved to Linear as VER-1234, for example.\n")
+        self.write("docs/untracked.md", "VER-1\n", tracked=False)
+        failures = portability.check(self.root)
+        self.assertEqual(len(failures), 3)
+        self.assertTrue(all("private tracker" in failure for failure in failures))
+
+    def test_similar_public_identifiers_pass(self):
+        self.write(
+            "README.md",
+            "UTF-8, SHA-256, RFC-2119, CVE-2024-1234, SERVER-12, ver-12, VERSION-2.\n"
+            "Do not track work for this repository in Linear.\n",
+        )
+        self.assertEqual(portability.check(self.root), [])
+
+    def test_stdin_mode_checks_pr_and_commit_text(self):
+        script = str(Path(portability.__file__))
+        bad = subprocess.run(
+            ["python3", script, "--stdin"], input="docs: close #91 (moved to VER-4972)\n",
+            capture_output=True, text=True,
+        )
+        self.assertEqual(bad.returncode, 1)
+        self.assertIn("stdin:1:", bad.stderr)
+        good = subprocess.run(
+            ["python3", script, "--stdin"], input="docs: close #91 as fixed by #117\n",
+            capture_output=True, text=True,
+        )
+        self.assertEqual(good.returncode, 0)
+
     def test_invalid_utf8_is_blocking(self):
         self.write("AGENTS.md", "placeholder")
         (self.root / "AGENTS.md").write_bytes(b"\xff")

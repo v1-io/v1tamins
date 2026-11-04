@@ -29,7 +29,9 @@ incident details, absolute home paths, or private-project instructions.
 
 Shared guidance must use packaged skills or documented public dependencies.
 The bounded checker in `scripts/check-shared-portability.py` rejects known
-personal dependencies and home paths; it does not replace reviewing the diff.
+personal dependencies, home paths, and private tracker references (Linear URLs
+and `VER-` issue keys, also in PR and commit text); it does not replace
+reviewing the diff.
 Document installation and missing-dependency behavior before extending its
 public companion allowance.
 
