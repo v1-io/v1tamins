@@ -2,8 +2,11 @@
 """Reject personal dependencies and operator paths in shared instructions/code.
 
 Historical changelog entries are deliberately outside this scope.
+Blocked references are checked in every tracked file, and in PR or commit
+text passed with `--stdin`, because all of it is public.
 This is a bounded regression guard, not a complete dependency/privacy audit.
 """
+import os
 import re
 import subprocess
 import sys
@@ -24,6 +27,20 @@ CHECKER_FIXTURES = {
     "scripts/test-check-shared-portability.py",
 }
 USER_HOME = re.compile(r"(?:/Users/|/home/)[A-Za-z0-9][A-Za-z0-9._-]*/|[A-Za-z]:\\Users\\[A-Za-z0-9][A-Za-z0-9._-]*\\")
+# References the maintainers keep out of this public repository. The pattern
+# comes from the environment (a CI secret) so no committed file names it.
+BLOCKED_PATTERN = os.environ.get("BLOCKED_REFERENCE_PATTERN", "")
+BLOCKED_REFERENCE = re.compile(BLOCKED_PATTERN) if BLOCKED_PATTERN else None
+
+
+def blocked_reference_failures(label: str, text: str) -> list[str]:
+    if BLOCKED_REFERENCE is None:
+        return []
+    return [
+        f"{label}:{number}: remove a reference the maintainers keep private; this repository is public"
+        for number, line in enumerate(text.splitlines(), 1)
+        if BLOCKED_REFERENCE.search(line)
+    ]
 
 
 def active_guidance(path: str) -> bool:
@@ -52,6 +69,11 @@ def check(root: Path) -> list[str]:
     } | EXTERNAL_SKILLS
     failures = []
     for path in paths:
+        if path and path not in CHECKER_FIXTURES and (root / path).is_file():
+            try:
+                failures.extend(blocked_reference_failures(path, (root / path).read_text(encoding="utf-8")))
+            except UnicodeDecodeError:
+                pass
         if not active_guidance(path) or not (root / path).is_file():
             continue
         try:
@@ -72,8 +94,11 @@ def check(root: Path) -> list[str]:
 
 
 if __name__ == "__main__":
-    root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
-    failures = check(root)
+    if sys.argv[1:] == ["--stdin"]:
+        failures = blocked_reference_failures("stdin", sys.stdin.read())
+    else:
+        root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
+        failures = check(root)
     if failures:
         print("\n".join(failures), file=sys.stderr)
     sys.exit(bool(failures))
