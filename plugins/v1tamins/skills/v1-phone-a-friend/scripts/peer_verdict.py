@@ -270,6 +270,14 @@ def object_answer_family(obj: Any) -> str | None:
         if terminal_text(payload):
             return "result_event_nested"
 
+    # Codex nests each item under ``item``; only an agent message answers.
+    # Reasoning and tool items are progress, not the peer's reply.
+    item = obj.get("item")
+    if item_completed and isinstance(item, dict):
+        if envelope_type(item) == "agent_message" and terminal_text(item.get("text")):
+            return "item_completed"
+        return None
+
     for key in ANSWER_KEYS:
         if key in obj and terminal_text(obj[key]):
             if item_completed:
