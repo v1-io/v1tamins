@@ -1,8 +1,13 @@
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
 
 jobs:
   validate:
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    env:
+      BLOCKED_REFERENCE_PATTERN: ${{ secrets.BLOCKED_REFERENCE_PATTERN }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -28,6 +33,15 @@ jobs:
           bash scripts/test-peer-run.sh
           python3 scripts/test-artifact-converters.py
           python3 scripts/test-with-server.py
+      - name: Check PR and commit text for blocked references
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          { printf '%s\n%s\n' "$PR_TITLE" "$PR_BODY"; git log --format=%B "origin/$BASE_REF..HEAD"; } \
+            | python3 scripts/check-shared-portability.py --stdin
       - name: Require a changeset for plugin content changes
         if: github.event_name == 'pull_request'
         env:

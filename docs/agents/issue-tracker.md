@@ -6,9 +6,8 @@ This is a **public** repository. Issues live as GitHub Issues on
 `v1-io/v1tamins`, so contributors outside the company can read and file them.
 Use the `gh` CLI for all operations.
 
-Do not track work for this repository in Linear. Linear is private, and a public
-repository whose real discussion happens somewhere invisible is worse than no
-tracker at all.
+Track all work for this repository in GitHub Issues. A public repository whose
+real discussion happens somewhere invisible is worse than no tracker at all.
 
 ## Conventions
 
@@ -34,8 +33,8 @@ This repository is world-readable. Before writing anything to an issue:
 - Keep examples sanitized. The repository already holds a `Public-safe` term for
   this; use it as the standard.
 
-If a piece of work cannot be described without private detail, track it in
-Linear instead and reference it here only by an opaque identifier.
+If a piece of work cannot be described without private detail, keep it out of
+this repository entirely: no issue, comment, commit, or PR text refers to it.
 
 ## Pull requests as a request surface
 
