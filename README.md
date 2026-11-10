@@ -12,7 +12,7 @@
 **Small, reusable skills for healthier AI-assisted development.**
 
 v1tamins is an open-source plugin for [Claude Code](https://claude.ai/code) and
-[Codex](https://openai.com/codex/). It packages 42 focused skills for planning,
+[Codex](https://openai.com/codex/). It packages 41 focused skills for planning,
 debugging, reviewing, shipping, research, documentation, and product work. Use
 one skill for a specific job or combine several into a repeatable workflow.
 
@@ -168,7 +168,7 @@ These common entry points cover much of the day-to-day work:
 | Bug to verified fix | `/v1-debug` → `/v1-write-tests` → `/v1-refine` → `/v1-deep-review` |
 | Planned unit to mergeable PR | `/v1-implement-unit` (includes review and landing phases) |
 | PR review hand-off | `/v1-deep-review` → `/v1-address-review` → `/v1-land-pr` |
-| Learning loop | `/v1-goldpan` (includes compounding) → `/v1-docs-freshness` → `/v1-changelog` |
+| Learning loop | `/v1-goldpan` (includes compounding) → `/v1-docs-freshness` |
 
 These are useful paths, not a required framework. Start with the smallest skill
 that matches the job.
@@ -248,7 +248,6 @@ that matches the job.
 | [`/v1-explainer-video`](plugins/v1tamins/skills/v1-explainer-video/SKILL.md) | A concept, process, or PR benefits from a narrated animated explanation. |
 | [`/v1-goldpan`](plugins/v1tamins/skills/v1-goldpan/SKILL.md) | Recent work needs scanning for lessons worth documenting. |
 | [`/v1-docs-freshness`](plugins/v1tamins/skills/v1-docs-freshness/SKILL.md) | Existing documentation needs synchronization with shipped behavior. |
-| [`/v1-changelog`](plugins/v1tamins/skills/v1-changelog/SKILL.md) | Merged PRs need release notes. |
 
 </details>
 
