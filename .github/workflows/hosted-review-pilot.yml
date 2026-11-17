@@ -1,0 +1,45 @@
+name: Disposable hosted review pilot
+
+on:
+  push:
+    branches: ['**/codex-review-pilot-harness-*']
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  open-bot-pr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PILOT_HARNESS_REF: ${{ github.ref_name }}
+    steps:
+      - name: Open isolated bot-authored test PR and request hosted review
+        shell: python
+        run: |
+          import json, os, subprocess
+          repo = os.environ["GITHUB_REPOSITORY"]
+          harness = os.environ["PILOT_HARNESS_REF"]
+          if "/codex-review-pilot-harness-" not in harness:
+              raise SystemExit("Not a pilot harness branch")
+          head = harness.replace("/codex-review-pilot-harness-", "/codex-review-pilot-bot-", 1)
+          def gh(*args):
+              result = subprocess.run(["gh", "api", *args], check=True, capture_output=True, text=True)
+              return json.loads(result.stdout)
+          existing = gh(f"repos/{repo}/pulls?state=all&per_page=100")
+          matches = [p for p in existing if p["head"]["ref"] == head and p["head"]["repo"]["full_name"] == repo]
+          if matches:
+              pr = matches[0]
+          else:
+              pr = gh(f"repos/{repo}/pulls", "-f", "base=main", "-f", f"head={head}",
+                  "-f", "title=test: disposable hosted review pilot — bot-authored PR",
+                  "-f", "body=Disposable hosted-review integration test. **Do not merge.** The isolated fixture is not imported by the plugin. Created by GitHub Actions to verify bot PR authorship. Review settings and credits are unchanged.")
+          marker = "<!-- hosted-review-pilot:actions-sender-initial -->"
+          comments = gh(f"repos/{repo}/issues/{pr['number']}/comments?per_page=100")
+          if not any(marker in c["body"] and c["user"]["login"] == "github-actions[bot]" for c in comments):
+              gh(f"repos/{repo}/issues/{pr['number']}/comments", "-f",
+                  f"body=@codex review\n\n{marker}\nDisposable integration test of the Actions comment sender.")
+          print(json.dumps({"pr": pr["number"], "url": pr["html_url"], "author": pr["user"]["login"], "head": pr["head"]["sha"]}))
