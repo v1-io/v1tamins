@@ -9,133 +9,129 @@ allowed-tools:
 ---
 # What Next
 
-Recommend the next useful action based on what is true now.
+Recommend the highest-leverage next move based on what is true now.
 
-Use the thread to understand the goal and check whether things have changed.
-Default to finishing that goal; if the user asks for project priorities or options, use
-that scope instead. If neither the thread nor the project shows a useful next
-move, say so. Recommend the action; do not start implementation, change files,
-update a tracker, or contact anyone from this skill.
+Stay read-only from this skill: recommend the move without starting
+implementation, editing files, updating a tracker, or contacting anyone. If the
+user chains an authorized request with this skill (for example, "close the
+ticket, then what-next"), complete the explicitly requested action first, then
+run this read-only checkpoint on the resulting state.
 
-If they want a v1 skill, not a next step, use `v1-menu`. If what's needed is a
-plan, point at a planning skill instead of writing the plan here.
+If they want a v1 skill rather than a next step, point to `v1-menu`. If what is
+needed is a plan, point to a planning skill instead of writing the plan here.
 
 ## Workflow
 
-### 1. Find where things stand
+### 1. Pick the mode and constraints
 
-From the thread, name the original goal in one sentence, what's been verified
-as done, and what remains: unanswered questions, steps that were proposed
-but never taken, errors seen and not resolved. Leave decisions the user already
-made alone.
+Read the thread for the original goal, what is verified done, what remains, and
+decisions the user already made (leave settled decisions alone). Choose the
+mode that fits:
 
-Before recommending an action, check the fact that makes it necessary when
-another session, release, scheduled run, or person could have changed it.
-Use the smallest read-only check with the tools permitted here: the installed
-version, current task or PR status, run result, or `git status` when a commit
-is at issue. Reuse evidence already checked in this turn. Before advising
-someone to wait, check the current time and whether the expected event ran.
-Use the record where this work is tracked unless it is outdated, conflicts
-with other evidence, or leaves the question unanswered.
+| Mode | When | Target shape |
+| --- | --- | --- |
+| **Cold single-track** (default) | First checkpoint on one active goal | Concise brief (~80–150 words) |
+| **In-session repeat** | Already checkpointed this thread ("sent, what next?") | 1-line delta of what cleared + new move (~50–100 words); do not re-explain the unchanged goal |
+| **Multi-track** | Parallel PRs, active subagents, or multiple deliverables | Compact status board + numbered steering handles |
+| **Project priorities** | User asks for project priorities/options, or thread goal is done | Scan external work sources, rank by impact, mark external sources |
 
-Do quick read-only checks yourself before recommending the next task. Check
-available sources before asking someone for material they may already contain. Stop when you have enough information to choose; don't
-turn this into a full audit or perform a substantial investigation. Recommend
-that investigation if it is the next useful action. If access is unavailable,
-say what you could not check and how to get it. A missing fact is not a
-choice for the user to make.
+Honor any stated constraint without adding ceremony when none is given:
+- **Short window** ("I have 10 minutes"): favor a quick win or starting a slow external/async clock before leaving.
+- **Stepping away / overnight**: favor safe autonomous agent work to kick off now, or clean state-saving before stopping.
+- **Stuck / spinning**: apply the zoom-out check aggressively to challenge the premise or cut scope.
 
-### 2. Look beyond the thread when needed
+### 2. Verify live state
+
+Before recommending an action, check the live owner of the deciding fact when
+another session, release, scheduled run, or person could have changed it. Use
+the smallest read-only check with any available read-only tool or authorized
+CLI: git/PR/CI state, messages or comments, installed version, run result, or
+running tasks. Do not rely on the thread or a tracker mirror alone when a live
+source can confirm whether the blocker still exists.
+
+Reuse evidence already checked in this turn. Before advising someone to wait,
+check the current time and whether the expected event ran. Stop once you have
+enough to choose; do not turn this into a full audit — recommend that
+investigation if it is the next useful move. If access is unavailable, name
+what you could not check and how to get it; a missing fact is not a choice for
+the user to make.
+
+### 3. Look beyond the thread when needed
 
 If the user asks for project priorities, the goal is done, or nothing left in
-the thread ranks above "everything else", find where this project keeps work
-before you answer. Otherwise stay with the thread's goal. Don't assume a
-particular tool. Look in this order:
+the thread warrants action, find where this project keeps work before
+answering. Otherwise stay with the thread's goal. Do not assume a particular
+tool. Look in this order:
 
-- Whatever the thread named as the owner of the work: a ticket, plan, or task
-  it started from.
-- The project's instructions or contributor docs, which usually say where work
-  is tracked.
-- What the repo or workspace actually has: an issue list, a plans or tasks
-  directory, a roadmap, a TODO file, open review requests.
+1. Whatever the thread named as the owner of the work: a ticket, plan, or task.
+2. Project instructions or contributor docs naming the tracker.
+3. What the repo or workspace holds: open issues, PRs, plans/tasks folders, roadmap, or TODOs.
 
-Use the first relevant source of tasks. Compare what each would achieve, how
-urgent it is, what it needs first, and who can do it. For thread follow-ups, start
-with the same goal or area; for project priorities, favor what matters most over
-what resembles the last task. Check that the chosen task still needs doing.
-Mark recommendations found outside the thread and name their source.
-If nothing useful turns up, say so; don't invent housekeeping to keep busy.
+Stop at the first relevant source. Compare impact, urgency, lead time, and who
+can act. For thread follow-ups, start with the same goal or area; for project
+priorities, favor what matters most over what resembles the last task. Verify
+the chosen item still needs doing, mark it as outside the thread, and name its
+source. If nothing useful turns up, say so — never invent busywork.
 
-### 3. Choose the next move
+### 4. Choose the highest-leverage move
 
-Pick the next move in this order:
+Run a silent **zoom-out check** before accepting the obvious next step. Speak up
+only when one genuinely applies:
+- **Shortcut:** Can one move solve multiple open items, or has a planned step become obsolete?
+- **Blind spot:** Is the next step relying on unproven work, a stale premise, or an unstated identity/account choice?
+- **Finish line:** Is the goal already met with only optional polish left (say to stop and close/ship), or is a last-mile step missing (uncommitted diff, unmerged PR, stale tracker, uninstalled build)?
 
-1. Finishes or unblocks the goal in the requested scope.
-2. Verifies something currently claimed but unproven.
-3. Prevents loss: uncommitted work, an unrecorded decision, an answer that
-   would be expensive to reconstruct later.
-4. Everything else, including follow-ups and related work found outside the
-   thread.
+Rank candidate moves in this order:
 
-Recommend the smallest useful action on the top item and name who can take
-it. Distinguish required human approval from work an agent can do afterward;
-this skill's read-only boundary does not make every next action human-only.
-If it is waiting on another person or a future event, say what it needs first
-and consider independent work that advances the same goal. If none exists,
-say to wait or stop; don't imply that monitoring has been scheduled.
+1. **Unblocks or finishes the goal** — *with a verification gate:* before any external, irreversible, or high-stakes step (sending outside, merging, releasing, closing), if the underlying work is claimed but unproven, **verifying or reviewing it becomes #1**.
+2. **Prevents loss** — uncommitted work, unrecorded decisions, or unfinished last-mile delivery steps.
+3. **Highest-leverage remaining work** — including follow-ups and external priorities.
 
-If a user decision blocks progress, present the evidence, your recommendation,
-and what they would give up or what is still unproven. Don't just ask them to
-review a task list. Carry forward prior approvals within their scope. If the last
-response left several questions, ask only the one that blocks and state
-reasonable defaults for the rest; a default is not permission to act.
+Sequence across the three clocks (human attention, agent compute, external wait):
+- **Start slow clocks early:** If a quick human ping or async run starts a long external wait (teammate reply, CI, review) that unblocks downstream work, surface it first.
+- **Shrink human homework first:** Before assigning raw review or triage to the user, check if an agent can reduce it to a small decision first (classify unknowns, draft a shortlist, run a check) and recommend that agent prep step first.
+- **Pair human/waiting moves with parallel agent work:** Whenever `#1` waits on the user, another person, or a future event, explicitly name the best unblocked agent move that can run right now alongside it. If none exists, say to wait or stop without implying monitoring was scheduled.
+- **Batch ripe human decisions:** When multiple small decisions block progress, group them as numbered items (`1, 2, 3`), each with a recommendation and default, so the user can steer in one line. If an earlier turn left several questions and only one blocks, ask only the blocker and state defaults for the rest (a default is not permission to act).
+- **Take a stand:** Never open `**Next:**` with `"You decide whether..."`. State your recommended choice, what is given up or unproven, and—only when open or risky—the execution detail that matters (draft vs. send, which account acts, edit in place vs. new copy). Carry forward prior approvals within their scope.
 
-### 4. Answer
+### 5. Answer
 
-Write for someone who knows the project but has not followed every turn.
-Name the work and explain why it matters before giving task IDs or file paths.
-Use everyday words; explain technical terms only when they help the decision.
-Keep uncertainty, conditions, and the difference between proposed and done.
-Keep claims no stronger than the evidence: a partly successful check does not
-prove the fix works. Add no facts, owners, deadlines, or commitments to make
-the answer sound complete. Clearly label any suggested owner or next step.
-Link supporting detail, but put enough explanation in the answer to act on it.
+Write for someone who knows the project but has not followed every turn. Aim
+for **80–150 words** by default (**50–100** for a repeat delta; up to **180**
+for a multi-track board with an inline draft). State each fact once.
 
-Use the shape below when helpful. A simple answer can be a short paragraph;
-leave out empty sections, repeated summaries, and automatic offers to help.
-Before replying, check: can the reader tell what to do, why now, and whether
-anything needs their input? Cut repetition, not the explanation they need.
+- **Concrete plain-language test:** Say what actually changes (and unpack internal labels or vague references like "the package") in everyday words before task IDs or file paths.
+- **Truthful evidence:** Briefly name what you checked or could not check. Keep claims no stronger than the evidence (a partial check does not prove a fix works), keep uncertainty explicit, and invent no facts, owners, or deadlines.
+- **Spatial orientation (conditional):** Only on 3+ step arcs or 2+ parallel tracks, include a 1–3 line progress strip (`[✓] ... → [▶] ... → [ ] ...`) or 3-lane board (**Agent now / Needs you / In flight**). Skip it on simple 1-step answers.
+- **Ready-to-act handoff (no extra headings):**
+  - Short human message/ping needed? Put a ready-to-paste 2–3 line draft directly under that item.
+  - Agent can execute next? Close with one plain sentence naming exact scope and stop point so `"go"` works (never add a separate contract heading or bulleted spec).
+  - A packaged skill clearly owns the next step (especially explicit-only skills like `/v1-land-pr`, `/v1-review-board`, `/v1-implement-unit`, `/v1-prove-work`, or `/v1-debug`)? Name it.
+  - Number items (`1, 2`) only when presenting multiple parallel moves or decisions, and reference only numbers you actually wrote.
+- **Session hygiene:** When this thread's goal is complete and the best next move belongs to a different area, say this thread is done (note any last-mile close-out) and give a ready-to-paste 2–3 line starter prompt for a fresh session.
+
+Use the shape below when helpful. Drop empty sections—never include a section
+just to dismiss an unrelated item, never repeat `**Next:**` inside
+`**Needs you:**`, and skip automatic offers to help. Give one pick by default;
+if the user asks for options, give up to the requested number supported by
+evidence, ranked, with your pick marked.
 
 ```markdown
-**Next:** [one concrete action and who can take it, one sentence]
+**Next:** [one concrete action, who takes it, and the recommendation — one sentence]
 
-**Why:** [explain why this matters now and what, if anything, is still unknown]
+**Why:** [the deciding leverage: what it unblocks, what clock/risk it addresses, and what was checked or remains unknown]
 
-**Also on the table:** [only when a runner-up is a genuinely close call]
+**Also on the table:** [omit unless there is a genuine close call OR an unblocked parallel agent move]
 
-**Needs you:** [only when human input or access is required: the specific
-request; for a decision, include your default and its tradeoff]
+**Needs you:** [omit if already covered in Next or if nothing requires human input/access]
 ```
-
-Give one recommendation by default. If the user explicitly asks for options,
-give the requested number when evidence supports them, rank them, and mark
-your pick. Don't pad a list with invented work. When the work is done, say so,
-and say whether to stop, commit, or hand it off.
 
 ## Examples
 
-The last response ended with four questions about naming, file layout, test
-scope, and rollout. Answer: "Next: confirm the file layout. I default to option
-A for naming and skip rollout for now; the other questions do not block
-implementation."
+**Collapsing multiple questions:** The last turn ended with four questions on naming, file layout, test scope, and rollout. Answer: *"Next: confirm the file layout (recommended: split by domain — keeps tests isolated at the cost of two extra imports). I default to option A for naming and skip rollout for now; neither blocks implementation. Say 'go' to implement with those defaults."*
 
-An older turn says a release is waiting on a scheduled run. The current
-run result shows it passed on the installed version. Don't recommend waiting or
-checking that result again. Report that the check passed, then recommend
-the remaining action or say the goal is complete.
+**Unverified work before an external send:** A client email draft is due today, but the underlying numbers have not been reviewed yet. Do not recommend sending the email first. Answer: *"Next: have an agent review the draft calculations before you send the email. Why: the email is due today, but the latest revision is unverified — sending now risks client-facing errors. Say 'go' and I will review both sheets and report any discrepancies before you send."*
 
-A task still says "review the PR," but the fix is installed and the scheduled
-run passed. Both requirements are met; an optional export was deferred. Answer:
-"The fix is installed and today's scheduled run passed. I recommend closing
-this task. The optional export can stay separate. If you agree, an agent can
-update the task after your approval."
+**Repeat-turn multi-track checkpoint:** The user says *"sent that email. /v1-what-next"* in a session with an open PR stack and an urgent contract typo. Answer with a 1-line delta, a compact strip, and two numbered items: **(1)** the time-sensitive human ping with a ready-to-paste 2-line message, and **(2)** the parallel agent move on the PR stack with a one-sentence scope/stop cue so the user can reply `"go on 2"`.
+
+**Stale tracker, finished goal, and fresh-session handoff:** The ticket still says *"review the PR"*, but live checks confirm the fix is merged, installed, and today's scheduled run passed (`exit 0`). Answer: *"This goal is done — I checked the installed build and today's run passed. Last-mile check: tree is clean; say 'close it' and I will close the ticket (keeping the deferred export separate). Next project priority (from open issues): webhook retry timeouts (#412). Start a fresh session with: `Investigate #412 webhook retry timeouts in worker/hooks.py; read the last 3 failure logs first, then propose the smallest fix.`"*
