@@ -1,5 +1,15 @@
 # v1tamins
 
+## 0.17.0
+
+### Minor Changes
+
+- 77c10c1: Upgrade `v1-what-next` from a linear next-step picker into a chief-of-staff checkpoint: add four operating modes (cold, repeat delta, multi-track, project priorities) with time/energy constraint handling, promote verification before irreversible actions, sequence across human/agent/external clocks with parallel agent moves and agent-prep-first triage, check live sources of truth, add conditional spatial progress strips, zoom-out/last-mile checks, ready-to-fire inline drafts and Go-contracts, and fresh-session handoff prompts.
+
+### Patch Changes
+
+- 9e20d59: Read Codex peer answers from nested `item.completed` agent messages, so a successful Codex peer resolves to `complete` instead of `empty_output`. Reasoning and tool items still do not count as an answer.
+
 ## 0.16.0
 
 ### Minor Changes
