@@ -199,20 +199,23 @@ Then:
 Use the same investigation and validation steps for both report formats.
 
 Default to a **Diagnosis Brief** for a bug or operational issue with a single
-proven origin. Fill in each field in a short paragraph using the lengths below
-as a guide. Keep probe logs and tables in working notes. Count and trim to
-150–220 words total before sending, including the closing sentence.
+proven origin. Keep probe logs and tables in working notes and aim for
+**150–220 words** total, including the closing sentence:
 
 ```markdown
 ## Diagnosis Brief
-**Root cause**: <about 50 words: one trigger -> origin -> symptom line, then one sentence of strongest direct evidence>
-**Ruled out**: <up to 20 words on non-obvious disproved suspects, or omit>
-**Fix & cleanup**: <about 60 words: smallest root fix, same-logic site dispositions, obsolete code removed or still to remove, and what is proposed, fixed, mitigated, monitored, or unresolved>
-**Confidence & residual risk**: <about 35 words: high / medium / low with a reason based on Step 5, remaining risk, and reopen signal>
+**Root cause**: <trigger -> origin -> symptom, plus strongest direct evidence>
+**Ruled out**: <non-obvious disproved suspects, or omit>
+**Fix & cleanup**: <smallest root fix, same-logic sites, obsolete workarounds removed or still to remove, and fix class>
+**Confidence & residual risk**: <high / medium / low with reason, remaining risk, and reopen signal>
 ```
 
+For diagnosis-only work, close the brief (or summary below) with one plain
+sentence naming the exact scope and stop point so the user can reply `go`
+(for an unresolved cause, name the next probe or missing evidence instead).
+
 Use the full **Debug Summary** for multi-factor, unresolved, or high-severity
-incidents, even when a single origin explains a high-severity incident.
+incidents, even when a single origin explains a high-severity incident:
 
 ```markdown
 ## Debug Summary
@@ -229,12 +232,6 @@ incidents, even when a single origin explains a high-severity incident.
 ```
 
 Keep Fix class and Same-logic sites. Omit other empty sections.
-
-For diagnosis-only work, close either report with one plain sentence that names
-the exact next scope and where the work stops. For a supported fix, use this
-sentence with the actual scope filled in: “I’ve stopped at diagnosis and will
-<apply and verify the specific change> if you reply `go`.” For an unresolved
-cause, name the next probe or missing evidence in that sentence.
 
 If stuck, revisit Frame, Observe, and Assumption Audit. Report the exact gap
 rather than inventing variants of an exhausted hypothesis.
