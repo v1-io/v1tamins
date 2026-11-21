@@ -1,6 +1,6 @@
 interface:
   display_name: "Interview Me"
-  short_description: "Refine an idea through structured questioning"
+  short_description: "Refine ideas or align quickly before work starts"
   default_prompt: "Use $v1-interview-me to turn this rough idea into a clearer specification."
 
 policy:
