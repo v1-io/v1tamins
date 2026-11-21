@@ -1,5 +1,22 @@
 # v1tamins
 
+## 0.18.0
+
+### Minor Changes
+
+- 5591687: Default to a concise Diagnosis Brief in `v1-debug` when the investigation proves a single origin. Keep the full Debug Summary for multi-factor, unresolved, or high-severity cases. Check for and remove obsolete workarounds when applying an authorized root fix.
+- b7f925b: Add a compact, head-pinned GitHub review ledger and batch triage across named or open pull requests in `v1-address-review`.
+- 00ce132: Refocus `v1-skin-suit` on plain-language rewrites with concrete asks and
+  pasteable outbound drafts. Use author examples only when explicitly supplied or
+  when the request points to a style guide.
+- c0d7af4: Add Pre-flight alignment to `v1-interview-me`. Review the existing work, settle consequential decisions in one numbered batch, and pass an Alignment Contract to implementation or worker dispatch.
+- 09d51e4: Add `v1-figure-it-out` to investigate ambiguous requests, verify the deciding facts, and prepare a reply or concrete next move.
+- 8750b60: Add `v1-catch-up` for visual session recaps under 150 words. Check live outcomes and surface decisions that need the user.
+- cdc849a: Expand `v1-bare-bones` beyond plans to cut oversized diffs, branches, PRs, skills, prompts, and architectures to their smallest useful scope. Lead with a Cut Scorecard and Scope Ledger, propose cuts by default, and keep code quality passes, deslop, and hindsight rewrites with `v1-refine`.
+- 97db1b1: Rebuild `v1-pr-description` around a visual summary, before-and-after evidence, and merge danger. Resolve pull requests against their base repository and stop when the checkout cannot verify the requested diff.
+
+  Use `v1-land-pr` to open a draft or take a pull request through CI to review readiness. Use `v1-prove-work` for browser evidence with explicit capture confirmation. Retire the separate PR creation and walkthrough skills. Standalone interactive walkthroughs remain available through `v1-html-it`.
+
 ## 0.17.0
 
 ### Minor Changes
