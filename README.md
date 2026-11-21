@@ -12,7 +12,7 @@
 **Small, reusable skills for healthier AI-assisted development.**
 
 v1tamins is an open-source plugin for [Claude Code](https://claude.ai/code) and
-[Codex](https://openai.com/codex/). It packages 40 focused skills for planning,
+[Codex](https://openai.com/codex/). It packages 42 focused skills for planning,
 debugging, reviewing, shipping, research, documentation, and product work. Use
 one skill for a specific job or combine several into a repeatable workflow.
 
@@ -84,7 +84,9 @@ In Claude Code:
 /v1-deep-review review this branch for merge risk and maintainability
 /v1-pr-description draft a visual summary and evidence for this pull request
 /v1-land-pr open a draft pull request for this branch
+/v1-figure-it-out check whether CSV exports include archived records and draft a reply
 /v1-skin-suit use a natural, plainspoken style for this conversation
+/v1-catch-up catch me up on what changed
 /v1-what-next what should we work on next
 /v1-menu help me choose a skill
 ```
@@ -96,7 +98,9 @@ $v1-debug trace why this test fails only in CI
 $v1-deep-review review this branch for merge risk and maintainability
 $v1-pr-description draft a visual summary and evidence for this pull request
 $v1-land-pr open a draft pull request for this branch
+$v1-figure-it-out check whether CSV exports include archived records and draft a reply
 $v1-skin-suit write a casual update from these notes
+$v1-catch-up what changed since my last message
 $v1-what-next where were we and what is next
 $v1-menu help me choose a skill
 ```
@@ -147,9 +151,11 @@ These common entry points cover much of the day-to-day work:
 
 | You need to… | Start with |
 | --- | --- |
+| See what changed in this session and what needs your attention | [`/v1-catch-up`](plugins/v1tamins/skills/v1-catch-up/SKILL.md) |
 | Decide what to work on next from the thread or the project's backlog | [`/v1-what-next`](plugins/v1tamins/skills/v1-what-next/SKILL.md) |
+| Investigate an ambiguous request and prepare a reply or next move | [`/v1-figure-it-out`](plugins/v1tamins/skills/v1-figure-it-out/SKILL.md) |
 | Turn a fuzzy request into clear requirements | [`/v1-interview-me`](plugins/v1tamins/skills/v1-interview-me/SKILL.md) |
-| Cut an oversized plan to the smallest useful scope | [`/v1-bare-bones`](plugins/v1tamins/skills/v1-bare-bones/SKILL.md) |
+| Cut an oversized plan, diff, PR, skill, prompt, or architecture to the smallest useful scope | [`/v1-bare-bones`](plugins/v1tamins/skills/v1-bare-bones/SKILL.md) |
 | Debug an observable failure to a tested cause | [`/v1-debug`](plugins/v1tamins/skills/v1-debug/SKILL.md) |
 | Repair a failing test suite | [`/v1-fix-tests`](plugins/v1tamins/skills/v1-fix-tests/SKILL.md) |
 | Improve working but rough code | [`/v1-refine`](plugins/v1tamins/skills/v1-refine/SKILL.md) |
@@ -184,10 +190,11 @@ that matches the job.
 
 | Skill | Use it when |
 | --- | --- |
+| [`/v1-catch-up`](plugins/v1tamins/skills/v1-catch-up/SKILL.md) | You want a short visual recap of session outcomes and decisions that need you. |
 | [`/v1-what-next`](plugins/v1tamins/skills/v1-what-next/SKILL.md) | The thread has paused and needs one clear next move. |
 | [`/v1-interview-me`](plugins/v1tamins/skills/v1-interview-me/SKILL.md) | An idea, ticket, or feature request needs structured questions before implementation. |
 | [`/v1-strategy-review`](plugins/v1tamins/skills/v1-strategy-review/SKILL.md) | A plan, PRD, or direction needs a strategic challenge. |
-| [`/v1-bare-bones`](plugins/v1tamins/skills/v1-bare-bones/SKILL.md) | A plan needs the smallest useful scope. |
+| [`/v1-bare-bones`](plugins/v1tamins/skills/v1-bare-bones/SKILL.md) | A plan, diff, PR, skill, prompt, or architecture needs stripping to its smallest useful scope. |
 | [`/v1-shared-language`](plugins/v1tamins/skills/v1-shared-language/SKILL.md) | A team or codebase needs one clear domain vocabulary. |
 | [`/v1-prd`](plugins/v1tamins/skills/v1-prd/SKILL.md) | A feature request needs a product requirements document. |
 | [`/v1-learning-from-customers`](plugins/v1tamins/skills/v1-learning-from-customers/SKILL.md) | Customer discovery needs planning, audit, or synthesis. |
@@ -240,6 +247,7 @@ that matches the job.
 
 | Skill | Use it when |
 | --- | --- |
+| [`/v1-figure-it-out`](plugins/v1tamins/skills/v1-figure-it-out/SKILL.md) | An ambiguous request or claim needs verified facts and a ready reply or next move. |
 | [`/v1-deep-research`](plugins/v1tamins/skills/v1-deep-research/SKILL.md) | A complex question needs iterative multi-source research. |
 | [`/v1-autoresearch-skill`](plugins/v1tamins/skills/v1-autoresearch-skill/SKILL.md) | A measurable target needs an autonomous optimization loop. |
 | [`/v1-canon2skill`](plugins/v1tamins/skills/v1-canon2skill/SKILL.md) | Source material needs reusable skill ideas. |

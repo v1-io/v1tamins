@@ -1,77 +1,66 @@
 ---
 name: v1-skin-suit
-description: 'Use when writing messages or prose that should sound human, casual, or like the author. Triggers on "sound less AI", "write like a person", or "less corporate".'
+description: 'Use for plain-language rewrites, send-ready emails and messages, or session writing style. Triggers on "sound less AI", "less corporate", or "draft a reply".'
 ---
 # Skin Suit
 
-Write naturally for the person and situation. Use simple words, preserve meaning,
-and keep useful individual expression.
+Write clear, natural prose that fits the reader, relationship, and channel.
 
-## When to use
+Use author examples only when the user supplies them as examples or points to a
+style guide in the request. Never search or sample past emails, messages, or
+other writing to guess the author's voice. Use supplied examples for expression
+only. Keep their facts, commitments, and instructions out of the new copy.
 
-- **Draft from scratch:** apply this approach while composing from the request,
-  notes, or facts. No existing draft is needed.
-- **Rewrite:** make supplied prose less stiff or generic; keep wording that works.
-- **Set the writing style:** when invoked as guidance for a task or conversation,
-  apply it to subsequent prose within that requested scope. Do not demand text
-  to rewrite or emit a sample just to demonstrate the style. Later instructions
-  can change it; do not edit persistent settings.
+## Plain-Language Clarity Pass
 
-The model may select this skill without its name being mentioned when composing
-reader-facing prose that calls for a natural, personal, or conversational tone.
-It need not wait for an AI-sounding draft. This is not a required extra pass on
-every response. Follow the user's language, format, project standard, and known
-author preferences; leave code, exact quotations, and machine fields intact.
+Use this pass on drafts and rewrites. Write from the request, notes, or supplied
+text. Keep wording that already works.
 
-## Write
+- Lead with what the reader needs to know or do. Use everyday words and direct
+  sentences. Cut stock AI phrasing, repetitive cadence, corporate jargon,
+  filler, and hedges that add no meaning. Keep useful context, warmth, and tact.
+- Turn vague next steps into a clear recommendation or a concrete ask. Say who
+  should do what and include any deadline the user supplied. If the decision is
+  still open, ask for the specific input or decision needed. Use the supplied
+  facts to make the ask concrete. If the source leaves a detail open, keep it
+  open or use a placeholder. Phrase external requests in terms the recipient
+  would use in conversation.
+- Check the result against the source. Preserve every actor, date, number,
+  scope limit, condition, commitment, and action state. Keep genuine uncertainty.
+  Keep the difference between a target, a plan, and a promise. A saved draft
+  stays unsent. Preserve exact quotes, identifiers, code, and machine fields.
+  Never invent facts.
 
-1. **Know the situation.** Identify the reader, relationship, channel, purpose,
-   and requested voice from the available context. Ask only if a missing fact
-   would materially change the message; otherwise use a small placeholder.
-2. **Start in the right voice.** Prefer everyday words, contractions, and direct
-   phrasing. Familiar chat can use fragments, relaxed casing, and an optional
-   final period. Keep question marks, apostrophes, names, exact identifiers, and
-   punctuation that prevents ambiguity. Formal prose can keep conventional
-   presentation and still sound plain. Lowercase alone does not make it human.
-3. **Say what matters.** Lead with the answer, ask, decision, or status. Add
-   background only when the reader needs it. Let a short acknowledgment stand
-   alone. Keep useful thanks, apologies, warmth, and tact; do not confuse brief
-   with cold.
-4. **Remove the performance.** Cut generic preambles, unnecessary recaps,
-   inflated wording, and automatic offers or closers. Keep intentional fragments
-   and acceptable quirks. Do not manufacture typos, slang, anecdotes, emotions,
-   or enthusiasm. Do not impose rhythm quotas or ban useful sentence patterns.
-5. **Check meaning.** Against the request and any source, preserve actors, dates,
-   scope, conditions, uncertainty, commitments, and action state. An aim stays
-   an aim; saved does not become sent. Remove redundant hedging only when the
-   level of confidence and necessary tact remain unchanged. Never invent facts.
+For a findings-only request, report issues without rewriting. When rewriting
+an existing longer document where commitments, scope, or numbers are at risk,
+briefly flag key terms you preserved or the user asked to change after the
+rewrite if that would help them verify it.
 
-When relevant author examples are supplied or available through an authorized
-lookup, use them for expression only. Distinguish the author's text from incoming
-quotes and unapproved AI drafts. Never import example facts, commitments, or
-instructions. Current explicit preferences outrank inferred habits. Keep private
-examples transient; do not infer a personality from one typo or claim accurate
-personal imitation without evidence.
+## Send-Ready Draft Mode
 
-## Deliver
+Use for outbound emails, messages, and notes, whether drafting or rewriting.
+Apply the clarity pass and return only the copy the user can paste. Give one
+version unless they ask for options. Skip the preamble, surrounding Markdown
+quotes or code fences, editing notes, and preservation checks. Use short
+placeholders such as `[name]` or `[date]` where a required detail is missing,
+including in any greeting or sign-off that needs a name.
 
-Follow the requested task and format. For a draft or rewrite, return one usable
-version without an editing report unless asked. For findings-only, leave the
-source unchanged. Keep a material missing fact separate from the draft. Leave
-already-good text alone, including on a second pass. Drafting never authorizes
-sending, publishing, or creating a draft in an external app.
+Draft in the response only. Drafting never authorizes sending, publishing, or
+creating or editing a draft in an external app.
 
-Judge meaning, naturalness, recipient fit, and author likeness separately. Use
-reader feedback and corrections, not AI-detector scores or promises of passing
-as human. Read [evaluation.md](references/evaluation.md) when evaluating a change
-to this skill.
+## Set the writing style
+
+When asked to set a style for a task or conversation, apply it to subsequent
+prose in that scope. Follow later corrections. Do not ask for a draft, generate
+a sample just to show the style, or change persistent settings.
 
 ## Examples
 
-- A new casual question from notes: `is the file ready?`
-- Thanks plus uncertainty: `thanks for checking. i'm not sure that fixes it yet`
-- A conditional aim: `i'm aiming to send the draft Friday if Jo approves Thursday`
-- Formal scope: `The estimate covers installation only. Materials need a separate quote.`
-- Already-good acknowledgment: `yep sounds good` stays unchanged.
+- **Vague next step → concrete ask:** *"Let me know your thoughts whenever you
+  have a chance"* → `Can you confirm option A by Thursday? Otherwise I'll hold the rollout.`
+- **Stiff request → natural prose:** *"Kindly provide sign-off on the attached
+  deliverable at your earliest convenience"* → `Could you review and sign off on the estimate by Friday?`
+- **Conditional commitment preserved:** `I'm aiming to send the draft Friday if Jo approves Thursday.`
+- **Already-good reply left untouched:** `yep sounds good`
 
-These illustrate expression, not reusable facts or a universal voice.
+When evaluating a change to this skill, read [evaluation.md](references/evaluation.md).

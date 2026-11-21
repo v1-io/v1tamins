@@ -17,8 +17,9 @@ user chains an authorized request with this skill (for example, "close the
 ticket, then what-next"), complete the explicitly requested action first, then
 run this read-only checkpoint on the resulting state.
 
-If they want a v1 skill rather than a next step, point to `v1-menu`. If what is
-needed is a plan, point to a planning skill instead of writing the plan here.
+If they want a v1 skill rather than a next step, point to `v1-menu`.
+If they only want to know what changed since their last message, use `v1-catch-up`.
+If what is needed is a plan, point to a planning skill instead of writing the plan here.
 
 ## Workflow
 

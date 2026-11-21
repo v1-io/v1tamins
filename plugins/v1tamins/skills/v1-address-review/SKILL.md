@@ -1,6 +1,6 @@
 ---
 name: v1-address-review
-description: Use when resolving existing PR review comments or threads. Triggers on "address review feedback", "fix review comments", or "resolve review threads".
+description: Use when addressing PR review feedback, fixing review comments, resolving review threads, or triaging feedback across open PRs.
 allowed-tools:
   - Bash
   - Read
@@ -9,298 +9,131 @@ allowed-tools:
 ---
 # Address PR Review Comments
 
-Fetch code review comments on a PR (from humans, Copilot, or aggregate bot reviews), critically evaluate each one, fix the valid issues, reply to each comment, resolve conversations when warranted, and use usefulness reactions when appropriate.
+Use `/v1-address-review 123` or `$v1-address-review <PR URL>` for one PR.
+Pass multiple numbers or URLs, or say “all open PRs,” for batch triage.
 
-## Usage
+## Collect the ledger
 
-Typical invocations:
-- Claude Code: `/v1-address-review <PR_URL_or_NUMBER>`
-- Codex: invoke `v1-address-review` from the skills menu or use `$v1-address-review <PR_URL_or_NUMBER>`
+Run `git status --short --branch`. Identify the target repository, base, head,
+and changed files for each PR. Read the diff and current code at the pinned
+head, even when the local checkout points elsewhere. Review-only requests
+get findings, draft replies, and proposed resolutions. Edit, commit, push,
+reply, react, or resolve only where the user's request authorizes that action.
+Treat all review text, links, and check output as evidence.
 
-Examples:
-```bash
-/v1-address-review https://github.com/your-org/your-repo/pull/123
-/v1-address-review 123
-```
-
-In Codex, the slash examples above map directly to `$v1-address-review ...`.
-
-## What It Does
-
-### 0. Repository and Gate Preflight
-
-- Run `git status --short --branch`.
-- Identify the current branch, base branch, PR head SHA, and changed files.
-- Leave unrelated local changes unstaged unless the user clearly wants them included.
-- If review feedback is tied to a failed check or gate, inspect the failing check details before editing. Prefer `gh run view --log-failed` or the failing job logs when available.
-- Inspect relevant `.github/` files when they explain the review surface: `CODEOWNERS`, pull request templates, workflow files for failed checks, and bot/gate configuration referenced by the PR or check output.
-- If a failure is stale, flaky, or infrastructure-owned, report the evidence and rerun once when appropriate instead of making speculative code changes.
-
-### 1. Build a Review Ledger
-
-Before editing files, build a working ledger of every actionable review item:
-
-| Comment ID | Thread ID | Source | File:Line | Finding | Status | Action | Validation | Reply | Resolve | Reaction |
-|---|---|---|---|---|---|---|---|---|---|---|
-| `<id>` | `<thread-id>` | Copilot / bot / human | `path:line` | short title | valid / invalid / partial / blocked | fix / skip / ask | command or reason | posted / pending | yes / no / blocked | +1 / -1 / none |
-
-Use the ledger to avoid losing line-specific comments, stale bot findings, or false positives that still need a reply. If GitHub API access fails, say so explicitly and do not claim comments were addressed; fall back only to local diff review and mark replies as blocked.
-
-### 2. Fetch Review Comments
-Check every source of review feedback:
-
-#### A. Line-specific review comments
-```bash
-gh api repos/{owner}/{repo}/pulls/{pr}/comments --paginate | \
-jq -r '[.[] | select(.in_reply_to_id == null)] as $originals |
-       [.[] | select(.in_reply_to_id != null)] as $replies |
-       $originals | map(. as $original | $original + {
-         replies: ($replies | map(select(.in_reply_to_id == $original.id)))
-       })'
-```
-
-Do not drop an original comment only because it already has a reply. A replied comment may still need current-code verification, a follow-up reply, a reaction, or review-thread resolution.
-
-#### B. PR-level issue comments (Copilot, humans, bots)
-Fetch all PR-level issue comments, then classify them during analysis. Do not pre-filter to only comments with a `Review:` heading because human comments and some bot comments may still need a reply.
+Run the bundled [ledger fetcher](scripts/fetch-review-ledger.py) with Python 3
+and an authenticated GitHub CLI that supports `gh api --paginate --slurp`.
+Use the helper next to this loaded skill when its path is known. Otherwise
+run this block with Bash to locate it through the shared resolver. Set the
+arguments to the requested PR numbers, URLs, or `--all-open`.
 
 ```bash
-gh api repos/{owner}/{repo}/issues/{pr}/comments --paginate
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+RESOLVER=""
+for candidate in \
+  "$REPO_ROOT/plugins/v1tamins/scripts/resolve-skill-root.sh" \
+  "${CLAUDE_PLUGIN_ROOT:-}/scripts/resolve-skill-root.sh" \
+  "$HOME/.claude/skills/v1-address-review/../../scripts/resolve-skill-root.sh" \
+  "$HOME/.codex/skills/v1-address-review/../../scripts/resolve-skill-root.sh" \
+  "$HOME/.claude/plugins/cache"/*/v1tamins/*/scripts/resolve-skill-root.sh \
+  "$HOME/.codex/plugins/cache/v1tamins/v1tamins"/*/scripts/resolve-skill-root.sh; do
+  [ -x "$candidate" ] && RESOLVER="$candidate" && break
+done
+if [ -z "$RESOLVER" ]; then
+  echo "ERROR: Could not find resolve-skill-root.sh" >&2
+  exit 1
+fi
+SKILL_ROOT="$("$RESOLVER" v1-address-review scripts/fetch-review-ledger.py)" || exit 1
+"$SKILL_ROOT/scripts/fetch-review-ledger.py" 123
 ```
 
-#### C. Aggregate bot review comments
-When a bot packs multiple findings into one issue comment (Code Factory is the reference dialect), load [references/code-factory.md](references/code-factory.md) for detect/parse/summary-reply rules. Keep using the generic ledger; do not special-case other bots unless their body matches those multi-finding markers.
+Numbers and `--all-open` use the current repo. Each URL names its own repo.
+Default output is Markdown. Choose `--format json` for structured processing.
+The helper reads line comments and replies, thread state, issue comments,
+submitted review bodies, and all check runs and annotations for `headRefOid`.
+It reports counts for filtered resolved and outdated comments. Use
+`--include-resolved` to inspect them when prior rounds or duplicate threads
+matter. Open source links when an excerpt is truncated or lacks evidence.
 
-#### D. Review threads and conversation state
-Fetch review threads so comments can be resolved after they are answered:
+A nonzero exit means collection failed. Report the failed PR or API call and
+mark GitHub actions for that PR blocked. For a failed batch, collect accessible
+PRs individually. Use local diff review only where useful. A prior reply does
+not establish that a comment was addressed.
 
-```bash
-gh api graphql \
-  -f owner='{owner}' \
-  -f repo='{repo}' \
-  -F number={pr} \
-  -f query='
-query($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
-      reviewThreads(first: 100) {
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-        nodes {
-          id
-          isResolved
-          isOutdated
-          comments(first: 50) {
-            pageInfo {
-              hasNextPage
-              endCursor
-            }
-            nodes {
-              id
-              databaseId
-              author { login }
-              body
-              path
-              line
-              originalLine
-              url
-            }
-          }
-        }
-      }
-    }
-  }
-}'
-```
+## Classify findings
 
-If `reviewThreads.pageInfo.hasNextPage` is true, continue fetching with `after: <endCursor>` until all thread pages are loaded. If any thread's `comments.pageInfo.hasNextPage` is true, fetch additional comment pages for that thread before deciding whether it has been answered or can be resolved.
+Record each distinct finding from a comment, review body, check output, or
+annotation, even on a passing check. Keep the PR, head SHA, comment and thread
+IDs, source links, file and line, finding, classification, proposed action,
+validation, reply, resolution, and reaction in the working ledger. Use
+[the aggregate bot reference](references/code-factory.md) when Code Factory
+markers appear. Reconcile repeated rounds against current code and retain
+source links. Verify any claimed fix before closing it out.
 
-Join review threads to line-specific comments by GraphQL `databaseId` matching the REST comment `id`. Track unresolved and outdated thread state in the ledger.
+Check the reported behavior separately from the proposed patch. For
+consequential findings, identify the violated contract and concrete failure
+path. Use current code, focused tests, or a small reproduction within the
+authorized scope. Give repeated unresolved findings priority. Verify the
+premises of security, performance, and refactoring suggestions. Check purity,
+timing, and effects before caching duplicate calls. Check repository rules and
+ownership before dismissing an architecture finding. Check that docs and
+mocks match the current implementation. Keep review scoped to existing feedback.
 
-#### E. Submitted review bodies
+- **Valid** — the issue is real and the proposed fix addresses it.
+- **Invalid** — current evidence shows it is a false positive or inapplicable.
+- **Partial** — the issue is real and needs an adjusted fix.
+- **Blocked** — state the missing evidence. Leave the fix and resolution open.
 
-Fetch submitted reviews because an approval, comment, or request-changes review can contain actionable feedback only in its top-level body:
+For failed gates, read the failing job logs (for example, `gh run view --log-failed`)
+and relevant workflow, ownership, template, or bot configuration. For stale,
+flaky, or infrastructure-owned failures, report evidence and rerun once when
+appropriate and authorized, after verifying the PR head. Avoid speculative edits.
 
-```bash
-gh api repos/{owner}/{repo}/pulls/{pr}/reviews --paginate
-```
+## Multi-PR Batch Triage Mode
 
-Treat every non-empty review body as a review item. Join it to its review author, state, commit ID, and URL in the ledger. Do not assume its line comments duplicate the body.
+Collect and classify the requested PRs before applying changes. Present one
+cross-PR table grouped in the order below. Use a stable numbered handle for
+each decision and name the repository on each row when PRs span repos.
 
-#### F. Check-run output and annotations
+| Group | # | PR / source | Finding | Evidence and proposed action |
+|---|---:|---|---|---|
+| [AUTO-FIX] | 1 | owner/repo#123 · source link | Verified defect | Focused fix and test |
+| [DISMISS] | 2 | owner/repo#124 · source link | False positive | Current-code evidence and draft reply |
+| [NEEDS YOUR CALL] | 3 | owner/repo#124 · source link | Blocked or judgment call | Missing evidence or decision |
 
-Fetch every check run for the recorded PR head SHA, then fetch every annotation for every run:
+Report any failed collection and any PR with no actionable findings. Ask for
+steering by handle, such as “apply 1 and 2, hold 3.” Wait for steering before
+batch edits or GitHub mutations. Apply only authorized handles and actions.
 
-```bash
-gh api --method GET repos/{owner}/{repo}/commits/{head-sha}/check-runs \
-  -f filter=all -f per_page=100 --paginate
-gh api repos/{owner}/{repo}/check-runs/{check-run-id}/annotations --paginate
-```
+## Apply and verify
 
-Always request `filter=all`; GitHub otherwise returns only the latest check run for each check name and can hide feedback from an earlier attempt on the same head SHA. Inspect each run's status, conclusion, details URL, and `output.title`, `output.summary`, and `output.text`, as well as every annotation's level, path, lines, title, message, and raw details. Record actionable output or annotations in the ledger even when the overall check passes. Do not treat a successful conclusion as proof that a check supplied no feedback.
+Before each commit, push, reply, reaction, or resolution, re-fetch the target
+PR's `headRefOid`. If it moved, rebuild the ledger and revalidate the affected
+decisions against the new head. Reconfirm a batch decision if its evidence or
+proposed action changed. After your own push, rebuild with `--include-resolved`
+to retain prior reply and resolution targets that the fix made outdated.
 
-Record the PR head SHA before analysis:
+Fix valid and partial findings with the smallest change that addresses the
+behavior. Verify the repository and checked-out branch before editing. Review
+the diff, run focused tests, and stage only files belonging to the review fix.
+Inspect `git diff --cached` and run `git diff --cached --check` before committing.
+Commit validated fixes with a descriptive message and push when authorized.
 
-```bash
-gh pr view {pr} --repo {owner}/{repo} --json headRefOid --jq .headRefOid
-```
+If replies, reactions, or resolutions are authorized, load
+[the GitHub mutation reference](references/github-mutations.md) before any of
+those actions. Reply inline to line comments and by linked PR summary to reviews,
+aggregate bot comments, and checks. Explain dismissals and blocked findings.
+Resolve only after a reply and a verified fix, already-fixed result, or
+confirmed false positive. Resolve obsolete duplicates only after handling the
+current finding. Leave partial, blocked, and ambiguous threads open. Use
+reactions as supplemental feedback and skip them when they add noise.
 
-Before posting replies, adding reactions, resolving threads, committing, or pushing, fetch the head SHA again. If it changed, rebuild the ledger against the new head first. If the user did not explicitly ask to respond to or resolve PR feedback, draft the replies and proposed resolutions instead of mutating GitHub.
+Before reporting done, verify each finding's disposition and focused validation,
+the commit and push when requested, and the posted replies, warranted
+resolutions, and reactions when authorized. Report draft replies and proposed
+resolutions for read-only requests. Keep any failed write or missing evidence
+visible as blocked and include the specific error. Use the table below, keeping
+batch handles stable.
 
-### 3. Parse Findings by Source
-
-#### Line-specific and general comments
-Each comment = one finding. Read the referenced file and code section.
-
-#### Submitted reviews and check feedback
-Treat each distinct finding in a submitted review body, check output, or check annotation as a ledger item. Use its review URL or check details URL as the source when no line-comment URL exists.
-
-#### Aggregate bot comments
-Follow [references/code-factory.md](references/code-factory.md) when the body matches multi-finding markers. Otherwise treat the issue comment as a single finding like any other PR-level comment.
-
-### 4. Analyze Each Finding
-For each finding (regardless of source), read the relevant current code and
-separate the reported problem from the suggested patch. For a consequential
-finding, identify the contract or behavior violated and the concrete failure
-path. Check the fact on which validity depends using the cheapest relevant
-source inspection, existing test, or small reproduction with actual code.
-Reuse adequate evidence; a compiler diagnostic for an unused import does not
-need a new causal essay or reproduction. Stay within authorized execution
-scope and do not launch another whole-PR review.
-
-Classify the problem and proposed fix separately in the ledger's action and
-validation fields:
-- **Valid**: the issue is real and the proposed fix addresses it.
-- **Invalid**: the reported issue is a false positive or does not apply.
-- **Partial**: the issue is real but the proposed fix needs adjustment.
-- **Blocked**: validity remains unresolved; state the missing evidence and
-  do not apply a speculative fix or resolve the thread.
-
-A repeated comment increases priority, not evidential confidence. Lint alone
-does not prove changed runtime behavior.
-
-### 5. Fix Valid Issues
-- For valid findings: implements fix following existing patterns
-- For partial: implements appropriate fix addressing the concern
-- Documents why invalid findings are skipped
-- Review `git diff` and, when relevant, `git diff --staged` before committing.
-- Stages only files changed for the review fix, especially in noisy worktrees.
-- Run the fastest relevant validation inferred from the touched files.
-- Run `git diff --cached --check` or an equivalent staged-file check before committing when unrelated local files may already have whitespace or generated-output churn.
-
-### 6. Reply
-
-#### Line-specific comments
-Reply inline: `gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies -f body="..."`
-
-#### General PR-level comments
-Summary comment: `gh api repos/{owner}/{repo}/issues/{pr}/comments`
-
-#### Submitted reviews and check feedback
-Post one PR-level summary comment that links each source review or check and records the disposition of every finding that cannot receive an inline reply.
-
-#### Aggregate bot multi-finding comments
-Use the summary-reply template in [references/code-factory.md](references/code-factory.md).
-
-Replies are brief:
-- Valid: "Fixed" or "Fixed - [note if approach differs]"
-- Invalid: "Skipped - [brief reason]"
-- Partial: "Addressed - [note on approach]"
-- Blocked: "Could not verify/reply because [specific GitHub/API/tooling failure]"
-
-### 7. Resolve Conversations and React
-
-After replying, resolve each review thread only when doing so is justified:
-
-- Resolve a thread when the finding was fixed, was already fixed in current code, or was a confirmed false positive with a clear reply.
-- Resolve older duplicate or outdated threads only after the equivalent current finding is fixed or clearly dismissed.
-- Do not resolve a thread when work is partial, blocked, needs the reviewer to answer a question, or the current code still leaves reasonable ambiguity.
-- Do not resolve aggregate issue comments, because GitHub only resolves review threads.
-- If thread resolution fails, keep the ledger row `blocked` and include the exact API/tooling failure in the final output.
-
-Resolve a thread with GraphQL:
-
-```bash
-gh api graphql \
-  -f threadId='{thread-id}' \
-  -f query='
-mutation($threadId: ID!) {
-  resolveReviewThread(input: {threadId: $threadId}) {
-    thread { id isResolved }
-  }
-}'
-```
-
-Use reactions when they add signal:
-
-- Add `+1` to useful, valid, actionable review comments after fixing or accepting the finding.
-- Add `-1` only for bot comments that are materially false, misleading, or unactionable after current-code verification. Prefer a written explanation over a `-1` for good-faith human feedback.
-- Skip reactions when the comment is mixed, ambiguous, purely conversational, or already has the same reaction from the current actor.
-- Do not use reactions as a substitute for replies. A reaction supplements the written disposition.
-
-Before adding a reaction, fetch existing reactions and the current GitHub actor:
-
-```bash
-gh api user --jq .login
-gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions \
-  -H "Accept: application/vnd.github+json"
-gh api repos/{owner}/{repo}/issues/comments/{comment_id}/reactions \
-  -H "Accept: application/vnd.github+json"
-```
-
-React to line-specific review comments:
-
-```bash
-gh api repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions \
-  -H "Accept: application/vnd.github+json" \
-  -f content='+1'
-```
-
-React to PR-level issue comments:
-
-```bash
-gh api repos/{owner}/{repo}/issues/comments/{comment_id}/reactions \
-  -H "Accept: application/vnd.github+json" \
-  -f content='-1'
-```
-
-### 8. Commit and Push
-Commit all validated fixes with a descriptive message and push when the user asked to complete the review-fix loop. Do not leave the PR in a state where local fixes exist but review comments are unanswered.
-
-## Evaluation Criteria
-
-- **Security findings (P1)**: Take seriously, always verify the vulnerability is real
-- **Unused imports**: Usually valid - remove them
-- **Duplicate function calls**: Verify purity, timing, and intended effects before caching; repeated calls alone do not establish a defect
-- **Performance suggestions**: Evaluate if impact is meaningful
-- **Architecture violations**: Check `AGENTS.md`, `CLAUDE.md`, relevant `.github/` ownership/workflow guidance, and equivalent repo guidance before dismissing
-- **Documentation updates**: Valid if docs outdated
-- **Test mock updates**: Valid if mocks don't match implementation
-- **Refactoring suggestions**: Evaluate against KISS/YAGNI
-- **Repeated unresolved findings across bot rounds**: Prioritize — see [references/code-factory.md](references/code-factory.md)
-
-## Completion Gates
-
-Before reporting done:
-
-- Every valid or partial finding has a code change or a clear reason it is blocked.
-- Every invalid finding has a concise explanation grounded in current file contents.
-- Focused tests or validation commands have run for the changed surface.
-- Only review-fix files are staged.
-- The commit is pushed if the user asked for push/PR completion.
-- Every GitHub review thread or aggregate bot comment has a reply, unless API access was unavailable and that gap is stated.
-- Every submitted review-body finding and check-run finding has a disposition and a linked PR-level reply when no inline reply surface exists.
-- Every review thread that should be resolved is resolved, unless GitHub API access was unavailable and that gap is stated.
-- Usefulness reactions are applied for clearly useful or clearly unhelpful bot/human comments when appropriate, and skipped when they would add noise.
-
-## Output
-
-Summary table of all findings addressed:
-
-| # | Source | File:Line | Issue | Action | Reply | Resolved | Reaction |
-|---|--------|-----------|-------|--------|-------|----------|----------|
-| 1 | Aggregate bot P1 | auth.py:42 | Missing auth | Fixed | Posted summary | n/a | +1 |
-| 2 | Copilot | test.py:100 | Incorrect mock | Fixed | Replied inline | Yes | +1 |
-| 3 | Aggregate bot P3 | utils.py:50 | Suggested refactor | Skipped | Not needed per YAGNI | Yes | -1 |
+| # | PR / source | File:line | Finding | Action and validation | Reply | Resolved | Reaction |
+|---|---|---|---|---|---|---|---|
