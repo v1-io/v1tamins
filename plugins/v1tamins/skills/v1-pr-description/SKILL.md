@@ -73,6 +73,18 @@ Keep the visual next to the summary sentences. Avoid a long list of changed
 files or a recap of the implementation. Use verified symbols, exit codes,
 and messages only when they matter to the sketch.
 
+Example structural `diff` sketch (often clearer than a diagram for control-flow
+or layout changes):
+
+```diff
+ on(save)
+-  write content
++  if content is unchanged
++    return cached result
++  write new content
++  invalidate cache
+```
+
 In Mermaid, use neutral IDs such as `n1` and `n2`. Avoid reserved keywords
 as node IDs, including `call`, `end`, `subgraph`, `graph`, `style`, and
 `click`. Quote labels with special characters and check the diagram renders.
