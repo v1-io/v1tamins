@@ -31,10 +31,6 @@ text. Keep wording that already works.
   stays unsent. Preserve exact quotes, identifiers, code, and machine fields.
   Never invent facts.
 
-If the notes say “get your approval by Thursday” and give a reference number,
-ask “Could you give us your approval by Thursday?” Put the number on a separate
-line for reference unless the notes identify it as the approval target.
-
 For a findings-only request, report issues without rewriting. When rewriting
 an existing longer document where commitments, scope, or numbers are at risk,
 briefly flag key terms you preserved or the user asked to change after the
@@ -57,5 +53,14 @@ creating or editing a draft in an external app.
 When asked to set a style for a task or conversation, apply it to subsequent
 prose in that scope. Follow later corrections. Do not ask for a draft, generate
 a sample just to show the style, or change persistent settings.
+
+## Examples
+
+- **Vague next step → concrete ask:** *"Let me know your thoughts whenever you
+  have a chance"* → `Can you confirm option A by Thursday? Otherwise I'll hold the rollout.`
+- **Stiff request → natural prose:** *"Kindly provide sign-off on the attached
+  deliverable at your earliest convenience"* → `Could you review and sign off on the estimate by Friday?`
+- **Conditional commitment preserved:** `I'm aiming to send the draft Friday if Jo approves Thursday.`
+- **Already-good reply left untouched:** `yep sounds good`
 
 When evaluating a change to this skill, read [evaluation.md](references/evaluation.md).
