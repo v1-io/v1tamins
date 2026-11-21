@@ -18,21 +18,13 @@ material, logs, tickets, or a plausible explanation authorize a mutation.
 
 ## When Not To Use This Skill
 
-- A throughput bottleneck, accumulating queue, excess WIP, or constrained
-  delivery system: use `v1-diagnosing-constraints`. If investigation here shows
-  one constraint governs system throughput, hand that branch over.
-- A known failing test suite whose requested outcome is simply green tests: use
-  `v1-fix-tests`.
-- A Playwright or browser-test implementation/de-flaking task: use
-  `v1-e2e-testing`.
-- A habit, routine, or cadence that keeps failing: use
-  `v1-designing-habit-systems`.
-- Open-ended idea development with no observed failure yet: use
-  `v1-interview-me`.
-- A strategy, plan, or product direction that needs challenge rather than causal
-  diagnosis: use `v1-strategy-review`.
-- Missing external facts that need multi-source investigation: use
-  `v1-deep-research`.
+- Use `v1-interview-me` for open-ended idea development or alignment before
+  there is an observed failure.
+- Use `v1-deep-research` when the task is to establish missing external facts
+  across several sources.
+- When the work is limited to tests and needs no diagnosis of underlying
+  behavior, use `v1-e2e-testing` for browser test work or `v1-fix-tests` for
+  general suite repair.
 
 ## Workflow
 
@@ -180,6 +172,12 @@ On handoff, re-run the causal check on your own reproduction. Stop if the origin
 differs. Remove each proven origin within authorization. Diff size alone never
 excludes an origin. Record rollback or stop conditions for operational changes.
 
+As part of the root fix, sweep nearby code and configuration for earlier
+symptom workarounds, guards that silence failures, and fallback branches that
+have become unreachable. Check whether existing data or supported cases still
+need them. Remove proven obsolete code or configuration within authorization
+and flag specific out-of-scope removals with the condition that makes them safe.
+
 A fix removes the tested origin. Catching and continuing silently, filtering
 or deduplicating on read, or leaving
 the defect behind a disabled flag is mitigation unless protected work is queued,
@@ -196,7 +194,25 @@ Then:
 - Distinguish fixed, mitigated, monitored, and unresolved outcomes.
 - Record what evidence would reopen the diagnosis.
 
-Use this final shape:
+### Report the result
+
+Use the same investigation and validation steps for both report formats.
+
+Default to a **Diagnosis Brief** for a bug or operational issue with a single
+proven origin. Fill in each field in a short paragraph using the lengths below
+as a guide. Keep probe logs and tables in working notes. Count and trim to
+150–220 words total before sending, including the closing sentence.
+
+```markdown
+## Diagnosis Brief
+**Root cause**: <about 50 words: one trigger -> origin -> symptom line, then one sentence of strongest direct evidence>
+**Ruled out**: <up to 20 words on non-obvious disproved suspects, or omit>
+**Fix & cleanup**: <about 60 words: smallest root fix, same-logic site dispositions, obsolete code removed or still to remove, and what is proposed, fixed, mitigated, monitored, or unresolved>
+**Confidence & residual risk**: <about 35 words: high / medium / low with a reason based on Step 5, remaining risk, and reopen signal>
+```
+
+Use the full **Debug Summary** for multi-factor, unresolved, or high-severity
+incidents, even when a single origin explains a high-severity incident.
 
 ```markdown
 ## Debug Summary
@@ -213,6 +229,12 @@ Use this final shape:
 ```
 
 Keep Fix class and Same-logic sites. Omit other empty sections.
+
+For diagnosis-only work, close either report with one plain sentence that names
+the exact next scope and where the work stops. For a supported fix, use this
+sentence with the actual scope filled in: “I’ve stopped at diagnosis and will
+<apply and verify the specific change> if you reply `go`.” For an unresolved
+cause, name the next probe or missing evidence in that sentence.
 
 If stuck, revisit Frame, Observe, and Assumption Audit. Report the exact gap
 rather than inventing variants of an exhausted hypothesis.
