@@ -27,10 +27,12 @@ conditions from `SKILL.md`.
    include the offer in the same opening turn.
 4. **Close from the reply.** Read `1A, 2B, default rest — go` as selecting `A`
    for 1, `B` for 2, accepting the remaining defaults, and authorizing the
-   requested next action within scope. Silence or an omitted choice alone
-   leaves that choice open. Record a deferral or blocker if needed. Ask a
-   focused follow-up only if a missing or conflicting answer prevents a safe
-   handoff.
+   requested next action within scope. Carry accepted choices and their
+   conditions into the contract as agreed. If new evidence makes a choice
+   unworkable, get agreement on a replacement before handing off that work.
+   Silence or an omitted choice alone leaves that choice open. Record a
+   deferral or blocker if needed. Ask a focused follow-up only when a missing
+   or conflicting answer prevents a safe handoff.
 5. **Emit the Alignment Contract.** Keep it short enough to paste into an
    implementation brief or worker assignment. Include settled decisions,
    explicit non-goals, and stop boundaries that say when to pause and return
