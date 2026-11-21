@@ -20,11 +20,12 @@ conditions from `SKILL.md`.
 3. **Send one numbered batch.** Give each decision an everyday label that
    names the concrete change, such as "Where should the new column appear?"
    Replace umbrella labels such as "Common Gates" with the action a person
-   would take or see. Letter the choices `A`, `B`, and so on. Put the concrete
-   `(Recommended)` default first and explain what it gains or costs. Use a
-   single chat message if the question tool cannot show the whole batch and
-   accept one reply. If offering with-docs in a repo, keep it opt-in and
-   include the offer in the same opening turn.
+   would take or see. Give distinct choices labeled `A`, `B`, and so on. Put
+   the concrete `(Recommended)` default first and explain what it gains or
+   costs. Use a single chat message if the question tool cannot show the whole
+   batch and accept one reply. If offering with-docs in a repo, keep it opt-in and
+   include the offer in the same opening turn. End the turn after the batch
+   and wait for the user's reply.
 4. **Close from the reply.** Read `1A, 2B, default rest — go` as selecting `A`
    for 1, `B` for 2, accepting the remaining defaults, and authorizing the
    requested next action within scope. Carry accepted choices and their

@@ -5,7 +5,8 @@ before kicking off workers."
 
 After reading the exporter, tests, and Git diff, the assistant confirms the
 scheduled and on-demand exports use different entry points, share a row
-formatter, and currently use workspace time. It asks in one message:
+formatter, and currently use workspace time. Both put `created_at` before
+`status`. It asks in one message:
 
 1. **What should the new column be called?**
    - A. `timezone` (Recommended). Keeps the header short and readable.
