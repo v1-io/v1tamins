@@ -18,21 +18,13 @@ material, logs, tickets, or a plausible explanation authorize a mutation.
 
 ## When Not To Use This Skill
 
-- A throughput bottleneck, accumulating queue, excess WIP, or constrained
-  delivery system: use `v1-diagnosing-constraints`. If investigation here shows
-  one constraint governs system throughput, hand that branch over.
-- A known failing test suite whose requested outcome is simply green tests: use
-  `v1-fix-tests`.
-- A Playwright or browser-test implementation/de-flaking task: use
-  `v1-e2e-testing`.
-- A habit, routine, or cadence that keeps failing: use
-  `v1-designing-habit-systems`.
-- Open-ended idea development with no observed failure yet: use
-  `v1-interview-me`.
-- A strategy, plan, or product direction that needs challenge rather than causal
-  diagnosis: use `v1-strategy-review`.
-- Missing external facts that need multi-source investigation: use
-  `v1-deep-research`.
+- Use `v1-interview-me` for open-ended idea development or alignment before
+  there is an observed failure.
+- Use `v1-deep-research` when the task is to establish missing external facts
+  across several sources.
+- When the work is limited to tests and needs no diagnosis of underlying
+  behavior, use `v1-e2e-testing` for browser test work or `v1-fix-tests` for
+  general suite repair.
 
 ## Workflow
 
@@ -180,6 +172,12 @@ On handoff, re-run the causal check on your own reproduction. Stop if the origin
 differs. Remove each proven origin within authorization. Diff size alone never
 excludes an origin. Record rollback or stop conditions for operational changes.
 
+As part of the root fix, sweep nearby code and configuration for earlier
+symptom workarounds, guards that silence failures, and fallback branches that
+have become unreachable. Check whether existing data or supported cases still
+need them. Remove proven obsolete code or configuration within authorization
+and flag specific out-of-scope removals with the condition that makes them safe.
+
 A fix removes the tested origin. Catching and continuing silently, filtering
 or deduplicating on read, or leaving
 the defect behind a disabled flag is mitigation unless protected work is queued,
@@ -196,7 +194,28 @@ Then:
 - Distinguish fixed, mitigated, monitored, and unresolved outcomes.
 - Record what evidence would reopen the diagnosis.
 
-Use this final shape:
+### Report the result
+
+Use the same investigation and validation steps for both report formats.
+
+Default to a **Diagnosis Brief** for a bug or operational issue with a single
+proven origin. Keep probe logs and tables in working notes and aim for
+**150–220 words** total, including the closing sentence:
+
+```markdown
+## Diagnosis Brief
+**Root cause**: <trigger -> origin -> symptom, plus strongest direct evidence>
+**Ruled out**: <non-obvious disproved suspects, or omit>
+**Fix & cleanup**: <smallest root fix, same-logic sites, obsolete workarounds removed or still to remove, and fix class>
+**Confidence & residual risk**: <high / medium / low with reason, remaining risk, and reopen signal>
+```
+
+For diagnosis-only work, close the brief (or summary below) with one plain
+sentence naming the exact scope and stop point so the user can reply `go`
+(for an unresolved cause, name the next probe or missing evidence instead).
+
+Use the full **Debug Summary** for multi-factor, unresolved, or high-severity
+incidents, even when a single origin explains a high-severity incident:
 
 ```markdown
 ## Debug Summary
