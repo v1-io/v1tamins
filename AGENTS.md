@@ -50,7 +50,7 @@ Declare `policy.invocation_posture` in each skill's `agents/openai.yaml`:
 
 Declare `policy.side_effects` for external writes, Git remote changes, peer
 launches, or browser capture. Keep orchestration entry points `v1-implement-unit`,
-`v1-review-board`, `v1-pr`, and `v1-land-pr` explicit. Child routing does not
+`v1-review-board`, and `v1-land-pr` explicit. Child routing does not
 open a parent workflow. There is no supported `agent-only` posture.
 
 ## Contribution workflow

@@ -107,7 +107,7 @@ for a multi-track board with an inline draft). State each fact once.
 - **Ready-to-act handoff (no extra headings):**
   - Short human message/ping needed? Put a ready-to-paste 2–3 line draft directly under that item.
   - Agent can execute next? Close with one plain sentence naming exact scope and stop point so `"go"` works (never add a separate contract heading or bulleted spec).
-  - A packaged skill clearly owns the next step (especially explicit-only skills like `/v1-land-pr`, `/v1-review-board`, `/v1-implement-unit`, `/v1-prove-work`, or `/v1-debug`)? Name it.
+  - A packaged skill clearly owns the next step (especially explicit-only skills like `/v1-land-pr`, `/v1-review-board`, or `/v1-implement-unit`)? Name it.
   - Number items (`1, 2`) only when presenting multiple parallel moves or decisions, and reference only numbers you actually wrote.
 - **Session hygiene:** When this thread's goal is complete and the best next move belongs to a different area, say this thread is done (note any last-mile close-out) and give a ready-to-paste 2–3 line starter prompt for a fresh session.
 

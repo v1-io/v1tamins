@@ -12,7 +12,7 @@
 **Small, reusable skills for healthier AI-assisted development.**
 
 v1tamins is an open-source plugin for [Claude Code](https://claude.ai/code) and
-[Codex](https://openai.com/codex/). It packages 44 focused skills for planning,
+[Codex](https://openai.com/codex/). It packages 42 focused skills for planning,
 debugging, reviewing, shipping, research, documentation, and product work. Use
 one skill for a specific job or combine several into a repeatable workflow.
 
@@ -82,8 +82,9 @@ In Claude Code:
 ```text
 /v1-debug trace why this test fails only in CI
 /v1-deep-review review this branch for merge risk and maintainability
+/v1-pr-description draft a visual summary and evidence for this pull request
+/v1-land-pr open a draft pull request for this branch
 /v1-figure-it-out check whether CSV exports include archived records and draft a reply
-/v1-pr-description refresh this pull request title and body
 /v1-skin-suit use a natural, plainspoken style for this conversation
 /v1-catch-up catch me up on what changed
 /v1-what-next what should we work on next
@@ -95,8 +96,9 @@ In Codex:
 ```text
 $v1-debug trace why this test fails only in CI
 $v1-deep-review review this branch for merge risk and maintainability
+$v1-pr-description draft a visual summary and evidence for this pull request
+$v1-land-pr open a draft pull request for this branch
 $v1-figure-it-out check whether CSV exports include archived records and draft a reply
-$v1-pr-description refresh this pull request title and body
 $v1-skin-suit write a casual update from these notes
 $v1-catch-up what changed since my last message
 $v1-what-next where were we and what is next
@@ -158,8 +160,10 @@ These common entry points cover much of the day-to-day work:
 | Repair a failing test suite | [`/v1-fix-tests`](plugins/v1tamins/skills/v1-fix-tests/SKILL.md) |
 | Improve working but rough code | [`/v1-refine`](plugins/v1tamins/skills/v1-refine/SKILL.md) |
 | Review a branch or PR before merge | [`/v1-deep-review`](plugins/v1tamins/skills/v1-deep-review/SKILL.md) |
-| Prepare a pull request | [`/v1-pr`](plugins/v1tamins/skills/v1-pr/SKILL.md) |
-| Explain a pull request visually | [`/v1-pr-walkthrough`](plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md) |
+| Open a PR or take it through CI to review readiness | [`/v1-land-pr`](plugins/v1tamins/skills/v1-land-pr/SKILL.md) |
+| Write a PR title and visual summary | [`/v1-pr-description`](plugins/v1tamins/skills/v1-pr-description/SKILL.md) |
+| Record UI evidence for a PR | [`/v1-prove-work`](plugins/v1tamins/skills/v1-prove-work/SKILL.md) |
+| Build a standalone interactive walkthrough | [`/v1-html-it`](plugins/v1tamins/skills/v1-html-it/SKILL.md) |
 | Explain a concept or PR through narrated animation | [`/v1-explainer-video`](plugins/v1tamins/skills/v1-explainer-video/SKILL.md) |
 | Write naturally from notes or improve an existing draft | [`/v1-skin-suit`](plugins/v1tamins/skills/v1-skin-suit/SKILL.md) |
 | Research a complex question | [`/v1-deep-research`](plugins/v1tamins/skills/v1-deep-research/SKILL.md) |
@@ -231,12 +235,10 @@ that matches the job.
 
 | Skill | Use it when |
 | --- | --- |
-| [`/v1-pr`](plugins/v1tamins/skills/v1-pr/SKILL.md) | Local work needs a draft pull request. |
-| [`/v1-pr-description`](plugins/v1tamins/skills/v1-pr-description/SKILL.md) | A PR title and body need generation or refresh. |
-| [`/v1-land-pr`](plugins/v1tamins/skills/v1-land-pr/SKILL.md) | A completed branch needs commit, push, CI follow-through, and review hand-off; it leaves the PR ready for review without merging it. |
-| [`/v1-pr-walkthrough`](plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md) | A PR needs a self-contained interactive explanation. |
+| [`/v1-pr-description`](plugins/v1tamins/skills/v1-pr-description/SKILL.md) | A PR needs a title and visual-first body with evidence and merge danger. |
+| [`/v1-land-pr`](plugins/v1tamins/skills/v1-land-pr/SKILL.md) | A branch needs commit, push, and PR creation or CI and review follow-through. |
 | [`/v1-address-review`](plugins/v1tamins/skills/v1-address-review/SKILL.md) | Existing PR review threads need resolution. |
-| [`/v1-prove-work`](plugins/v1tamins/skills/v1-prove-work/SKILL.md) | Browser behavior needs a GIF as review evidence. |
+| [`/v1-prove-work`](plugins/v1tamins/skills/v1-prove-work/SKILL.md) | Browser behavior needs a GIF as review evidence, with explicit confirmation before capture. |
 
 </details>
 
@@ -284,7 +286,7 @@ Every skill declares one invocation posture:
 | `explicit_only` | A human or named automation must invoke it directly. |
 
 There is no supported `agent-only` posture. Parent workflows such as
-`/v1-implement-unit`, `/v1-review-board`, `/v1-pr`, and `/v1-land-pr` stay
+`/v1-implement-unit`, `/v1-review-board`, and `/v1-land-pr` stay
 explicit even when their child skills are available for implicit use.
 
 Some skills can push Git changes, publish documents, launch peer agents, record
@@ -306,8 +308,6 @@ plugin](https://github.com/EveryInc/compound-engineering-plugin):
 - `/v1-goldpan` depends on its session readers and `/ce-compound` writer.
 - `/v1-implement-unit` uses `/ce-work` when available and has a local fallback
   when it is not.
-- `/v1-pr` can use a compound-engineering review workflow when the user asks
-  for that extra pass.
 
 The packaged [companion guide](plugins/v1tamins/skills/v1-goldpan/references/companion.md)
 owns installation instructions and missing-dependency behavior. Installation is
@@ -394,6 +394,7 @@ ruby scripts/test-check-skill-assets.rb
 python3 scripts/test-check-shared-portability.py
 python3 scripts/test-peer-contract.py
 bash scripts/test-peer-run.sh
+python3 scripts/test-pr-description.py
 python3 scripts/test-artifact-converters.py
 python3 scripts/test-with-server.py
 ```

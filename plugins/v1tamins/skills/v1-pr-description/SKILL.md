@@ -1,210 +1,131 @@
 ---
 name: v1-pr-description
-description: Use when writing or updating a GitHub PR title or description. Triggers on "write PR description", "update PR body", or "PR title".
+description: Write or refresh a GitHub PR title and visual-first body. Use for PR descriptions, summary diagrams, and evidence or merge-risk updates.
 allowed-tools:
   - Bash
   - Read
   - Grep
 ---
-# Generate PR Description
+# Write a Visual-First PR Description
 
-Write or update the PR title and description from the actual diff, current PR
-metadata, repo guidance, and the user's constraints.
+Give reviewers a ten-second view of the change, evidence it works, and the
+consequences of merging. Draft by default. Use `v1-land-pr` to open a PR or
+prepare it for review, and `v1-prove-work` to record browser evidence.
 
-## Usage
+## Verify the change
 
-Typical invocations:
-- Claude Code: `/v1-pr-description <PR_URL_or_NUMBER>`
-- Codex: invoke `v1-pr-description` from the skills menu or use `$v1-pr-description <PR_URL_or_NUMBER>`
+Invoke `/v1-pr-description <PR_URL_or_NUMBER>` in Claude Code or
+`$v1-pr-description <PR_URL_or_NUMBER>` in Codex. Prefer the full PR URL.
+A bare number needs a GitHub CLI default repository, an explicit `GH_REPO`,
+or one unambiguous local remote repository. Without an argument, resolve
+the current branch's PR.
 
-Examples:
-```bash
-/v1-pr-description https://github.com/your-org/your-repo/pull/123
-/v1-pr-description 123
+Run the bundled [generate.sh](generate.sh) with Bash from the matching checkout.
+Use the directory containing this loaded skill. If only the plugin root is
+known, use [resolve-skill-root.sh](../../scripts/resolve-skill-root.sh) with
+`v1-pr-description generate.sh` to locate it. The helper requires Git, `gh`,
+and `jq`. It resolves the PR in its base repository, checks that a local
+remote maps to that host and repository, and compares local `HEAD` with
+the PR head SHA. It resolves the live base commit from the Git ref API,
+rechecks the repository identity, and requires a successful fetch of the
+same commit. The PR metadata's `baseRefOid` can be historical.
+
+Use the helper's exit 0 and its reported base and head SHAs to inspect the
+actual diff and commit range. Exit 2 means the diff context could not be
+verified. Stop and report the reason. If verifying manually, apply the same
+identity and exact-SHA checks before using a local diff. Cached tracking
+refs cannot substitute for a failed fetch.
+
+When `v1-land-pr` requests a draft for a new PR, verify the intended base
+repository, branch, and live commit and the exact head to be submitted.
+Use those revisions to draft locally and return the title and body for the
+caller to create the PR.
+
+Read the existing PR body, relevant diff hunks, commit intent, repository
+guidance, PR template, and available validation. Preserve the selected
+template's headings and required fields, plus accurate checklist state,
+reviewer notes, linked tickets, and required wording. Fit the visual,
+evidence, and merge consequences into the template's structure. Correct
+stale claims against the verified diff.
+
+## Draft the title and body
+
+Keep the title concise and specific. Preserve required issue keys and follow
+the repository's title conventions.
+
+Use these three headings in order when the repository supplies no template.
+
+### `## Summary`
+
+Pair one or two crisp sentences with the smallest visual that makes the
+change obvious in ten seconds. Choose the representation that fits the diff.
+
+| Change | Visual |
+| --- | --- |
+| Logic or branching | Pseudocode |
+| Runtime control flow | Call tree |
+| UI composition | Component tree |
+| File layout or refactor | Shallow file tree |
+| Before/after structure | Small structural `diff` sketch |
+| Interaction or data flow | Small Mermaid diagram |
+
+Keep the visual next to the summary sentences. Avoid a long list of changed
+files or a recap of the implementation. Use verified symbols, exit codes,
+and messages only when they matter to the sketch.
+
+Example structural `diff` sketch (often clearer than a diagram for control-flow
+or layout changes):
+
+```diff
+ on(save)
+-  write content
++  if content is unchanged
++    return cached result
++  write new content
++  invalidate cache
 ```
 
-In Codex, the slash examples above map directly to `$v1-pr-description ...`.
-
-## Workflow
-
-### 1. Resolve PR Context
-
-Use the PR itself as the source of truth for base/head instead of assuming `main`:
-
-```bash
-gh pr view {pr} --json number,url,title,body,baseRefName,baseRefOid,headRefName,headRefOid,headRepository,headRepositoryOwner,files,commits
-```
-
-Treat the repository named by the PR URL as the base repository. Confirm its
-primary GitHub identity before using local refs:
-
-```bash
-gh repo view {host}/{owner}/{repo} --json nameWithOwner
-```
-
-The base identity, the current base branch ref from the Git ref API, and local
-`HEAD` are one contract. The PR metadata `baseRefOid` is historical context;
-an open PR can retain it after the base branch advances. The local checkout is
-usable only when `HEAD` equals `headRefOid`, a local remote URL maps to the
-GitHub base repository, the authoritative API response is a commit for the
-requested `refs/heads/{baseRefName}`, and a successful fetch resolves to that
-same current SHA. Re-read the repository identity after resolving the ref so a
-concurrent repository change fails closed. Do not choose a remote because it
-is named `origin` or `upstream`, and do not use an existing remote-tracking ref
-after a failed fetch. If any check fails, stop with an explicit unavailable
-diff context and do not draft or update the description from that local diff.
-
-Optional helper:
-
-Run this shell block with Bash. If your tool defaults to zsh or another shell,
-select Bash first; cache glob handling depends on it.
-
-```bash
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-RESOLVER=""
-for candidate in \
-  "$REPO_ROOT/plugins/v1tamins/scripts/resolve-skill-root.sh" \
-  "${CLAUDE_PLUGIN_ROOT:-}/scripts/resolve-skill-root.sh" \
-  "$HOME/.claude/skills/v1-pr-description/../../scripts/resolve-skill-root.sh" \
-  "$HOME/.codex/skills/v1-pr-description/../../scripts/resolve-skill-root.sh" \
-  "$HOME/.claude/plugins/cache"/*/v1tamins/*/scripts/resolve-skill-root.sh \
-  "$HOME/.codex/plugins/cache/v1tamins/v1tamins"/*/scripts/resolve-skill-root.sh; do
-  [ -x "$candidate" ] && RESOLVER="$candidate" && break
-done
-if [ -z "${RESOLVER:-}" ]; then
-  echo "ERROR: Could not find resolve-skill-root.sh" >&2
-  exit 1
-fi
-SKILL_ROOT="$("$RESOLVER" v1-pr-description generate.sh)"
-
-"$SKILL_ROOT/generate.sh" {PR_URL_or_NUMBER}
-```
-
-Use the helper to collect metadata, changed files, commits, and verified diff
-context. Treat its output as evidence, not as the finished PR description. A
-successful helper run (exit `0`) is required before using its local diff; exit
-`2` means the metadata was collected but the diff context is unavailable.
-
-If you need to inspect the context manually, fetch the mapped base remote and
-resolve the current branch revision from the primary Git ref API, then prove
-the exact revision before diffing:
-
-```bash
-base_sha="$(gh api --hostname {host} repos/{owner}/{repo}/git/ref/heads/{baseRefName} \
-  --jq 'select(.ref == "refs/heads/{baseRefName}" and .object.type == "commit") | .object.sha')"
-test -n "$base_sha"
-git fetch <base-remote> refs/heads/{baseRefName}
-test "$(git rev-parse FETCH_HEAD^{commit})" = "$base_sha"
-git diff --stat "$base_sha"...HEAD
-git diff --name-only "$base_sha"...HEAD
-git log --oneline "$base_sha"..HEAD
-```
-
-If the current checkout does not match the PR head SHA, or the base identity or
-exact base revision cannot be proved, say so and stop the local-diff workflow.
-Do not write a description from an unknown local branch or stale base ref.
-
-### 2. Build a Ledger
-
-Before drafting, build a compact ledger:
-
-| Source | Evidence | Use |
-|---|---|---|
-| PR metadata | title, body, base/head, files | preserve existing context and detect stale claims |
-| Diff | changed files and meaningful hunks | describe actual behavior changes |
-| Commits | commit subjects and range | identify intent and follow-up fixes |
-| Validation | test commands in commits, comments, checks, or user notes | report only verified validation |
-| Repo guidance | `AGENTS.md`, `CLAUDE.md`, `.github/pull_request_template*`, `.github/CODEOWNERS`, relevant workflows | match local expectations |
-| User constraints | required phrases, prohibited terms, title/body preferences | preserve exactly |
-
-Read only the relevant files. Do not crawl all of `.github/`; inspect files that explain PR templates, ownership, or checks touched by the PR.
-
-If the existing PR body has required footer text, checklist state, reviewer notes, linked tickets, or user-requested wording, preserve it unless the user explicitly asks to replace it.
-
-### 3. Draft Title and Body
-
-Title:
-- Keep it concise and specific, usually under 72 characters.
-- Preserve issue keys or required prefixes already present in the title.
-- Use imperative or conventional style only if the repository already uses it.
-
-Body:
-- Prefer this structure, omitting sections that have no grounded content:
-
-```markdown
-## Summary
-- ...
-
-## Changes
-- ...
-
-## Validation
-- ...
-
-## Risk / Rollback
-- ...
-
-## Notes for Reviewers
-- ...
-```
-
-Use bullets over prose when the PR has multiple concrete changes. Keep the description grounded in files, behavior, validation, and reviewer impact.
-
-Choose the smallest representation that clarifies a consequential change:
-a structural before/after for responsibilities, a call-tree for execution,
-pseudocode for a branch, or Mermaid for relationships. Include it only when it
-adds information beyond the prose and fits the repository template. Ground
-it in the ledger; skip it when ordinary prose is sufficient. Use
-`v1-pr-walkthrough` for a fuller explanation, not a larger artifact by default.
-
-For an actual responsibility change, a small structural comparison may suffice:
-
-```text
-Before: command → parse + authorize + mutate + format
-After:  command → validated request → scoped mutation → result formatter
-```
-
-Keep Mermaid diagrams small and maintainable. Do not add a diagram for a
-simple list of changes.
+In Mermaid, use neutral IDs such as `n1` and `n2`. Avoid reserved keywords
+as node IDs, including `call`, `end`, `subgraph`, `graph`, `style`, and
+`click`. Quote labels with special characters and check the diagram renders.
+Use a text sketch if rendering cannot be verified.
 
 ```mermaid
 flowchart LR
-  "Old path" --> "Changed component"
-  "Changed component" --> "New behavior"
+  n1["Read PR #42"] --> n2["Verify base (host + repository)"]
 ```
 
-If a relevant explainer video already exists, link it as supplementary explanation alongside the concise written summary. Verify which PR revision it covers and whether reviewers can access its destination; disclose material staleness and keep an inaccessible local file out of the posted body. Creating or uploading a video is not part of writing a PR description unless requested. A video explains the change; it does not replace validation evidence.
+### `## Evidence`
 
-### 4. Check the Draft Before Posting
+Show the concrete before and after. For UI, use screenshots of the same
+state on each revision. For logic, show a focused test failing before and
+passing after, or exact command output that demonstrates the behavior.
+Label each result with its revision or reproduction context. If a run or
+capture is missing, say which one and report only what was observed.
+Use an explicit evidence gap in place of any placeholder. Check that
+reviewers can open linked evidence and that it covers the stated revision.
 
-Before editing GitHub:
-- Check that every major claim in the draft is backed by the ledger.
-- Check that the title/body matches the current diff, not a stale earlier version of the PR.
-- Verify validation claims are commands that actually ran, check results that passed, or explicitly marked as not run.
-- Scan for prohibited terms or wording the user asked to avoid.
-- Confirm required text from the old body is still present when it should be preserved.
-- If the PR changed after the ledger was built, rebuild the ledger first.
+### `## Merge Danger`
 
-If the implementation no longer matches the existing PR description, update the stale description rather than preserving inaccurate text.
+- **Door** — Say `two-way` when a revert restores behavior, or `one-way`
+  when durable effects remain or reversal needs additional intervention.
+  Give the actual recovery step or the reason reversal is limited.
+- **Blast Radius** — Name what breaks if the change goes wrong. Identify
+  the affected users, callers, data, or workflows and any limit you verified.
 
-### 5. Update GitHub
+## Return or post the draft
 
-Use `gh pr edit` when the user asked to update GitHub:
+Check the title and body against the current PR head and base, the template,
+required wording, and actual validation before returning or posting. If the
+revisions changed, refresh the evidence.
+
+Return the proposed title and body for a draft-only request. When the user
+authorized updating GitHub, use the verified full PR URL.
 
 ```bash
-gh pr edit {pr} --title "..." --body-file /path/to/body.md
+gh pr edit <verified-pr-url> --title "<title>" --body-file <body-file>
 ```
 
-If `gh` is unavailable or unauthenticated, do not claim the PR was updated. Return the proposed title/body and the exact blocker.
-
-If the user only asked for a draft, return the proposed title/body without running `gh pr edit`.
-
-## Output
-
-Report:
-- PR URL or number.
-- Whether GitHub was updated or only a draft was produced.
-- Title used.
-- Key evidence sources consulted.
-- Validation claims included.
-- Any preserved required text or prohibited terms checked.
+Read back the title and body from that URL. If the edit or readback fails,
+return the draft with the exact blocker and report the remote state as
+unverified.
