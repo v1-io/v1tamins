@@ -12,7 +12,7 @@
 **Small, reusable skills for healthier AI-assisted development.**
 
 v1tamins is an open-source plugin for [Claude Code](https://claude.ai/code) and
-[Codex](https://openai.com/codex/). It packages 42 focused skills for planning,
+[Codex](https://openai.com/codex/). It packages 43 focused skills for planning,
 debugging, reviewing, shipping, research, documentation, and product work. Use
 one skill for a specific job or combine several into a repeatable workflow.
 
@@ -82,6 +82,7 @@ In Claude Code:
 ```text
 /v1-debug trace why this test fails only in CI
 /v1-deep-review review this branch for merge risk and maintainability
+/v1-figure-it-out check whether CSV exports include archived records and draft a reply
 /v1-pr-description refresh this pull request title and body
 /v1-skin-suit use a natural, plainspoken style for this conversation
 /v1-what-next what should we work on next
@@ -93,6 +94,7 @@ In Codex:
 ```text
 $v1-debug trace why this test fails only in CI
 $v1-deep-review review this branch for merge risk and maintainability
+$v1-figure-it-out check whether CSV exports include archived records and draft a reply
 $v1-pr-description refresh this pull request title and body
 $v1-skin-suit write a casual update from these notes
 $v1-what-next where were we and what is next
@@ -146,6 +148,7 @@ These common entry points cover much of the day-to-day work:
 | You need to… | Start with |
 | --- | --- |
 | Decide what to work on next from the thread or the project's backlog | [`/v1-what-next`](plugins/v1tamins/skills/v1-what-next/SKILL.md) |
+| Investigate an ambiguous request and prepare a reply or next move | [`/v1-figure-it-out`](plugins/v1tamins/skills/v1-figure-it-out/SKILL.md) |
 | Turn a fuzzy request into clear requirements | [`/v1-interview-me`](plugins/v1tamins/skills/v1-interview-me/SKILL.md) |
 | Cut an oversized plan to the smallest useful scope | [`/v1-bare-bones`](plugins/v1tamins/skills/v1-bare-bones/SKILL.md) |
 | Debug an observable failure to a tested cause | [`/v1-debug`](plugins/v1tamins/skills/v1-debug/SKILL.md) |
@@ -238,6 +241,7 @@ that matches the job.
 
 | Skill | Use it when |
 | --- | --- |
+| [`/v1-figure-it-out`](plugins/v1tamins/skills/v1-figure-it-out/SKILL.md) | An ambiguous request or claim needs verified facts and a ready reply or next move. |
 | [`/v1-deep-research`](plugins/v1tamins/skills/v1-deep-research/SKILL.md) | A complex question needs iterative multi-source research. |
 | [`/v1-autoresearch-skill`](plugins/v1tamins/skills/v1-autoresearch-skill/SKILL.md) | A measurable target needs an autonomous optimization loop. |
 | [`/v1-canon2skill`](plugins/v1tamins/skills/v1-canon2skill/SKILL.md) | Source material needs reusable skill ideas. |
