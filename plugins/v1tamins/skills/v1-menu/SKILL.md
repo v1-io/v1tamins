@@ -43,6 +43,7 @@ Use `/v1-catch-up` for a short visual recap of what changed since the user's las
 
 ## Research and analysis
 
+- `/v1-figure-it-out` — check the deciding facts behind an ambiguous request or claim and prepare a reply or next move.
 - `/v1-deep-research` — multi-source research report. `/v1-autoresearch-skill` **(explicit)** — autonomous optimize-measure-keep loop against a measurable target.
 - `/v1-learning-from-customers` — demand evidence and discovery. `/v1-testing-prototypes` — user tests for prototypes.
 - `/v1-reviewing-data-graphics` — audit charts and dashboards. `/v1-reviewing-usability` — review a UI or flow for user error.
