@@ -1,5 +1,11 @@
 # v1tamins
 
+## 0.18.1
+
+### Patch Changes
+
+- 678b328: Remove the v1-changelog skill. Projects can maintain release notes using their own release conventions.
+
 ## 0.18.0
 
 ### Minor Changes
