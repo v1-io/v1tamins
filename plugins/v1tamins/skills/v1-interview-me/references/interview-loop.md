@@ -1,8 +1,43 @@
 # Interview Loop
 
-`SKILL.md` owns posture classification, completion, and output format. This
-file owns the loop those postures drive. Walk it in order, one focused round
-at a time.
+`SKILL.md` owns posture classification, completion, and output format. Use the
+pre-flight section only for **Pre-flight alignment**. For deeper discovery,
+walk the numbered sections in order, one focused round at a time. In
+caller-driven mode, use the numbered loop with the caller's choices and stop
+conditions from `SKILL.md`.
+
+## Pre-flight alignment
+
+1. **Explore first.** Read the relevant files and docs, check Git state and
+   recent changes, and resolve facts the repository already answers. Identify
+   what the request has already settled. Reopen a requirement only when the
+   evidence reveals a conflict that would change the work.
+2. **Pick the decisions that change the work.** Ask about the 3–6 choices most
+   likely to cause rework, a wrong tradeoff, or a surprise. If fewer qualify,
+   ask only those. If none qualify, go straight to the contract. For parallel
+   work, check where file ownership, integration order, or shared checks
+   could collide. Ask about those only when the user needs to make the call.
+3. **Send one numbered batch.** Give each decision an everyday label that
+   names the concrete change, such as "Where should the new column appear?"
+   Replace umbrella labels such as "Common Gates" with the action a person
+   would take or see. Letter the choices `A`, `B`, and so on. Put the concrete
+   `(Recommended)` default first and explain what it gains or costs. Use a
+   single chat message if the question tool cannot show the whole batch and
+   accept one reply. If offering with-docs in a repo, keep it opt-in and
+   include the offer in the same opening turn.
+4. **Close from the reply.** Read `1A, 2B, default rest — go` as selecting `A`
+   for 1, `B` for 2, accepting the remaining defaults, and authorizing the
+   requested next action within scope. Silence or an omitted choice alone
+   leaves that choice open. Record a deferral or blocker if needed. Ask a
+   focused follow-up only if a missing or conflicting answer prevents a safe
+   handoff.
+5. **Emit the Alignment Contract.** Keep it short enough to paste into an
+   implementation brief or worker assignment. Include settled decisions,
+   explicit non-goals, and stop boundaries that say when to pause and return
+   to the user. Name the next action. Carry any deferred item or blocker into
+   the relevant boundary. If dispatch is authorized, use the contract in the
+   worker briefs with the relevant file ownership and integration constraints.
+   The interview itself ends at the handoff.
 
 ## 1. Understand the starting point
 

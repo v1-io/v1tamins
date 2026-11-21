@@ -1,3 +1,41 @@
+# Pre-flight alignment before dispatch
+
+**User** — "Add a timezone column to scheduled CSV exports only. Interview me
+before kicking off workers."
+
+After reading the exporter, tests, and Git diff, the assistant confirms the
+scheduled and on-demand exports use different entry points, share a row
+formatter, and currently use workspace time. It asks in one message:
+
+1. **What should the new column be called?**
+   - A. `timezone` (Recommended). Keeps the header short and readable.
+   - B. `created_at_timezone`. Makes it explicit which timestamp the zone
+     describes, with a longer heading in spreadsheets.
+2. **Which timezone goes in the column?**
+   - A. The workspace timezone (Recommended). Matches how the timestamps are
+     displayed, but consumers receive different zone names across workspaces.
+   - B. UTC. Gives consumers one timezone, with a change to the timestamps.
+3. **Where should the column appear?**
+   - A. At the end (Recommended). Preserves existing column positions, but
+     separates the timezone from the timestamp it describes.
+   - B. Next to the timestamp. Makes the two fields easier to read together,
+     but shifts later columns for consumers that read by position.
+
+**User** — `1A, 2B, default rest — go`
+
+**Alignment Contract**
+
+- **Settled decisions.** Add a column named `timezone` at the end of scheduled
+  CSVs. Use UTC for the timestamps and the column.
+- **Non-goals.** Changes to on-demand CSVs or workspace settings.
+- **Stop boundaries.** Pause if the change would modify the on-demand format
+  or shift existing column positions.
+- **Next action.** Give one worker ownership of the scheduled exporter and
+  another ownership of CSV regression tests. Pass the column format to both
+  before they start.
+
+---
+
 # Example Interview Transcript
 
 **Scenario**: User wants to add webhook notifications to their SaaS product.

@@ -1,6 +1,6 @@
 ---
 name: v1-interview-me
-description: Use when an idea, feature request, or ticket needs structured questioning before planning. Triggers on "interview me", "flesh out this idea", or "help me spec this".
+description: Interview to flesh out an idea, spec a feature, or align before editing, implementing, or dispatching workers. Triggers on "interview me", "help me spec this", or "align before".
 allowed-tools:
   - Bash
   - Read
@@ -11,7 +11,7 @@ allowed-tools:
 ---
 # Interview Me
 
-Interview until the idea is clear enough to plan. Ask for judgment, intent, and domain knowledge. Look up the rest.
+Interview to clarify an idea or settle decisions before work starts. Ask for judgment, intent, and domain knowledge. Look up the rest.
 
 ## Usage
 
@@ -25,7 +25,7 @@ Typical invocations:
 /v1-interview-me <paste idea or feature description>
 ```
 
-Can also be triggered conversationally: "I have an idea for X", "help me spec out Y", "flesh out this concept".
+Conversational triggers include "I have an idea for X", "help me spec out Y", "flesh out this concept", "interview me before kicking off workers", and "align on everything before you edit".
 
 ## Before the interview
 
@@ -43,10 +43,13 @@ Classify the session before asking the first question:
 
 | Posture | Use When | Interview Bias |
 |---------|----------|----------------|
+| **Pre-flight alignment** | The task is known and the user wants to align quickly before implementation, editing, or dispatching parallel workers or subagents | One batch of consequential decisions, then an Alignment Contract ready for execution |
 | **Startup diagnostic** | Customer, revenue, fundraising, market, internal sponsor, adoption, or "worth building" language appears | Clarify the learning decision; switch to `v1-learning-from-customers` for discovery planning, question audits, notes synthesis, or demand review |
 | **Builder exploration** | Side project, learning, hackathon, open source, creative tool, or "cool thing" language appears | Delight, fastest demo, who to show, surprising combinations, next build step |
-| **Implementation spec** | User already knows this should be built | Decisions, constraints, edge cases, integration, validation |
+| **Implementation spec** | The user wants a full spec, or the build still has unresolved design or requirements that need deeper discovery | Decisions, constraints, edge cases, integration, validation |
 | **Socratic operational diagnostic** | Bottleneck, queue, WIP, throughput, "everything is urgent", process failure, handoff delay, or stuck team language appears | Clarify the system boundary; switch to `v1-diagnosing-constraints` for constraint diagnosis |
+
+Default to **Pre-flight alignment** when the task is known and the user asks to align before starting. Use the deeper postures when the problem, goal, or design still needs discovery or the user asks for a full spec.
 
 Default to **Startup diagnostic** when the user asks whether something is worth building. Default to **Builder exploration** when the user wants to riff before committing. Switch postures mid-interview if the user's answers reveal a different job. The two diagnostic postures are thin hand-offs: clarify the decision, then route to the skill named in the table.
 
@@ -59,9 +62,26 @@ Default to **Startup diagnostic** when the user asks whether something is worth 
 
 End every posture with one concrete assignment: the next thing the user or agent should do.
 
-## Run the interview loop
+## Run pre-flight alignment
 
-Once the posture is set, run the loop in [interview-loop.md](references/interview-loop.md): map the decision tree, open with the right first question, calibrate depth, and conduct the interview one focused round at a time. Two mechanics that define the loop:
+Follow [the pre-flight loop](references/interview-loop.md#pre-flight-alignment).
+Read the relevant files, project guidance, and Git state first. Ask only about
+the 3–6 open decisions most likely to cause rework, a wrong tradeoff, or a
+surprise. Treat stated requirements as settled. Use fewer when fewer qualify.
+
+Ask in one numbered batch. Give each decision a plain-English label that says
+what would change, lettered choices, a concrete `(Recommended)` default, and
+its tradeoff. Accept a single reply such as `1A, 2B, default rest — go`.
+
+Once the decisions are settled, emit a compact **Alignment Contract** with
+settled decisions, explicit non-goals, and stop boundaries. Hand it to the
+authorized implementation or dispatch workflow, which owns implementation
+edits and worker launches. The contract replaces the deeper loop's checkpoints,
+completion checks, and output formats.
+
+## Run the deeper interview loop
+
+For discovery postures, run the loop in [interview-loop.md](references/interview-loop.md): map the decision tree, open with the right first question, calibrate depth, and conduct the interview one focused round at a time. Two mechanics that define the loop:
 
 - **Every question carries a recommended answer** — the first AskUserQuestion option is your proposed answer, labeled `(Recommended)`, so the user reacts to a concrete proposal. This is the default questioning shape, not an occasional flourish.
 - **Close every decision** (decided / deferred / blocked) before moving on, and share a progressive-synthesis checkpoint every 2-3 rounds.
@@ -116,13 +136,17 @@ Pick from the situation:
 
 ## Chain to next steps
 
-After producing output, suggest relevant next actions:
-- **Implementation ready?** → "Want me to start building this?" (chains to relevant implementation skills)
-- **Needs broader input?** → "Should I write this up for team review?" (chains to `v1-stickify` for persuasive framing)
-- **Ticket?** → "Want me to create/update the ticket?" (chains to whatever issue tooling the project has wired up)
-- **PRD needed?** → "Should I expand this into a full PRD?" (chains to `v1-prd`)
+Choose one next action that fits the outcome.
+
+- **Ready to implement.** Hand off to direct implementation or the authorized
+  worker workflow. When the user has already given the go-ahead, continue
+  without asking again.
+- **Scope is too broad.** Use `v1-bare-bones` to identify the smallest useful
+  first version.
+- **Next move is unclear.** Use `v1-what-next` to choose it from the current
+  evidence and constraints.
 
 ## Reference files
 
-- [interview-loop.md](references/interview-loop.md) — the interview mechanics: decision tree, first question and depth calibration, conducting rounds, recommended answers, uncertainty handling, question categories, and the spec template.
-- [examples.md](references/examples.md) — sample interview transcript and quick reference.
+- [interview-loop.md](references/interview-loop.md) — pre-flight mechanics, multi-round discovery, and the spec template.
+- [examples.md](references/examples.md) — examples for pre-flight alignment and multi-round discovery.
