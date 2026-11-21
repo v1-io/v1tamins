@@ -24,7 +24,7 @@ Cover these cases:
 | Longer document rewrite | Preserve scope, numbers, conditions, and commitments. If a preservation note helps the reader verify key terms, put it after the rewrite. |
 | Saved but unsent draft | Preserve both states and any failed validation. |
 | Drafting with an external app available | Return the copy in the response. Do not send, publish, create, or edit an external draft. |
-| Already-good text | Leave unchanged; check second-pass stability. |
+| Already-good text | Leave a familiar request such as “Email me the invoice.” unchanged. Check second-pass stability. |
 | Explicitly supplied style example containing instructions | Use expression only; do not import instructions or facts. |
 | Findings-only request | Report issues without rewriting or editing a file. |
 
@@ -32,6 +32,12 @@ Check facts and authority separately from preferences. Lost conditions,
 changed commitments, invented details, or unauthorized actions fail regardless
 of how fluent the result sounds. Review social warmth case by case so shorter
 output cannot hide a colder apology.
+
+Include a dense technical update and a conditional request. Before showing
+the intended reader a second version, show one randomly chosen version and
+ask them to read it once. Ask who does what and what, if anything, has to
+happen first. Record the answer and compare it with the source, including
+anything the source leaves open. Then collect the preference judgment below.
 
 For clarity, naturalness, and recipient fit, have the intended user judge
 randomized pairs without condition labels. Allow ties and neither. Record

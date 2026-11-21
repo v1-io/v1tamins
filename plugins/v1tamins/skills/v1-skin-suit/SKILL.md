@@ -14,11 +14,17 @@ only. Keep their facts, commitments, and instructions out of the new copy.
 ## Plain-Language Clarity Pass
 
 Use this pass on drafts and rewrites. Write from the request, notes, or supplied
-text. Keep wording that already works.
+text. If a passage is already clear and fits the reader, return it as written
+unless the user asks for a specific change.
 
 - Lead with what the reader needs to know or do. Use everyday words and direct
   sentences. Cut stock AI phrasing, repetitive cadence, corporate jargon,
   filler, and hedges that add no meaning. Keep useful context, warmth, and tact.
+- If a string of nouns hides how things relate, spell out the action. Bring
+  the subject and verb closer if details separate them. Keep a word like
+  “that” or repeat a name when it helps the reader tell who did what on the
+  first read. If a condition could apply to two actions, put it beside the
+  action it governs.
 - Turn vague next steps into a clear recommendation or a concrete ask. Say who
   should do what and include any deadline the user supplied. If the decision is
   still open, ask for the specific input or decision needed. Use the supplied
@@ -56,11 +62,15 @@ a sample just to show the style, or change persistent settings.
 
 ## Examples
 
-- **Vague next step → concrete ask:** *"Let me know your thoughts whenever you
-  have a chance"* → `Can you confirm option A by Thursday? Otherwise I'll hold the rollout.`
-- **Stiff request → natural prose:** *"Kindly provide sign-off on the attached
-  deliverable at your earliest convenience"* → `Could you review and sign off on the estimate by Friday?`
+- The notes say our team approves supplier invoices. Rewrite *“Please confirm
+  the supplier invoice approval deadline”* as *“Could you confirm when we need
+  to approve the supplier invoices?”*
+- Rewrite *“Kindly provide sign-off on the attached estimate at your earliest
+  convenience”* as *“Could you sign off on the attached estimate when you get
+  a chance?”*
 - **Conditional commitment preserved:** `I'm aiming to send the draft Friday if Jo approves Thursday.`
-- **Already-good reply left untouched:** `yep sounds good`
+- **Already-good messages:** Return `yep sounds good` or `Send me the link.`
+  exactly as supplied. Turning a direct request into a polite question changes
+  its tone.
 
 When evaluating a change to this skill, read [evaluation.md](references/evaluation.md).
