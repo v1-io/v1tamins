@@ -1,6 +1,6 @@
 ---
 name: v1-bare-bones
-description: Cut plans, PRDs, diffs, branches, PRs, skills, prompts, or architectures to their smallest useful form. Use for "MVP only", "strip this PR", or "deslop this diff".
+description: Cut plans, PRDs, diffs, branches, PRs, skills, prompts, or architectures to their smallest useful scope. Triggers on "strip this plan", "MVP only", or "strip this PR".
 allowed-tools:
   - Bash
   - Read
@@ -11,7 +11,9 @@ allowed-tools:
 ---
 # Bare Bones
 
-Keep the smallest coherent artifact that serves the requested outcome.
+Keep the smallest coherent artifact that serves the requested outcome. For a
+behavior-preserving code quality pass, deslop, or hindsight rewrite of working
+code, use `v1-refine`.
 
 ## Set the target and scope
 
@@ -77,12 +79,6 @@ Before applying a code cut, establish a focused test, repro, or before/after
 check that covers the affected behavior. Run it on the original and on the
 revision. If proof is unavailable, leave the cut as a proposal. If the revision
 fails the check, correct it or withdraw that cut.
-
-For a **hindsight rewrite**, capture what the first pass proved about the root
-cause, invariants, and edge cases. Keep the proof in place. Design the smallest
-correct replacement from those facts and local patterns. Compare it with
-the first pass on the same check. Keep the first pass if the rewrite offers no
-meaningful simplification or cannot demonstrate equivalent behavior.
 
 **Skills, prompts, and architectures.** Trace the actual workflow or a
 representative end-to-end path. Cut repeated instructions, ceremonial choices,

@@ -12,7 +12,7 @@
 **Small, reusable skills for healthier AI-assisted development.**
 
 v1tamins is an open-source plugin for [Claude Code](https://claude.ai/code) and
-[Codex](https://openai.com/codex/). It packages 41 focused skills for planning,
+[Codex](https://openai.com/codex/). It packages 42 focused skills for planning,
 debugging, reviewing, shipping, research, documentation, and product work. Use
 one skill for a specific job or combine several into a repeatable workflow.
 
@@ -81,7 +81,6 @@ In Claude Code:
 
 ```text
 /v1-debug trace why this test fails only in CI
-/v1-bare-bones deslop this diff and show me what to cut
 /v1-deep-review review this branch for merge risk and maintainability
 /v1-pr-description refresh this pull request title and body
 /v1-skin-suit use a natural, plainspoken style for this conversation
@@ -93,7 +92,6 @@ In Codex:
 
 ```text
 $v1-debug trace why this test fails only in CI
-$v1-bare-bones cut this plan to the first usable release
 $v1-deep-review review this branch for merge risk and maintainability
 $v1-pr-description refresh this pull request title and body
 $v1-skin-suit write a casual update from these notes
@@ -149,9 +147,10 @@ These common entry points cover much of the day-to-day work:
 | --- | --- |
 | Decide what to work on next from the thread or the project's backlog | [`/v1-what-next`](plugins/v1tamins/skills/v1-what-next/SKILL.md) |
 | Turn a fuzzy request into clear requirements | [`/v1-interview-me`](plugins/v1tamins/skills/v1-interview-me/SKILL.md) |
-| Cut an oversized plan, diff, PR, skill, prompt, or architecture to the smallest useful version | [`/v1-bare-bones`](plugins/v1tamins/skills/v1-bare-bones/SKILL.md) |
+| Cut an oversized plan, diff, PR, skill, prompt, or architecture to the smallest useful scope | [`/v1-bare-bones`](plugins/v1tamins/skills/v1-bare-bones/SKILL.md) |
 | Debug an observable failure to a tested cause | [`/v1-debug`](plugins/v1tamins/skills/v1-debug/SKILL.md) |
 | Repair a failing test suite | [`/v1-fix-tests`](plugins/v1tamins/skills/v1-fix-tests/SKILL.md) |
+| Improve working but rough code | [`/v1-refine`](plugins/v1tamins/skills/v1-refine/SKILL.md) |
 | Review a branch or PR before merge | [`/v1-deep-review`](plugins/v1tamins/skills/v1-deep-review/SKILL.md) |
 | Prepare a pull request | [`/v1-pr`](plugins/v1tamins/skills/v1-pr/SKILL.md) |
 | Explain a pull request visually | [`/v1-pr-walkthrough`](plugins/v1tamins/skills/v1-pr-walkthrough/SKILL.md) |
@@ -166,7 +165,7 @@ These common entry points cover much of the day-to-day work:
 | Journey | Suggested chain |
 | --- | --- |
 | Idea to reviewed plan | `/v1-interview-me` → `/v1-strategy-review` → `/v1-bare-bones` → `/v1-prd` |
-| Bug to verified fix | `/v1-debug` → `/v1-write-tests` → `/v1-bare-bones` → `/v1-deep-review` |
+| Bug to verified fix | `/v1-debug` → `/v1-write-tests` → `/v1-refine` → `/v1-deep-review` |
 | Planned unit to mergeable PR | `/v1-implement-unit` (includes review and landing phases) |
 | PR review hand-off | `/v1-deep-review` → `/v1-address-review` → `/v1-land-pr` |
 | Learning loop | `/v1-goldpan` (includes compounding) → `/v1-docs-freshness` → `/v1-changelog` |
@@ -184,7 +183,7 @@ that matches the job.
 | [`/v1-what-next`](plugins/v1tamins/skills/v1-what-next/SKILL.md) | The thread has paused and needs one clear next move. |
 | [`/v1-interview-me`](plugins/v1tamins/skills/v1-interview-me/SKILL.md) | An idea, ticket, or feature request needs structured questions before implementation. |
 | [`/v1-strategy-review`](plugins/v1tamins/skills/v1-strategy-review/SKILL.md) | A plan, PRD, or direction needs a strategic challenge. |
-| [`/v1-bare-bones`](plugins/v1tamins/skills/v1-bare-bones/SKILL.md) | A plan, code change, skill, prompt, or architecture needs trimming. Use it to deslop a diff or rewrite a working fix with hindsight. |
+| [`/v1-bare-bones`](plugins/v1tamins/skills/v1-bare-bones/SKILL.md) | A plan, diff, PR, skill, prompt, or architecture needs stripping to its smallest useful scope. |
 | [`/v1-shared-language`](plugins/v1tamins/skills/v1-shared-language/SKILL.md) | A team or codebase needs one clear domain vocabulary. |
 | [`/v1-prd`](plugins/v1tamins/skills/v1-prd/SKILL.md) | A feature request needs a product requirements document. |
 | [`/v1-learning-from-customers`](plugins/v1tamins/skills/v1-learning-from-customers/SKILL.md) | Customer discovery needs planning, audit, or synthesis. |
@@ -211,6 +210,7 @@ that matches the job.
 
 | Skill | Use it when |
 | --- | --- |
+| [`/v1-refine`](plugins/v1tamins/skills/v1-refine/SKILL.md) | Working code needs a quality pass, deslop, or hindsight rewrite. |
 | [`/v1-deep-review`](plugins/v1tamins/skills/v1-deep-review/SKILL.md) | A PR or branch needs review for merge risk and maintainability. |
 | [`/v1-review-board`](plugins/v1tamins/skills/v1-review-board/SKILL.md) | A PR needs a parallel, read-only multi-agent review and one finding ledger. |
 | [`/v1-reviewing-data-graphics`](plugins/v1tamins/skills/v1-reviewing-data-graphics/SKILL.md) | Charts, dashboards, or metrics need an integrity and clarity review. |

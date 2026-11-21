@@ -2,4 +2,4 @@
 "v1tamins": minor
 ---
 
-Expand `v1-bare-bones` from plan scoping to complexity cuts for diffs, branches, PRs, skills, prompts, and architectures. It starts with a Cut Scorecard and proposes cuts by default. Use it for the deslop and hindsight rewrite workflows previously provided by the retired `v1-refine` skill.
+Expand `v1-bare-bones` beyond plans to cut oversized diffs, branches, PRs, skills, prompts, and architectures to their smallest useful scope. Lead with a Cut Scorecard and Scope Ledger, propose cuts by default, and keep code quality passes, deslop, and hindsight rewrites with `v1-refine`.

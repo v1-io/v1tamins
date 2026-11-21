@@ -1,7 +1,7 @@
 interface:
   display_name: "Bare Bones"
-  short_description: "Trim plans, diffs, PRs, skills, and architectures."
-  default_prompt: "Use $v1-bare-bones to trim this plan or simplify this diff or PR. Show the smallest useful version and what I can cut."
+  short_description: "Cut plans, diffs, PRs, skills, and architectures to minimum scope."
+  default_prompt: "Use $v1-bare-bones to strip this plan, diff, PR, or design to the smallest useful version and show what I can cut."
 
 policy:
   allow_implicit_invocation: true

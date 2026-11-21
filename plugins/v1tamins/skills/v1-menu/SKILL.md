@@ -16,8 +16,8 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 ## Building something new (idea → shipped)
 
 1. `/v1-interview-me` — office-hours questioning to flesh out an idea before planning. Hands off to `/v1-learning-from-customers` when the question is real demand, or `/v1-diagnosing-constraints` when a stuck process is the real problem.
-2. `/v1-prd` — turn the settled idea or ticket into requirements. `/v1-bare-bones` — strip an overscoped plan to the smallest useful version. `/v1-strategy-review` — challenge assumptions and ambition before committing.
-3. Build: `/v1-implement-unit` **(explicit)** takes one adequately planned ticket through isolated implementation, fresh review-board cycles, and a mergeable PR. For manual work, use `/v1-write-tests` for new coverage and `/v1-bare-bones` when the diff needs simplifying.
+2. `/v1-prd` — turn the settled idea or ticket into requirements. `/v1-bare-bones` — strip an overscoped plan, diff, PR, skill, or architecture to the smallest useful version. `/v1-strategy-review` — challenge assumptions and ambition before committing.
+3. Build: `/v1-implement-unit` **(explicit)** takes one adequately planned ticket through isolated implementation, fresh review-board cycles, and a mergeable PR. For manual work, drive `/v1-write-tests` for new coverage and `/v1-refine` before calling it done.
 4. Ship: `/v1-pr` **(explicit)** (create a draft PR), `/v1-pr-description` (title/body), `/v1-land-pr` **(explicit)** (commit → push → CI → ready for review; never merge), `/v1-prove-work` **(explicit)** (record browser proof for the PR).
 
 ## Reviewing code
@@ -37,7 +37,7 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 ## Fixing and improving code
 
 - Broken: `/v1-fix-tests` (failing suite), `/v1-e2e-testing` (browser/E2E and flakes).
-- Overcomplicated diff, branch, or PR: `/v1-bare-bones` (propose cuts, deslop, or work out a hindsight rewrite that preserves required behavior).
+- Working but rough: `/v1-refine` (quality pass / deslop / hindsight rewrite on the diff or named files).
 
 ## Research and analysis
 
@@ -55,7 +55,6 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 
 ## Working on skills and prompts
 
-- `/v1-bare-bones` — trim a skill, prompt, or architecture to its essential workflow.
 - `/v1-bigxtha-plugin` — design or audit an Agent Skills plugin as a system: capability owners, shared resources, handoffs, and change impact. For requested local fixes, it uses the individual authoring owner and retains plugin-level verification.
 - `/v1-skilling-it` — manage an Agent Skill from Canonical Source creation, editing, audit, and validation through separately gated packaging, installation, or publication. `/v1-canon2skill` — mine source material for candidate skill ideas before authoring. `/v1-goldpan` **(explicit)** — pan recent PRs and sessions for compound-worthy lessons.
 - `/v1-prompt-engineering` — work on general prompts, system prompts, hooks, or sub-agent briefs for any model or host, including GPT-5.5 and OpenRouter specifics; use `/v1-skilling-it` when the artifact is an Agent Skill.
