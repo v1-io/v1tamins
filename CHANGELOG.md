@@ -1,5 +1,11 @@
 # v1tamins
 
+## 0.18.2
+
+### Patch Changes
+
+- 3a48c0e: Help Skin Suit unpack dense wording and preserve the facts behind a request. Add a first-read comprehension check to its evaluation.
+
 ## 0.18.1
 
 ### Patch Changes
