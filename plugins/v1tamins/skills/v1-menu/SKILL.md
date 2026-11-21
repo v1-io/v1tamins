@@ -13,6 +13,8 @@ You don't remember every v1 skill, so ask. Read the user's situation, then point
 
 Skills marked **(explicit)** never fire autonomously — the user must name them. They are the easiest ones to forget, so surface them whenever they fit.
 
+Use `/v1-catch-up` for a short visual recap of what changed since the user's last message and what needs their attention.
+
 ## Building something new (idea → shipped)
 
 1. `/v1-interview-me` — office-hours questioning to flesh out an idea before planning. Hands off to `/v1-learning-from-customers` when the question is real demand, or `/v1-diagnosing-constraints` when a stuck process is the real problem.
