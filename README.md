@@ -147,7 +147,7 @@ These common entry points cover much of the day-to-day work:
 | --- | --- |
 | Decide what to work on next from the thread or the project's backlog | [`/v1-what-next`](plugins/v1tamins/skills/v1-what-next/SKILL.md) |
 | Turn a fuzzy request into clear requirements | [`/v1-interview-me`](plugins/v1tamins/skills/v1-interview-me/SKILL.md) |
-| Cut an oversized plan to the smallest useful scope | [`/v1-bare-bones`](plugins/v1tamins/skills/v1-bare-bones/SKILL.md) |
+| Cut an oversized plan, diff, PR, skill, prompt, or architecture to the smallest useful scope | [`/v1-bare-bones`](plugins/v1tamins/skills/v1-bare-bones/SKILL.md) |
 | Debug an observable failure to a tested cause | [`/v1-debug`](plugins/v1tamins/skills/v1-debug/SKILL.md) |
 | Repair a failing test suite | [`/v1-fix-tests`](plugins/v1tamins/skills/v1-fix-tests/SKILL.md) |
 | Improve working but rough code | [`/v1-refine`](plugins/v1tamins/skills/v1-refine/SKILL.md) |
@@ -183,7 +183,7 @@ that matches the job.
 | [`/v1-what-next`](plugins/v1tamins/skills/v1-what-next/SKILL.md) | The thread has paused and needs one clear next move. |
 | [`/v1-interview-me`](plugins/v1tamins/skills/v1-interview-me/SKILL.md) | An idea, ticket, or feature request needs structured questions before implementation. |
 | [`/v1-strategy-review`](plugins/v1tamins/skills/v1-strategy-review/SKILL.md) | A plan, PRD, or direction needs a strategic challenge. |
-| [`/v1-bare-bones`](plugins/v1tamins/skills/v1-bare-bones/SKILL.md) | A plan needs the smallest useful scope. |
+| [`/v1-bare-bones`](plugins/v1tamins/skills/v1-bare-bones/SKILL.md) | A plan, diff, PR, skill, prompt, or architecture needs stripping to its smallest useful scope. |
 | [`/v1-shared-language`](plugins/v1tamins/skills/v1-shared-language/SKILL.md) | A team or codebase needs one clear domain vocabulary. |
 | [`/v1-prd`](plugins/v1tamins/skills/v1-prd/SKILL.md) | A feature request needs a product requirements document. |
 | [`/v1-learning-from-customers`](plugins/v1tamins/skills/v1-learning-from-customers/SKILL.md) | Customer discovery needs planning, audit, or synthesis. |
