@@ -45,7 +45,7 @@ Discover documentation files before editing:
 rg --files -g "*.md" -g "!node_modules/**" -g "!.git/**" | sort
 ```
 
-Always include entry-point docs when they exist: `README.md`, `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md`, `CHANGELOG.md`, and `docs/**/*.md`. Treat `CHANGELOG.md` as a read-only source here — *generating* release notes from merged PRs is `v1-changelog`'s job; this skill only keeps the other docs consistent with what shipped.
+Always include entry-point docs when they exist: `README.md`, `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md`, `CHANGELOG.md`, and `docs/**/*.md`. Use `CHANGELOG.md` as a read-only source when updating other docs.
 
 ### 3. Audit Each Doc
 

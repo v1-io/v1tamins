@@ -56,7 +56,7 @@ Use `/v1-catch-up` for a short visual recap of what changed since the user's las
 
 - `/v1-stickify` — make copy memorable. `/v1-html-it` — self-contained HTML page, report, or interactive PR walkthrough. `/v1-md2docs` **(explicit)** — markdown to Google Doc.
 - `/v1-explainer-video` — narrated animated explanation of a concept, process, or PR using your available renderer and speech provider.
-- `/v1-changelog` — what shipped, from merged PRs. `/v1-docs-freshness` — sync docs after changes.
+- `/v1-docs-freshness` — sync docs after changes.
 
 ## Working on skills and prompts
 
