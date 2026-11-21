@@ -101,6 +101,6 @@ dependencies still reach the intended users and callers.
    locations and reasons. For applied edits, summarize what changed and name
    the check and its result. For proposals, name the check that would verify
    the change.
-3. **Scope Ledger.** Group the significant decisions under **Keep / Cut /
-   Defer / Question**. Use Question for unresolved decisions that affect
-   scope, and keep the ledger short.
+3. **Scope Ledger.** Use all four labels **Keep / Cut / Defer / Question**.
+   Place each significant item in one bucket and write "None" for an empty
+   bucket. Use Question for unresolved decisions that affect scope.
