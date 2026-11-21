@@ -50,7 +50,7 @@ Declare `policy.invocation_posture` in each skill's `agents/openai.yaml`:
 
 Declare `policy.side_effects` for external writes, Git remote changes, peer
 launches, or browser capture. Keep orchestration entry points `v1-implement-unit`,
-`v1-review-board`, `v1-pr`, and `v1-land-pr` explicit. Child routing does not
+`v1-review-board`, and `v1-land-pr` explicit. Child routing does not
 open a parent workflow. There is no supported `agent-only` posture.
 
 ## Contribution workflow
@@ -73,6 +73,17 @@ Keep README and these instructions aligned. `CLAUDE.md` imports this file.
 README images need meaningful alt text; generated images keep an adjacent
 `.imagegen.md` prompt and provenance record. Update that record when changing
 its image.
+
+## PR review
+
+Report actionable defects with a concrete trigger, the affected caller or
+consumer, and code evidence. Return no findings when no supported defect exists.
+
+Review changed skills and helpers for public-safe portability, declared
+invocation posture and side effects, and resources available in the installed
+package. Trace routing and dependency changes through both runtime manifests
+and affected callers. A local checkout-only dependency or permission broader
+than the declared action is a defect; prose preferences alone are not.
 
 ## Tracker
 

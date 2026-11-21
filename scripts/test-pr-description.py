@@ -21,8 +21,10 @@ class Fixture:
         self.bin = root / "bin"
         self.bin.mkdir()
         self.gh_json = root / "pr.json"
+        self.pr_request = root / "pr-request.txt"
         self.repo_json = root / "repo.json"
         self.repo_selector = root / "repo-selector.txt"
+        self.default_repo_url = root / "default-repo-url.txt"
         self.api_json = root / "api.json"
         self.api_request = root / "api-request.txt"
         self.work = root / "work"
@@ -141,8 +143,15 @@ class Fixture:
             "#!/usr/bin/env bash\n"
             "set -euo pipefail\n"
             "case \"${1:-}\" in\n"
-            "  pr) cat \"$GH_PR_JSON\" ;;\n"
-            "  repo) printf '%s\\n' \"${3:-}\" >> \"$GH_REPO_SELECTOR\"; cat \"$GH_REPO_JSON\" ;;\n"
+            "  pr) printf '%s\\n' \"$@\" > \"$GH_PR_REQUEST\"; cat \"$GH_PR_JSON\" ;;\n"
+            "  repo)\n"
+            "    case \"${2:-}:${3:-}\" in\n"
+            "      set-default:--view) if [ -f \"$GH_DEFAULT_REPO_URL\" ]; then echo example/base; fi ;;\n"
+            "      view:--json) cat \"$GH_DEFAULT_REPO_URL\" ;;\n"
+            "      view:\"$GH_REPO\") cat \"$GH_DEFAULT_REPO_URL\" ;;\n"
+            "      view:*) printf '%s\\n' \"$3\" >> \"$GH_REPO_SELECTOR\"; cat \"$GH_REPO_JSON\" ;;\n"
+            "      *) exit 97 ;;\n"
+            "    esac ;;\n"
             "  api) printf '%s %s\\n' \"${3:-}\" \"${4:-}\" > \"$GH_API_REQUEST\"; cat \"$GH_API_JSON\" ;;\n"
             "  *) exit 97 ;;\n"
             "esac\n",
@@ -154,24 +163,36 @@ class Fixture:
         environment = os.environ.copy()
         environment["PATH"] = f"{self.bin}{os.pathsep}{environment['PATH']}"
         environment["GH_PR_JSON"] = str(self.gh_json)
+        environment["GH_PR_REQUEST"] = str(self.pr_request)
         environment["GH_REPO_JSON"] = str(self.repo_json)
         environment["GH_REPO_SELECTOR"] = str(self.repo_selector)
+        environment["GH_DEFAULT_REPO_URL"] = str(self.default_repo_url)
         environment["GH_API_JSON"] = str(self.api_json)
         environment["GH_API_REQUEST"] = str(self.api_request)
         environment["GIT_CONFIG_NOSYSTEM"] = "1"
         environment["GIT_TERMINAL_PROMPT"] = "0"
+        environment["GH_REPO"] = ""
         return environment
 
-    def run_helper(self) -> subprocess.CompletedProcess[str]:
+    def run_helper(self, *selectors: str, repo: str = "") -> subprocess.CompletedProcess[str]:
+        environment = self.environment()
+        environment["GH_REPO"] = repo
         return subprocess.run(
-            [str(HELPER), "90"],
+            [str(HELPER), *selectors],
             cwd=self.work,
-            env=self.environment(),
+            env=environment,
             check=False,
             capture_output=True,
             text=True,
             timeout=15,
         )
+
+    def assert_pr_request(self, case: unittest.TestCase, selector: str) -> None:
+        request = self.pr_request.read_text(encoding="utf-8").splitlines()
+        case.assertEqual(request[:2], ["pr", "view"])
+        case.assertIn("--repo", request)
+        case.assertEqual(request[request.index("--repo") + 1], selector)
+        case.assertEqual(request[-1], "90")
 
 
 class DescriptionContextTests(unittest.TestCase):
@@ -191,9 +212,10 @@ class DescriptionContextTests(unittest.TestCase):
                 head_sha=head_sha,
             )
 
-            result = fixture.run_helper()
+            result = fixture.run_helper("https://github.com/example/base/pull/90/files")
 
             self.assertEqual(result.returncode, 0, result.stderr)
+            fixture.assert_pr_request(self, "github.com/example/base")
             self.assertIn("Base repository: example/base", result.stdout)
             self.assertIn("Base SHA: " + base_sha, result.stdout)
             self.assertIn("PR metadata base SHA (historical): " + base_sha, result.stdout)
@@ -216,10 +238,12 @@ class DescriptionContextTests(unittest.TestCase):
                 base_sha=base_sha,
                 head_sha=head_sha,
             )
+            fixture.default_repo_url.write_text("https://github.com/example/base\n")
 
-            result = fixture.run_helper()
+            result = fixture.run_helper("90")
 
             self.assertEqual(result.returncode, 0, result.stderr)
+            fixture.assert_pr_request(self, "github.com/example/base")
             self.assertIn("feature.txt", result.stdout)
             self.assertNotIn("resolved to " + wrong_sha, result.stderr)
 
@@ -236,7 +260,7 @@ class DescriptionContextTests(unittest.TestCase):
                 head_sha=head_sha,
             )
 
-            result = fixture.run_helper()
+            result = fixture.run_helper("90")
 
             self.assertEqual(result.returncode, 2)
             self.assertIn("Diff context: unavailable", result.stderr)
@@ -257,7 +281,7 @@ class DescriptionContextTests(unittest.TestCase):
                 head_sha=head_sha,
             )
 
-            result = fixture.run_helper()
+            result = fixture.run_helper("90")
 
             self.assertEqual(result.returncode, 2)
             self.assertIn("resolved to " + wrong_sha, result.stderr)
@@ -276,7 +300,7 @@ class DescriptionContextTests(unittest.TestCase):
                 head_sha="f" * 40,
             )
 
-            result = fixture.run_helper()
+            result = fixture.run_helper("90")
 
             self.assertEqual(result.returncode, 2)
             self.assertIn("local HEAD (" + local_head + ") does not match", result.stdout)
@@ -297,9 +321,10 @@ class DescriptionContextTests(unittest.TestCase):
                 host=host,
             )
 
-            result = fixture.run_helper()
+            result = fixture.run_helper("90")
 
             self.assertEqual(result.returncode, 0, result.stderr)
+            fixture.assert_pr_request(self, f"{host}/example/base")
             self.assertEqual(
                 fixture.repo_selector.read_text(encoding="utf-8").strip(),
                 f"{host}/example/base\n{host}/example/base",
@@ -309,6 +334,123 @@ class DescriptionContextTests(unittest.TestCase):
                 f"{host} repos/example/base/git/ref/heads/main",
             )
             self.assertIn("feature.txt", result.stdout)
+
+    def test_number_without_default_with_multiple_repositories_requires_url(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            fixture = Fixture(Path(raw))
+            fixture.seed_remote(fixture.base, "baseline.txt", "base\n")
+            fixture.make_work_from("origin", "example/base", fixture.base)
+            fixture.add_remote(fixture.work, "upstream", "other/base", fixture.base)
+            fixture.add_gh_stub(
+                base_identity="example/base",
+                head_identity="example/base",
+                base_sha="0" * 40,
+                head_sha="0" * 40,
+            )
+
+            result = fixture.run_helper("90")
+
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertIn("use a PR URL", result.stderr)
+            self.assertFalse(fixture.pr_request.exists())
+
+    def test_url_for_foreign_repository_stops_before_request_even_with_matching_head(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            fixture = Fixture(Path(raw))
+            base_sha = fixture.seed_remote(fixture.base, "baseline.txt", "base\n")
+            head_sha = fixture.make_work_from("origin", "other/base", fixture.base)
+            fixture.add_gh_stub(
+                base_identity="example/base",
+                head_identity="example/fork",
+                base_sha=base_sha,
+                head_sha=head_sha,
+            )
+
+            result = fixture.run_helper("https://github.com/example/base/pull/90")
+
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertIn("no local remote maps to GitHub base repository example/base", result.stderr)
+            self.assertFalse(fixture.pr_request.exists())
+            self.assertNotIn("=== Diff Stat", result.stdout)
+
+    def test_explicit_number_repository_override_must_map_to_checkout(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            fixture = Fixture(Path(raw))
+            base_sha = fixture.seed_remote(fixture.base, "baseline.txt", "base\n")
+            head_sha = fixture.make_work_from("origin", "example/base", fixture.base)
+            fixture.add_gh_stub(
+                base_identity="example/base",
+                head_identity="example/base",
+                base_sha=base_sha,
+                head_sha=head_sha,
+            )
+            fixture.default_repo_url.write_text("https://github.com/other/base\n")
+
+            result = fixture.run_helper("90", repo="github.com/other/base")
+
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertIn("no local remote maps to GitHub base repository other/base", result.stderr)
+            self.assertFalse(fixture.pr_request.exists())
+
+    def test_later_url_for_same_remote_cannot_supply_base_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            fixture = Fixture(Path(raw))
+            base_sha = fixture.seed_remote(fixture.base, "baseline.txt", "base\n")
+            head_sha = fixture.make_work_from("origin", "other/base", fixture.base)
+            fixture.git(
+                fixture.work, "config", "--add", "remote.origin.url",
+                "https://github.com/example/base.git",
+            )
+            fixture.add_gh_stub(
+                base_identity="example/base",
+                head_identity="example/fork",
+                base_sha=base_sha,
+                head_sha=head_sha,
+            )
+
+            result = fixture.run_helper("https://github.com/example/base/pull/90")
+
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertIn("no local remote maps to GitHub base repository example/base", result.stderr)
+            self.assertFalse(fixture.pr_request.exists())
+
+    def test_current_branch_pr_cannot_use_an_unmapped_repository(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            fixture = Fixture(Path(raw))
+            base_sha = fixture.seed_remote(fixture.base, "baseline.txt", "base\n")
+            head_sha = fixture.make_work_from("origin", "other/base", fixture.base)
+            fixture.add_gh_stub(
+                base_identity="example/base",
+                head_identity="example/base",
+                base_sha=base_sha,
+                head_sha=head_sha,
+            )
+
+            result = fixture.run_helper()
+
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertIn("no local remote maps to GitHub base repository example/base", result.stderr)
+            self.assertFalse(fixture.api_request.exists())
+
+    def test_mismatched_returned_url_stops_even_if_other_repo_is_mapped(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            fixture = Fixture(Path(raw))
+            base_sha = fixture.seed_remote(fixture.base, "baseline.txt", "base\n")
+            head_sha = fixture.make_work_from("origin", "other/base", fixture.base)
+            fixture.add_remote(fixture.work, "upstream", "example/base", fixture.base)
+            fixture.add_gh_stub(
+                base_identity="example/base",
+                head_identity="example/base",
+                base_sha=base_sha,
+                head_sha=head_sha,
+            )
+
+            result = fixture.run_helper("https://github.com/other/base/pull/90")
+
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertIn("returned PR URL does not match", result.stderr)
+            self.assertFalse(fixture.api_request.exists())
+            self.assertNotIn("=== Diff Stat", result.stdout)
 
     def test_authoritative_base_advancement_overrides_cached_pr_oid(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

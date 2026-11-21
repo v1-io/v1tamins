@@ -1,7 +1,7 @@
 interface:
   display_name: "Land PR"
-  short_description: "Prepare, monitor, and ready a pull request without merging"
-  default_prompt: "Use $v1-land-pr to take the completed branch through CI and review to a ready-to-review pull request without merging it."
+  short_description: "Open a draft PR or take it through review readiness"
+  default_prompt: "Use $v1-land-pr to commit and push this branch, open or reuse a PR, and take it through CI to ready for review."
 
 policy:
   allow_implicit_invocation: false

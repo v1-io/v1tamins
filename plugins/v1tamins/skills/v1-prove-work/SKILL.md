@@ -1,7 +1,6 @@
 ---
 name: v1-prove-work
-description: Use when explicitly recording browser proof or a demo GIF for a completed UI change. Triggers on "prove work", "record demo", or "visual proof".
-disable-model-invocation: true
+description: Record real browser behavior as a demo GIF or UI evidence. Use for "prove work", "record demo", or "visual proof" of a completed change.
 allowed-tools:
   - Bash
   - Read
@@ -11,7 +10,7 @@ allowed-tools:
 ---
 # Prove Work
 
-Generate an animated GIF showing the result of work done during a session and embed it in a GitHub PR.
+Record a browser interaction as a GIF for review. Save it locally or attach it to a verified GitHub PR when authorized.
 
 ## Recording or explanation
 
@@ -23,7 +22,7 @@ Typical invocations:
 - Claude Code: `/v1-prove-work http://localhost:3000/settings --pr 42`
 - Codex: invoke `v1-prove-work` from the skills menu or use `$v1-prove-work http://localhost:3000/settings --pr 42`
 
-This records a browser interaction with `localhost:3000/settings`, converts the recording to a GIF, uploads it to GitHub, and embeds it in PR #42's `## Demo` section.
+After recording confirmation, this captures the settings interaction and saves a GIF. With publication approval, attach it under `## Demo` on PR #42.
 
 Without arguments, the skill infers the URL from the git diff and auto-detects the PR:
 
@@ -77,7 +76,13 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ROUTE
 If the server is not running (connection refused), tell the user:
 > "Dev server is not running on localhost:3000. Start it and run the `v1-prove-work` skill again."
 
-### Step 2: Select Environment and Check Prerequisites
+### Step 2: Confirm Capture and Check Prerequisites
+
+Before launching any browser, including a headless prerequisite check, or
+taking any capture, get the user's explicit confirmation of the target URL,
+interaction, and intended output. Skill selection, a request for a PR
+description, or an inferred route cannot authorize a browser launch.
+If confirmation is pending, stop after proposing the recording scope.
 
 Do this only after Step 1 establishes a reachable visual target. Backend-only
 and configuration-only changes exit before any environment or package setup.
@@ -190,7 +195,7 @@ calling it proof; successful encoding alone does not establish the behavior.
 
 ### Step 6: Upload and Embed
 
-**If `--no-upload` was specified:** Report the local path and stop.
+**For local-only proof or when publication is unconfirmed:** Report the local path and stop.
 
 **Auto-detect PR number** (if not provided):
 
@@ -198,7 +203,7 @@ calling it proof; successful encoding alone does not establish the behavior.
 gh pr view --json number --jq .number 2>/dev/null
 ```
 
-**If a PR exists**, upload and embed:
+**If upload and PR editing are authorized**, verify the PR URL, base repository, and number before uploading and embedding:
 
 ```bash
 RUN_DIR="<recorded-run-directory>"
@@ -209,7 +214,8 @@ PYTHON="<selected-python>"
   --output "$RUN_DIR/demo.gif" \
   --max-size-mb 10 \
   --upload \
-  --pr PR_NUMBER
+  --repo <verified-host/owner/repo> \
+  --pr <verified-number>
 ```
 
 **If no PR exists**, save locally and report:

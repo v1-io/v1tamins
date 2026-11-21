@@ -1,0 +1,8 @@
+interface:
+  display_name: "Catch Up"
+  short_description: "Show what changed in this session and what needs your attention."
+  default_prompt: "Use $v1-catch-up to show what changed since my last message."
+
+policy:
+  allow_implicit_invocation: true
+  invocation_posture: implicit

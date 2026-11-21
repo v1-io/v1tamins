@@ -1,7 +1,7 @@
 interface:
   display_name: "PR Description"
-  short_description: "Write or update a PR description from the actual diff"
-  default_prompt: "Use $v1-pr-description to write or update this pull request title and body from the actual PR diff, metadata, repo guidance, and validation evidence."
+  short_description: "Write a visual-first PR title and body"
+  default_prompt: "Use $v1-pr-description to draft a title, a short visual summary, before-and-after evidence, and merge danger for this PR."
 
 policy:
   allow_implicit_invocation: true

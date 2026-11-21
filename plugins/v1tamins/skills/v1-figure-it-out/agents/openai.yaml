@@ -1,0 +1,8 @@
+interface:
+  display_name: "Figure It Out"
+  short_description: "Investigate an ambiguous request and prepare a verified answer"
+  default_prompt: "Use $v1-figure-it-out to investigate this and give me a reply or a concrete next move."
+
+policy:
+  allow_implicit_invocation: true
+  invocation_posture: implicit

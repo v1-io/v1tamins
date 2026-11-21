@@ -1,6 +1,6 @@
 interface:
   display_name: "What Next"
-  short_description: "Use current evidence to recommend the next step in the thread or project."
+  short_description: "Verify live state and recommend the highest-leverage next move in the thread or project."
   default_prompt: "Use $v1-what-next to tell me what we should work on next."
 
 policy:

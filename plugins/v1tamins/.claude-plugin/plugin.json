@@ -1,6 +1,6 @@
 {
   "name": "v1tamins",
-  "version": "0.16.0",
+  "version": "0.18.0",
   "description": "Reusable AI development skills and workflow guidance from Version1.",
   "author": {
     "name": "Version1",
@@ -18,8 +18,7 @@
     "agent-consultation",
     "counterpart-review",
     "code-review",
-    "pr-walkthrough",
-    "code-walkthrough",
+    "pr-description",
     "pull-requests",
     "testing",
     "documentation",

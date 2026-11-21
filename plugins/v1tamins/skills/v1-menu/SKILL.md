@@ -13,17 +13,21 @@ You don't remember every v1 skill, so ask. Read the user's situation, then point
 
 Skills marked **(explicit)** never fire autonomously — the user must name them. They are the easiest ones to forget, so surface them whenever they fit.
 
+Use `/v1-catch-up` for a short visual recap of what changed since the user's last message and what needs their attention.
+
 ## Building something new (idea → shipped)
 
 1. `/v1-interview-me` — office-hours questioning to flesh out an idea before planning. Hands off to `/v1-learning-from-customers` when the question is real demand, or `/v1-diagnosing-constraints` when a stuck process is the real problem.
-2. `/v1-prd` — turn the settled idea or ticket into requirements. `/v1-bare-bones` — strip an overscoped plan to the smallest useful version. `/v1-strategy-review` — challenge assumptions and ambition before committing.
+2. `/v1-prd` — turn the settled idea or ticket into requirements. `/v1-bare-bones` — strip an overscoped plan, diff, PR, skill, or architecture to the smallest useful version. `/v1-strategy-review` — challenge assumptions and ambition before committing.
 3. Build: `/v1-implement-unit` **(explicit)** takes one adequately planned ticket through isolated implementation, fresh review-board cycles, and a mergeable PR. For manual work, drive `/v1-write-tests` for new coverage and `/v1-refine` before calling it done.
-4. Ship: `/v1-pr` **(explicit)** (create a draft PR), `/v1-pr-description` (title/body), `/v1-land-pr` **(explicit)** (commit → push → CI → ready for review; never merge), `/v1-prove-work` **(explicit)** (record browser proof for the PR).
+4. Ship: `/v1-land-pr` **(explicit)** commits, pushes, and opens or reuses a
+   PR, then follows CI through review readiness. `/v1-pr-description` writes
+   a visual-first title and body. `/v1-prove-work` records browser evidence
+   after explicit capture confirmation.
 
 ## Reviewing code
 
 - `/v1-deep-review` — review a branch or PR (code, docs, or config) for merge risk and structural maintainability.
-- `/v1-pr-walkthrough` — create a dated self-contained HTML explanation of a PR with Background, Intuition, Code, and interactive Quiz sections.
 - `/v1-review-board` **(explicit)** — propose current peers/models first, wait for a roster, then run a read-only multi-agent ledger.
 - `/v1-address-review` — resolve review comments that already exist.
 - `/v1-phone-a-friend` **(explicit)** — propose one current OAuth-backed counterpart and wait for approval before launching it.
@@ -41,6 +45,7 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 
 ## Research and analysis
 
+- `/v1-figure-it-out` — check the deciding facts behind an ambiguous request or claim and prepare a reply or next move.
 - `/v1-deep-research` — multi-source research report. `/v1-autoresearch-skill` **(explicit)** — autonomous optimize-measure-keep loop against a measurable target.
 - `/v1-learning-from-customers` — demand evidence and discovery. `/v1-testing-prototypes` — user tests for prototypes.
 - `/v1-reviewing-data-graphics` — audit charts and dashboards. `/v1-reviewing-usability` — review a UI or flow for user error.
@@ -49,7 +54,7 @@ Skills marked **(explicit)** never fire autonomously — the user must name them
 
 - `/v1-skin-suit` — draft or lightly edit natural prose for its reader and channel while preserving meaning and requested voice.
 
-- `/v1-stickify` — make copy memorable. `/v1-html-it` — self-contained HTML page or report. `/v1-md2docs` **(explicit)** — markdown to Google Doc.
+- `/v1-stickify` — make copy memorable. `/v1-html-it` — self-contained HTML page, report, or interactive PR walkthrough. `/v1-md2docs` **(explicit)** — markdown to Google Doc.
 - `/v1-explainer-video` — narrated animated explanation of a concept, process, or PR using your available renderer and speech provider.
 - `/v1-docs-freshness` — sync docs after changes.
 

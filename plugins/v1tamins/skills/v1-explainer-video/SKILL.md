@@ -7,7 +7,7 @@ description: Create narrated animated explainers. Use for "make an explainer vid
 
 Produce an understandable video and rebuildable source. Build understanding through visible reasoning, with a visual style suited to the subject. Default to an informed colleague who has not followed the investigation; preserve technical depth when requested.
 
-Use this workflow for a narrated animation, not a screen recording or an interactive HTML walkthrough. A plain "explain this PR" request belongs to `v1-pr-walkthrough`; an explicit video request belongs here.
+Use this workflow for narrated animation. Use `v1-pr-description` for the visual summary in a PR body, `v1-html-it` for a standalone interactive walkthrough, and `v1-prove-work` to record actual browser behavior.
 
 When another skill supplies the context, reuse its audience, question, takeaway, example, source evidence, material caveats, and narration preferences. Resolve only missing details; pass these directly in context without requiring a separate handoff file. Verify freshness when the underlying work has changed.
 
