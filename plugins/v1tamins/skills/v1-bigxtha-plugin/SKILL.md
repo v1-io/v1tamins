@@ -25,7 +25,7 @@ State the operation and stopping point briefly. A request to apply local fixes
 authorizes the necessary reversible work; do not add a generic preview gate.
 Installation, publication, remote Git changes, destructive replacement, and
 peer launches need their own authorization. A successful child step never
-opens `v1-implement-unit`, `v1-review-board`, `v1-pr`, or `v1-land-pr`.
+opens `v1-implement-unit`, `v1-review-board`, or `v1-land-pr`.
 
 Read [source ownership and deployment](../v1-skilling-it/references/sources-and-deployment.md)
 before resolving locations or action boundaries. Record the repository and

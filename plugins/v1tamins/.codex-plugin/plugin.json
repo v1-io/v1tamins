@@ -17,8 +17,7 @@
     "agent-consultation",
     "counterpart-review",
     "code-review",
-    "pr-walkthrough",
-    "code-walkthrough",
+    "pr-description",
     "pull-requests",
     "testing",
     "documentation",
@@ -37,7 +36,7 @@
   "interface": {
     "displayName": "v1tamins",
     "shortDescription": "Reusable AI development skills and workflow guidance.",
-    "longDescription": "v1tamins packages reusable AI development skills for reviewing code, walking through PR diffs, consulting counterpart agents, writing tests, preparing PRs, improving documentation, debugging failures, learning from customers, testing product prototypes, reviewing usability, extracting reusable skills from source material, designing skill-plugin architecture, creating self-contained HTML artifacts, reviewing data graphics, diagnosing constraints, and keeping agent workflows consistent across projects. Plugin-distributed skills use a v1- prefix to avoid collisions with other public skills.",
+    "longDescription": "v1tamins packages reusable AI development skills for reviewing code, writing visual PR descriptions, consulting counterpart agents, writing tests, preparing PRs, improving documentation, debugging failures, learning from customers, testing product prototypes, reviewing usability, extracting reusable skills from source material, designing skill-plugin architecture, creating self-contained HTML artifacts, reviewing data graphics, diagnosing constraints, and keeping agent workflows consistent across projects. Plugin-distributed skills use a v1- prefix to avoid collisions with other public skills.",
     "developerName": "Version1",
     "category": "Coding",
     "capabilities": [
@@ -47,9 +46,9 @@
     ],
     "websiteURL": "https://github.com/v1-io/v1tamins",
     "defaultPrompt": [
-      "/v1-pr prepare this branch",
+      "/v1-land-pr open a draft PR for this branch",
       "/v1-deep-review review this PR for merge risk and maintainability",
-      "/v1-pr-walkthrough explain this PR",
+      "/v1-pr-description draft a visual summary and evidence for this PR",
       "/v1-address-review address PR feedback",
       "/v1-phone-a-friend get a counterpart review",
       "/v1-review-board convene a multi-agent review board on this PR",

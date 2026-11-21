@@ -1,6 +1,6 @@
 ---
 name: v1-land-pr
-description: 'Use when asked to prepare a completed branch for review: commit, push, monitor CI, and remediate feedback without merging. Triggers on "get this PR ready".'
+description: Open a draft PR or get a branch ready for review. Explicit workflow for commit, push, PR creation, CI, and review feedback.
 disable-model-invocation: true
 allowed-tools:
   - Bash
@@ -15,10 +15,10 @@ allowed-tools:
 
 ## Overview
 
-Commit, push, open or reuse a draft pull request, and take it through CI and
-review handoff. Use this command when implementation work is done and the
-next goal is a review-ready pull request with passing CI and fully dispositioned
-feedback. Stop with the PR ready for human review; do not merge it.
+Commit and push the intended changes, open or reuse a pull request, and take
+it through CI and review handoff. Start new PRs as drafts. If the user requests
+a draft only, stop with a verified, described draft. Otherwise continue until
+the PR is ready for human review. Never merge it.
 
 ## Input
 
@@ -40,14 +40,15 @@ through another review cycle. No new state file is required.
 
 1. **Inspect Repository State**
    - Run `git status --short --branch`.
-   - Identify the current branch, changed files, and intended PR base branch.
+   - Identify the current branch, changed files, and intended base and head repositories from the Git remotes and GitHub metadata. In a fork, verify the upstream base and the fork that will receive the push. Use the full PR URL for subsequent PR operations.
+   - Look for an open PR in the base repository. Run `gh pr list --repo <host/owner/repo> --head <branch> --state open --json url,headRefName,headRepository,baseRefName,isDraft`. Filter by the exact head branch and repository that match the intended push destination. Reuse a unique match. Stop if the lookup fails or more than one match remains. If the user requests a draft only and the matching PR is already open for review, report its state before making any changes.
    - Resolve the PR base branch in this order:
      1. Reuse the base branch from an existing PR for the current branch.
      2. Honor an explicit base branch requested by the user.
-     3. Detect the configured repository default branch with `gh repo view --json defaultBranchRef` or `git remote show origin` when it reports a configured HEAD branch.
+     3. Read the default branch of the verified base repository with `gh repo view <host/owner/repo> --json defaultBranchRef` or the configured HEAD of the matching base remote.
      4. If neither source resolves a configured default branch, stop before changing branches, committing, pushing, or creating a PR. Never guess `main`, `master`, or another base branch.
    - Do not assume a staging, release, or environment-specific branch exists. If the base branch cannot be determined, or branch choice has release-routing implications, ask the user before creating the PR.
-   - If the current branch is the resolved base or a protected branch, create a feature branch before committing.
+   - Preserve the current feature branch. For a detached checkout, create a feature branch from the current HEAD without stashing the work. On the default branch, intended base, `main`, `master`, or a protected branch, check for local-only commits against the fetched remote branch before creating a feature branch. Confirm scope before carrying any local-only commits from such a branch. If there is nothing to ship, stop. Follow repository branch naming conventions and preserve uncommitted changes.
    - Do not revert unrelated user changes. Leave unrelated changes unstaged unless the user clearly wants them included.
 
 2. **Commit and Push**
@@ -61,21 +62,19 @@ through another review cycle. No new state file is required.
    - Never force-push. If a push is rejected, stop and report the rejection.
    - Count remediation consistently at every push site, including this step on a resumed run. Initial publication of a clean implementation is not a remediation push; a push containing fixes for already observed check/review failures is, even if those commits were prepared during another review cycle.
    - Before any remediation push, require a known cumulative count below three. At three, stop before publishing pending remediation commits. After a successful remediation push, increment exactly once and retain the updated count before entering monitoring or returning to the caller; do not reinitialize it in the CI loop.
-   - Stage only intended files.
-   - Commit with a concise message that describes the user-visible or operational value.
+   - Stage only intended files and verify the staged diff excludes secrets and unrelated work.
+   - Commit with a concise message that describes the user-visible or operational value. If a commit hook fails, correct the failure and retry without bypassing the hook.
    - Push to the verified head destination and set upstream if needed: `git push -u <head-remote> HEAD:<head-branch>`.
 
-3. **Open a PR**
-   - Reuse an existing PR for the branch when one exists.
-   - Otherwise create one with `gh pr create --draft`.
-   - Keep a new PR in draft state while checks and review feedback are pending.
-   - Pass the resolved base branch explicitly when creating a new PR.
-   - Include a PR body with summary, a walkthrough of the changes, and validation steps taken. Where possible, invoke the **v1-pr-description** skill to generate the PR body.
-   - Capture the PR number or URL with `gh pr view --json number,url,headRefName,baseRefName`.
+3. **Open or Reuse the PR**
+   - Repeat the exact PR lookup for the pushed head, including the branch owner and repository. Only a successful lookup with no matching open PR permits creation. If an existing PR was requested as a draft-only result and is already open for review, report that state without changing it.
+   - For a new PR, use `v1-pr-description` to draft the visual title and body against the verified revisions and PR template. Create it with `gh pr create --repo <host/base-owner/repo> --base <base-branch> --head <head-owner:head-branch> --draft --title "<title>" --body-file <body-file>`. Use the unqualified head branch for a same-repository PR.
+   - Read back the selected PR by URL with `gh pr view <pr-url> --json number,url,baseRefName,headRefName,headRefOid,headRepository,isDraft,title,body`. Verify the target, the pushed head SHA, and the draft state and description for a new PR. Stop if the result cannot be verified. If a reused draft has an empty or stale description, pass its URL to `v1-pr-description` and update it within the user's authorization.
+   - Return now for a draft-only request. Otherwise keep a new PR in draft while checks and review feedback are pending.
 
 4. **Monitor CI & Code Review**
    - Poll checks with `gh pr checks <pr>`.
-   - On every monitoring pass, invoke **v1-address-review** to build a complete review ledger. Do not rely on `gh pr view --json comments,reviews` alone because it does not expose every inline comment, aggregate bot report, check annotation, or review-thread state.
+   - On every monitoring pass, invoke `v1-address-review` to build a complete review ledger. Do not rely on `gh pr view --json comments,reviews` alone because it does not expose every inline comment, aggregate bot report, check annotation, or review-thread state.
    - Inspect every available feedback surface: submitted reviews, line-specific review comments, PR-level issue comments, unresolved review threads, aggregate bot reports or status comments, and feedback or annotations attached to checks.
    - Use a 3 minute timeout per monitoring pass.
    - Treat required checks that are pending or running as wait conditions.
@@ -92,7 +91,7 @@ through another review cycle. No new state file is required.
    - Investigate failing checks from their concrete output before changing code; use the narrowest relevant debugging or review workflow.
    - Reply to every review item, including items that require no code change. Use an inline reply for line comments and a summary reply for aggregate bot reports or PR-level feedback.
    - Resolve every review thread whose finding is fixed, already fixed, duplicate and covered, or confirmed invalid. Leave a thread open only when work is partial or blocked, a reviewer answer is required, or the current code still leaves reasonable ambiguity; record the exact reason in the ledger.
-   - Repeat the monitoring loop. Invoke **v1-address-review** after every remediation push and use **v1-debug** for failing checks as needed.
+   - Repeat the monitoring loop. Invoke `v1-address-review` after every remediation push and use `v1-debug` for failing checks as needed.
    - Stop after three remediation pushes if CI is still failing. Report the failing checks, what was attempted, and the latest PR URL.
 
 6. **Run the Final Review Audit**
@@ -100,7 +99,7 @@ through another review cycle. No new state file is required.
    - Verify that every discovered item has a disposition and reply, every valid or partial item is remediated or explicitly blocked, and every thread eligible for resolution reports `isResolved: true`.
    - Do not mark the PR ready or report review completion while an unaddressed item or resolvable open thread remains.
    - If GitHub API access, pagination, permissions, or tooling prevents a complete audit or thread resolution, fail closed: keep the PR in draft and report the exact blocker. Do not treat an incomplete feedback inventory as zero feedback.
-   - When the final audit passes, mark the PR ready with `gh pr ready <pr>`. Read back `gh pr view <pr> --json number,url,headRefOid,isDraft` and require the returned `headRefOid` to equal the audited head SHA and `isDraft` to be `false`. If the command or readback fails or the head does not match, keep the readiness state unknown and do not claim the PR is ready.
+   - When the final audit passes, mark a draft ready with `gh pr ready <pr-url>`. For a PR already open for review, proceed directly to readback. Require `gh pr view <pr-url> --json number,url,headRefOid,isDraft` to show the audited head SHA and `isDraft: false`. If the command or readback fails or the head does not match, report readiness as unverified.
 
 ## CI Loop
 
@@ -111,7 +110,7 @@ Use three remediation attempts, not three polling attempts:
 while remediation_pushes <= 3:
   monitor checks and all feedback surfaces for up to 3 minutes
   if required checks passed and the final review audit passed:
-    mark the PR ready for review with `gh pr ready <pr>` and verify the current head plus `isDraft: false` by readback
+    mark the PR ready if it is draft, then verify the current head plus `isDraft: false` by readback
     if the user explicitly requested tracker handoff and repository instructions identify a configured tracker:
       update that configured tracker through its documented route and verify readback
     else:
@@ -130,6 +129,9 @@ while remediation_pushes <= 3:
 Do not make speculative fixes without reading the failing check output. If the failure is unrelated to the branch, flaky, or infrastructure-owned, rerun the failed job once if appropriate and report the evidence instead of churning code.
 
 ## Definition of Done
+
+For a draft-only request, verify the PR and draft state at Step 3 and report
+that CI and review follow-through remain pending. For the full workflow:
 
 - All required checks passed, or three remediation pushes were used and the remaining failures were reported without claiming the PR is ready.
 - The final ledger covers all human and automated feedback surfaces against the latest PR head SHA.
