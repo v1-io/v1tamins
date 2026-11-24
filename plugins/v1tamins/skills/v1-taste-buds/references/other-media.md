@@ -36,8 +36,8 @@ review.
 - **What exists:** brand colours, fonts, logo rules, and earlier graphics.
 - **Tasting:** variants side by side in one file.
 - **Floor:** one focal point. Text readable at the smallest size the graphic
-  will be shown at. Clear margins that survive cropping. Real imagery or none;
-  mark any stand-in image as a stand-in.
+  will be shown at. Clear margins that survive cropping. Follow the imagery
+  guidance in step 2 of the skill for sourcing, generation, and stand-ins.
 - **Shipping size:** every size and crop the destination uses.
 
 ## Documents and reports

@@ -83,6 +83,28 @@ state your assumptions at the top of the report and continue.
 Design with the real content, including its worst cases: a long name, an empty
 list, a very large number. Mark any value you had to assume.
 
+For a web page, name what the viewer needs to see or use on the first screen.
+Open task and reference surfaces on the controls, data, or content people came
+for. Use a hero when it helps someone understand an offer or decide what to do.
+When comparing variants, vary what leads while keeping the essential content
+or action easy to find.
+
+### Plan imagery
+
+Use imagery when it shows the subject, explains an idea, or helps set the
+scene. Start with suitable images from the person or project. If none fit, use
+the host's available, authorized image-generation tool to make an original
+photo-style illustration or artwork. Use authentic assets when the page needs
+to show a real product, person, or result accurately.
+
+Before sourcing or generating, choose the image's role, aspect ratio, and
+subject placement for the intended crops. Leave clear space where text will
+overlay it. Use only material authorized for the tool. Follow the project's
+asset conventions. Use project-relative references or embed the image when
+shipping a self-contained file. If generation is unavailable or unsuitable,
+use suitable local artwork or keep the layout clear without an image. Label
+any temporary stand-in.
+
 ## 3. Open look: run a tasting
 
 Read [tasting.md](references/tasting.md) before you build variants. A tasting
@@ -152,6 +174,12 @@ Render the result and view it with the host's browser or screenshot tool at
 about 375 px and 1440 px wide, plus 320 px for overflow. Capture only the
 surface you are working on. Ask before you capture a page that shows another
 person's data.
+
+For whole pages, inspect the first screen and scroll through the later
+sections at normal viewport height on narrow and wide screens. Check that
+sticky UI leaves content visible and the visual hierarchy holds as you scroll.
+Check that each image keeps its subject visible and overlaid text legible at
+the intended crops.
 
 Check in this order: the brief (required content present, main action or
 takeaway findable in seconds), the plan (tokens and layout as committed), then
