@@ -64,10 +64,18 @@ For a read-only Claude check, this is a starting command from the checkout root:
 ```bash
 claude -p --plugin-dir "$PWD/plugins/v1tamins" \
   --setting-sources '' --strict-mcp-config --mcp-config '{"mcpServers":{}}' \
-  --tools 'Read,Glob,Grep,Skill' --permission-mode dontAsk \
+  --tools 'Read,Glob,Grep,Skill' --allowedTools 'Read,Glob,Grep,Skill' \
+  --permission-mode dontAsk \
   --no-session-persistence --output-format stream-json --verbose \
   '/v1tamins:v1-menu Which skill fits reviewing a branch for merge risk? Recommend one skill and a runner-up.' < /dev/null
 ```
+
+`--tools` makes only the listed tools available; `--allowedTools` approves
+them. `dontAsk` denies every tool that is not approved, so keep `Skill` in both
+lists or the runtime selects the skill but cannot load its body. Do not add
+write, shell, or network tools to either list for a read-only check. Confirm in
+the transcript that the `Skill` tool call succeeded, not only that it was
+attempted.
 
 Close stdin for one-shot CLI checks so a launcher script or surrounding input
 cannot enter the model prompt. When launching through a subprocess API, use
