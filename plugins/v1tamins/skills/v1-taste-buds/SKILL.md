@@ -1,6 +1,6 @@
 ---
 name: v1-taste-buds
-description: Use when designing, building, or critiquing frontend UI, pages, components, slides, or diagrams. Triggers on "design this", "make it look better", or "critique this design".
+description: Design, build, restyle, or critique visual work on web UI, slides, diagrams, and graphics. Use for frontend changes such as adding a section, control, or state.
 ---
 
 # Taste Buds
@@ -97,6 +97,11 @@ After you write the variant directions and before you build them, read
 [defaults.md](references/defaults.md) and compare. Where a direction matches a
 listed default on an axis the brief left free, change that axis to something
 this subject justifies.
+
+Before handoff, render each variant at a narrow shipping size and a typical
+size (320 px and desktop for web). Check for clipping and sideways scroll,
+exercise the switcher, and fix failures. If rendering is unavailable, mark
+the preview visually unverified.
 
 Show the preview and stop for the person's pick. Proceed without a reply
 only if the person delegated the choice or the run is explicitly unattended.
