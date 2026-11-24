@@ -199,20 +199,23 @@ Then:
 Use the same investigation and validation steps for both report formats.
 
 Default to a **Diagnosis Brief** for a bug or operational issue with a single
-proven origin. Keep probe logs and tables in working notes and aim for
-**150–220 words** total, including the closing sentence:
+proven origin. Keep probe logs, code quotes, and test outlines in working notes.
+Target **140–190 words** and never exceed **220 words** total (including
+headings and closing line). State each fact once; if required operational or
+action detail cannot fit under 220 words, use `## Debug Summary` instead:
 
 ```markdown
 ## Diagnosis Brief
-**Root cause**: <trigger -> origin -> symptom, plus strongest direct evidence>
-**Ruled out**: <non-obvious disproved suspects, or omit>
-**Fix & cleanup**: <smallest root fix, same-logic sites, obsolete workarounds removed or still to remove, and fix class>
-**Confidence & residual risk**: <high / medium / low with reason, remaining risk, and reopen signal>
+**Root cause**: <1–2 sentences, <= 50 words: trigger -> origin -> symptom + strongest direct check>
+**Fix & cleanup**: <one paragraph, no bullets, <= 65 words: smallest root fix, same-logic sites, obsolete workarounds, post-fix check if applied, and fix class; mark unapplied work as proposed>
+**Confidence & residual risk**: <1–2 sentences, <= 50 words: high/medium/low with reason, remaining risk, and required reopen signal>
 ```
 
-For diagnosis-only work, close the brief (or summary below) with one plain
-sentence naming the exact scope and stop point so the user can reply `go`
-(for an unresolved cause, name the next probe or missing evidence instead).
+Add a one-line `**Ruled out**` field only when a non-obvious exclusion changes
+the fix. For diagnosis-only work, close the brief (or summary below) with one
+short sentence naming the stop point and exact approval scope so the user can
+reply `go` without repeating rationale (for an unresolved cause, name the next
+probe or missing evidence instead).
 
 Use the full **Debug Summary** for multi-factor, unresolved, or high-severity
 incidents, even when a single origin explains a high-severity incident:
