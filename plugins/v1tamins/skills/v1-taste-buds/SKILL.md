@@ -11,8 +11,8 @@ This workflow supplies the process, the options to choose from, and the floor.
 
 Three rules outrank everything below:
 
-1. **What exists wins.** An existing design system, a brand, or the brief's own
-   words override every default and preference in this skill.
+1. **What exists wins.** The project's design system, required brand, and
+   explicit brief set the constraints for this work.
 2. **The person picks the look.** When the look is open, run a tasting and let
    them choose.
 3. **Judge the rendered result.** Look at what was built, at the sizes it ships
@@ -57,6 +57,13 @@ any consistent styling you find. A blank project with no design guidance or
 style to inherit has an open look. A new section, component, or state inherits
 its existing surface. A redesign keeps the content, function, and brand
 commitments while replacing the look.
+
+Check the brief and project for a brand guide, asset folder, or named style
+reference. Carry a required or established brand through every variant unless
+the brief opens the brand decision. For new work with an open look, an
+available brand can be one direction to compare in step 3. If a required
+source is unreadable, ask for a usable copy or permission to proceed without
+it before building.
 
 Name the surface's job. It sets how much expression the surface can carry.
 
@@ -141,6 +148,11 @@ Write a short plan before code:
   ASCII sketch.
 - **Focus:** the one memorable element (Decide), the primary task path (Do), or
   the reading order (Understand).
+
+When applying a brand, note the source, logo and usage rules, colour roles,
+typefaces, and imagery treatment. Mark any inferred choices. Use verified
+assets and report gaps. Check the rendered result against the brand note
+alongside the brief and layout.
 
 Review the plan once against the brief. Revise any part that would suit a
 similar project unchanged. Put the expression in one element and keep

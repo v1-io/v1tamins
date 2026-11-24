@@ -14,6 +14,14 @@ suits the subject. Take each direction from the subject's own world: its
 materials, its trade, the words its audience uses, the real product. A style
 picked from a catalogue fits any subject and therefore none.
 
+When branding is an open choice and a usable source exists, offer one branded
+direction and one independently styled direction within the same tasting.
+Name the source and show how the palette, type, imagery, and any permitted logo
+shape that option. Use actual logo assets and colour values from the source.
+If the source is a style reference, borrow its relevant visual traits and use
+assets the project is allowed to use. Label any proposed new identity as a
+concept. When the brand is required, vary the composition within it.
+
 Give each variant a different lead so they cannot converge:
 
 - one led by **type** (the words carry the surface),
@@ -63,8 +71,8 @@ part of any design.
 ## 4. Hand over and stop
 
 Tell the person how to open the tasting in one step: one command or one file.
-List the variants with their one-line directions. Ask which they pick, and say
-that they can combine parts.
+List the variants with their one-line directions and any brand choices they
+represent. Ask which they pick, and say that they can combine parts.
 
 Then stop for their pick. If the person delegated the choice or the run is
 explicitly unattended, follow the continuation rule in step 3 of the skill.
