@@ -19,7 +19,7 @@ Use `/v1-catch-up` for a short visual recap of what changed since the user's las
 
 1. `/v1-interview-me` — office-hours questioning to flesh out an idea before planning. Hands off to `/v1-learning-from-customers` when the question is real demand, or `/v1-diagnosing-constraints` when a stuck process is the real problem.
 2. `/v1-prd` — turn the settled idea or ticket into requirements. `/v1-bare-bones` — strip an overscoped plan, diff, PR, skill, or architecture to the smallest useful version. `/v1-strategy-review` — challenge assumptions and ambition before committing.
-3. Build: `/v1-implement-unit` **(explicit)** takes one adequately planned ticket through isolated implementation, fresh review-board cycles, and a mergeable PR. For manual work, drive `/v1-write-tests` for new coverage and `/v1-refine` before calling it done.
+3. Build: `/v1-implement-unit` **(explicit)** takes one adequately planned ticket through isolated implementation, fresh review-board cycles, and a mergeable PR. For manual work, drive `/v1-write-tests` for new coverage and `/v1-refine` before calling it done. For anything people see (UI, pages, components, slides, diagrams), `/v1-taste-buds` reads the existing design first, offers variants to pick from when the look is open, and can critique without editing.
 4. Ship: `/v1-land-pr` **(explicit)** commits, pushes, and opens or reuses a
    PR, then follows CI through review readiness. `/v1-pr-description` writes
    a visual-first title and body. `/v1-prove-work` records browser evidence
