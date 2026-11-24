@@ -12,7 +12,7 @@
 **Small, reusable skills for healthier AI-assisted development.**
 
 v1tamins is an open-source plugin for [Claude Code](https://claude.ai/code) and
-[Codex](https://openai.com/codex/). It packages 41 focused skills for planning,
+[Codex](https://openai.com/codex/). It packages 42 focused skills for planning,
 debugging, reviewing, shipping, research, documentation, and product work. Use
 one skill for a specific job or combine several into a repeatable workflow.
 
@@ -163,6 +163,7 @@ These common entry points cover much of the day-to-day work:
 | Open a PR or take it through CI to review readiness | [`/v1-land-pr`](plugins/v1tamins/skills/v1-land-pr/SKILL.md) |
 | Write a PR title and visual summary | [`/v1-pr-description`](plugins/v1tamins/skills/v1-pr-description/SKILL.md) |
 | Record UI evidence for a PR | [`/v1-prove-work`](plugins/v1tamins/skills/v1-prove-work/SKILL.md) |
+| Design, restyle, or critique a UI, page, slide, or diagram | [`/v1-taste-buds`](plugins/v1tamins/skills/v1-taste-buds/SKILL.md) |
 | Build a standalone interactive walkthrough | [`/v1-html-it`](plugins/v1tamins/skills/v1-html-it/SKILL.md) |
 | Explain a concept or PR through narrated animation | [`/v1-explainer-video`](plugins/v1tamins/skills/v1-explainer-video/SKILL.md) |
 | Write naturally from notes or improve an existing draft | [`/v1-skin-suit`](plugins/v1tamins/skills/v1-skin-suit/SKILL.md) |
@@ -213,6 +214,7 @@ that matches the job.
 | [`/v1-fix-tests`](plugins/v1tamins/skills/v1-fix-tests/SKILL.md) | A failing test suite needs systematic repair. |
 | [`/v1-write-tests`](plugins/v1tamins/skills/v1-write-tests/SKILL.md) | New or changed behavior needs focused unit tests. |
 | [`/v1-e2e-testing`](plugins/v1tamins/skills/v1-e2e-testing/SKILL.md) | Browser end-to-end tests need implementation or debugging. |
+| [`/v1-taste-buds`](plugins/v1tamins/skills/v1-taste-buds/SKILL.md) | A UI, page, component, slide, or diagram needs designing, restyling, or a visual critique, with variants to pick from when the look is open. |
 
 </details>
 
@@ -283,6 +285,14 @@ Every skill declares one invocation posture:
 | `implicit` | The runtime may select and invoke it for ordinary local work. |
 | `selective_implicit` | The runtime may select it, but costly or high-impact actions remain separately gated. |
 | `explicit_only` | A human or named automation must invoke it directly. |
+
+A description does not select a skill every time. To load one reliably for a
+kind of work, add a routing line to your own agent instructions (`AGENTS.md`
+or `CLAUDE.md`). For example:
+
+```markdown
+- Visual design, UI, or frontend work: load `v1-taste-buds` before the first visual decision.
+```
 
 There is no supported `agent-only` posture. Parent workflows such as
 `/v1-implement-unit`, `/v1-review-board`, and `/v1-land-pr` stay
