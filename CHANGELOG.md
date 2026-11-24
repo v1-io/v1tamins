@@ -1,5 +1,11 @@
 # v1tamins
 
+## 0.18.3
+
+### Patch Changes
+
+- 1217c57: Tighten the `v1-debug` Diagnosis Brief structure with per-field word budgets so single-origin diagnoses stay within the 220-word cap without dropping required causal evidence, approval scope, or reopen signals.
+
 ## 0.18.2
 
 ### Patch Changes
